@@ -1,4 +1,4 @@
-# Sistema de Gestão - Danilo Detailer (Lava Jato & Estética Automotiva)
+# Sistema de Gestão MultiPlataforma
 
 Sistema completo de CRM, gestão operacional e controle financeiro desenvolvido especificamente para centros de estética automotiva e lava-jatos. Criado para proporcionar uma operação ágil, moderna, fluida e 100% livre de papel ou planilhas manuais.
 
