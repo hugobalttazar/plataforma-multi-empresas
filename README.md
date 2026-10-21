@@ -2,7 +2,7 @@
 
 Sistema completo de CRM, gestão operacional e controle financeiro desenvolvido especificamente para centros de estética automotiva e lava-jatos. Criado para proporcionar uma operação ágil, moderna, fluida e 100% livre de papel ou planilhas manuais.
 
-🔗 **Link de Acesso (Preview):** [https://hotellimabravo.github.io/plataforma-multi-empresas/](https://hotellimabravo.github.io/plataforma-multi-empresas/)
+🔗 **Link de Acesso (Preview):** [https://hotellimabravo.github.io/plataforma-multi-empresas/](https://hugobalttazar.github.io/plataforma-multi-empresas/)
 
 ---
 
