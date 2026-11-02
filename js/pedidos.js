@@ -358,12 +358,13 @@ function renderizarTabelas() {
 			</tr>
 		`;
 	} else {
+		const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
 		// Mostrar mais recentes primeiro
 		[...pedidosPatio].reverse().forEach((p) => {
 			const corObj = obterCorVeiculo(p.cor);
 			const tr = document.createElement('tr');
 			const valorFormatado = parseFloat(p.valor || 0).toFixed(2);
-			const modeloTexto = p.modelo ? ` • ${p.modelo}` : '';
+			const modeloTexto = p.modelo ? ` • ${esc(p.modelo)}` : '';
 
 			const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
 			const cliObj = clientes.find(c => c.nome && c.nome.toLowerCase() === (p.cliente || '').toLowerCase());
@@ -374,25 +375,25 @@ function renderizarTabelas() {
 					<div class="veiculo-info-cell">
 						${renderizarIconeCarro(corObj, 32)}
 						<div class="veiculo-meta">
-							<span class="badge-placa">${p.placa || 'SEM PLACA'}</span>
-							<span class="veiculo-cor-nome">${corObj.nome}${modeloTexto}</span>
+							<span class="badge-placa">${esc(p.placa || 'SEM PLACA')}</span>
+							<span class="veiculo-cor-nome">${esc(corObj.nome)}${modeloTexto}</span>
 						</div>
 					</div>
 				</td>
 				<td>
-					<strong>${p.cliente || 'Não identificado'}</strong>
-					${p.operadorNome ? `<small style="display:block; color:var(--text-muted);">👤 Resp: ${p.operadorNome}</small>` : ''}
+					<strong>${esc(p.cliente || 'Não identificado')}</strong>
+					${p.operadorNome ? `<small style="display:block; color:var(--text-muted);">👤 Resp: ${esc(p.operadorNome)}</small>` : ''}
 				</td>
 				<td>
-					<div>${p.data || '-'}</div>
-					<small style="color:var(--text-muted);">${p.horaEntrada ? 'Chegada: ' + p.horaEntrada : ''}</small>
+					<div>${esc(p.data || '-')}</div>
+					<small style="color:var(--text-muted);">${p.horaEntrada ? 'Chegada: ' + esc(p.horaEntrada) : ''}</small>
 				</td>
 				<td>
-					<div>${p.servicos || '-'}</div>
+					<div>${esc(p.servicos || '-')}</div>
 					${p.produtosVendidos && p.produtosVendidos.length > 0 ? `
 						<div style="margin-top:4px;">
 							<span class="badge" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-size:0.75rem;">
-								🛍️ ${p.produtosVendidos.map(pv => `${pv.quantidade || 1}x ${pv.nome}`).join(', ')}
+								🛍️ ${p.produtosVendidos.map(pv => `${pv.quantidade || 1}x ${esc(pv.nome)}`).join(', ')}
 							</span>
 						</div>
 					` : ''}
@@ -432,42 +433,43 @@ function renderizarTabelas() {
 			</tr>
 		`;
 	} else {
+		const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
 		[...pedidosEncerrados].reverse().forEach((p) => {
 			const corObj = obterCorVeiculo(p.cor);
 			const tr = document.createElement('tr');
 			const valorFormatado = parseFloat(p.valor || 0).toFixed(2);
-			const modeloTexto = p.modelo ? ` • ${p.modelo}` : '';
+			const modeloTexto = p.modelo ? ` • ${esc(p.modelo)}` : '';
 			const dataSaida = p.dataEncerramento || p.data || '-';
-			const horaSaida = p.horaEncerramento ? ` às ${p.horaEncerramento}` : '';
+			const horaSaida = p.horaEncerramento ? ` às ${esc(p.horaEncerramento)}` : '';
 
 			tr.innerHTML = `
 				<td>
 					<div class="veiculo-info-cell">
 						${renderizarIconeCarro(corObj, 30)}
 						<div class="veiculo-meta">
-							<span class="badge-placa">${p.placa || 'SEM PLACA'}</span>
-							<span class="veiculo-cor-nome">${corObj.nome}${modeloTexto}</span>
+							<span class="badge-placa">${esc(p.placa || 'SEM PLACA')}</span>
+							<span class="veiculo-cor-nome">${esc(corObj.nome)}${modeloTexto}</span>
 						</div>
 					</div>
 				</td>
-				<td><strong>${p.cliente || 'Não identificado'}</strong></td>
+				<td><strong>${esc(p.cliente || 'Não identificado')}</strong></td>
 				<td>
-					<div>${dataSaida}</div>
+					<div>${esc(dataSaida)}</div>
 					<small style="color:var(--text-muted);">${horaSaida}</small>
 				</td>
 				<td>
-					<div>${p.servicos || '-'}</div>
+					<div>${esc(p.servicos || '-')}</div>
 					${p.produtosVendidos && p.produtosVendidos.length > 0 ? `
 						<div style="margin-top:4px;">
 							<span class="badge" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-size:0.75rem;">
-								🛍️ ${p.produtosVendidos.map(pv => `${pv.quantidade || 1}x ${pv.nome}`).join(', ')}
+								🛍️ ${p.produtosVendidos.map(pv => `${pv.quantidade || 1}x ${esc(pv.nome)}`).join(', ')}
 							</span>
 						</div>
 					` : ''}
 				</td>
 				<td><span class="badge-price">R$ ${valorFormatado}</span></td>
 				<td>
-					<span class="badge badge-payment">${p.formaPagamento || 'Outro'}</span>
+					<span class="badge badge-payment">${esc(p.formaPagamento || 'Outro')}</span>
 				</td>
 				<td style="text-align: center;">
 					<div style="display: inline-flex; align-items: center; gap: 6px;">

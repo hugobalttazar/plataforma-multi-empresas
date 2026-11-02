@@ -142,21 +142,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		clientes.forEach((c, index) => {
 			const tr = document.createElement('tr');
+			const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
 			
 			const tel1Html = c.tel1 
-				? `<strong>${c.tel1}</strong> ${c.wpp1 === '✅' ? '<span class="badge badge-whatsapp">WhatsApp</span>' : ''}` 
+				? `<strong>${esc(c.tel1)}</strong> ${c.wpp1 === '✅' ? '<span class="badge badge-whatsapp">WhatsApp</span>' : ''}` 
 				: '<span style="color:var(--text-muted);">-</span>';
 			const tel2Html = c.tel2 
-				? `${c.tel2} ${c.wpp2 === '✅' ? '<span class="badge badge-whatsapp">WhatsApp</span>' : ''}` 
+				? `${esc(c.tel2)} ${c.wpp2 === '✅' ? '<span class="badge badge-whatsapp">WhatsApp</span>' : ''}` 
 				: '<span style="color:var(--text-muted);">-</span>';
 
 			tr.innerHTML = `
-				<td id="nomeSalvo"><strong>${c.nome || '-'}</strong></td>
+				<td id="nomeSalvo"><strong>${esc(c.nome || '-')}</strong></td>
 				<td id="telefonesSalvos">${tel1Html}</td>
 				<td id="telefone2Salvo">${tel2Html}</td>
-				<td id="enderecoSalvo">${c.endereco || '<span style="color:var(--text-muted);">-</span>'}</td>
+				<td id="enderecoSalvo">${c.endereco ? esc(c.endereco) : '<span style="color:var(--text-muted);">-</span>'}</td>
 				<td style="text-align: center;">
-					<a class="btn btn-secondary btn-sm" href="historico.html?cliente=${encodeURIComponent(c.nome)}">
+					<a class="btn btn-secondary btn-sm" href="historico.html?cliente=${encodeURIComponent(c.nome || '')}">
 						📜 Histórico
 					</a>
 				</td>

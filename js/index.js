@@ -19,10 +19,39 @@ document.addEventListener('DOMContentLoaded', () => {
 	const elCarrosPatio = document.getElementById('statCarrosPatio');
 	const elFaturamentoHoje = document.getElementById('statFaturamentoHoje');
 	const elTotalClientes = document.getElementById('statTotalClientes');
+	const elTicketMedio = document.getElementById('statTicketMedio');
 
 	if (elCarrosPatio) elCarrosPatio.textContent = carrosPatio.length;
 	if (elFaturamentoHoje) elFaturamentoHoje.textContent = `R$ ${faturamentoHoje.toFixed(2)}`;
 	if (elTotalClientes) elTotalClientes.textContent = clientes.length;
+
+	// Ticket Médio
+	const concluidosHoje = pedidosEncerrados.filter(p => (p.dataEncerramento || p.data) === statusHoje.dataAtual);
+	const qtdConcluidos = concluidosHoje.length;
+	const ticketMedio = qtdConcluidos > 0 ? (faturamentoHoje / qtdConcluidos) : (faturamentoHoje > 0 ? faturamentoHoje : 0);
+	if (elTicketMedio) elTicketMedio.textContent = `R$ ${ticketMedio.toFixed(2)}`;
+
+	// Atualiza Mostrador Velocímetro Bento de Metas
+	const metaDiaria = 2000;
+	const percMeta = Math.min(100, Math.round((faturamentoHoje / metaDiaria) * 100));
+	const needleAngle = -90 + (percMeta / 100) * 180; // de -90deg a +90deg
+	const needleEl = document.getElementById('speedometerNeedle');
+	const arcEl = document.getElementById('speedometerArc');
+	const gaugePercentEl = document.getElementById('gaugePercentText');
+
+	if (gaugePercentEl) gaugePercentEl.textContent = `${percMeta}%`;
+	if (needleEl) {
+		setTimeout(() => {
+			needleEl.style.transform = `rotate(${needleAngle}deg)`;
+		}, 150);
+	}
+	if (arcEl) {
+		const arcTotalLength = 251.2;
+		const offset = arcTotalLength - (percMeta / 100) * arcTotalLength;
+		setTimeout(() => {
+			arcEl.style.strokeDashoffset = String(offset);
+		}, 150);
+	}
 
 	// Adapta rótulos e subtítulos do Dashboard ao segmento configurado
 	if (typeof BrandService !== 'undefined') {

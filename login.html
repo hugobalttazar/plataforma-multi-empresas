@@ -13,6 +13,7 @@
 	<meta name="apple-mobile-web-app-capable" content="yes" />
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 	<meta name="apple-mobile-web-app-title" content="Gestão SaaS" />
+	<script src="js/theme-service.js"></script>
 	<script type="module" src="js/auth-service.js"></script>
 	<style>
 		@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
@@ -25,6 +26,49 @@
 			min-height: 100vh;
 			margin: 0;
 			font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+			transition: background 0.25s ease;
+		}
+
+		html[data-theme="dark"] body {
+			background: #090d16;
+			background-image: radial-gradient(ellipse at 15% 0%, rgba(37, 99, 235, 0.16) 0%, transparent 45%),
+			                  radial-gradient(ellipse at 85% 100%, rgba(124, 58, 237, 0.12) 0%, transparent 50%),
+			                  linear-gradient(180deg, #090d16 0%, #0d1322 100%);
+		}
+		html[data-theme="dark"] .login-card {
+			background: rgba(17, 24, 43, 0.92);
+			border: 1px solid rgba(56, 189, 248, 0.25);
+			box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 20px -2px rgba(56, 189, 248, 0.2);
+		}
+		html[data-theme="dark"] .login-title {
+			color: #f8fafc;
+		}
+		html[data-theme="dark"] .login-subtitle {
+			color: #94a3b8;
+		}
+		html[data-theme="dark"] .login-logo {
+			background: #151e33;
+			border: 1px solid rgba(56, 189, 248, 0.3);
+		}
+		html[data-theme="dark"] .form-group label {
+			color: #cbd5e1;
+		}
+		html[data-theme="dark"] .form-group input {
+			background: #101728;
+			border-color: rgba(56, 189, 248, 0.22);
+			color: #f8fafc;
+		}
+		html[data-theme="dark"] .form-group input:focus {
+			border-color: #38bdf8;
+			background: #0b1120;
+			box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25);
+		}
+		html[data-theme="dark"] .btn-login {
+			background: #0284c7;
+			box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+		}
+		html[data-theme="dark"] .btn-login:hover {
+			background: #0369a1;
 		}
 		.login-wrapper {
 		    width: 100%;
@@ -150,6 +194,14 @@
 	</style>
 </head>
 <body>
+	<div style="position: fixed; top: 18px; right: 18px; z-index: 100;">
+		<button type="button" class="theme-toggle-btn" id="themeToggleBtn" onclick="ThemeService.toggleTheme()" title="Alternar entre Modo Claro e Escuro" aria-label="Alternar tema">
+			<span class="theme-toggle-track">
+				<span class="theme-toggle-thumb">☀️</span>
+			</span>
+			<span class="theme-toggle-text">Modo Claro</span>
+		</button>
+	</div>
 	<div class="login-wrapper"><div class="login-card">
 		<div class="login-logo">🛠️</div>
 		<h1 class="login-title">Acesso Restrito</h1>

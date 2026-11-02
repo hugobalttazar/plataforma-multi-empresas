@@ -57,10 +57,11 @@ if (historico.length === 0) {
 		</tr>
 	`;
 } else {
+	const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
 	// Exibir mais recentes primeiro
 	[...historico].reverse().forEach((p) => {
 		const corObj = obterCorVeiculo(p.cor);
-		const modeloTexto = p.modelo ? ` • ${p.modelo}` : '';
+		const modeloTexto = p.modelo ? ` • ${esc(p.modelo)}` : '';
 		const tr = document.createElement('tr');
 		const valorFormatado = parseFloat(p.valor || 0).toFixed(2);
 		const estaAberto = p.status === 'aberto';
@@ -70,12 +71,12 @@ if (historico.length === 0) {
 			: '<span class="badge badge-status badge-status-encerrado">Encerrado</span>';
 
 		const dataTexto = estaAberto
-			? `${p.data || '-'} <small style="color:var(--text-muted);">${p.horaEntrada ? 'às ' + p.horaEntrada : ''}</small>`
-			: `${p.dataEncerramento || p.data || '-'} <small style="color:var(--text-muted);">${p.horaEncerramento ? 'às ' + p.horaEncerramento : ''}</small>`;
+			? `${esc(p.data || '-')} <small style="color:var(--text-muted);">${p.horaEntrada ? 'às ' + esc(p.horaEntrada) : ''}</small>`
+			: `${esc(p.dataEncerramento || p.data || '-')} <small style="color:var(--text-muted);">${p.horaEncerramento ? 'às ' + esc(p.horaEncerramento) : ''}</small>`;
 
 		const pagamentoTexto = estaAberto
 			? '<span style="color:var(--text-muted); font-size:0.85rem;">Aguardando saída</span>'
-			: `<span class="badge badge-payment">${p.formaPagamento || 'Outro'}</span>`;
+			: `<span class="badge badge-payment">${esc(p.formaPagamento || 'Outro')}</span>`;
 
 		const acaoRecibo = estaAberto
 			? '<span style="color:var(--text-muted); font-size:0.8rem;">-</span>'
@@ -86,13 +87,13 @@ if (historico.length === 0) {
 				<div class="veiculo-info-cell">
 					${renderizarIconeCarro(corObj, 28)}
 					<div class="veiculo-meta">
-						<span class="badge-placa">${p.placa || 'SEM PLACA'}</span>
-						<span class="veiculo-cor-nome">${corObj.nome}${modeloTexto}</span>
+						<span class="badge-placa">${esc(p.placa || 'SEM PLACA')}</span>
+						<span class="veiculo-cor-nome">${esc(corObj.nome)}${modeloTexto}</span>
 					</div>
 				</div>
 			</td>
 			<td>${dataTexto}</td>
-			<td>${p.servicos || '-'}</td>
+			<td>${esc(p.servicos || '-')}</td>
 			<td><span class="badge-price">R$ ${valorFormatado}</span></td>
 			<td>${statusBadge}</td>
 			<td>${pagamentoTexto}</td>

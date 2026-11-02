@@ -264,8 +264,9 @@ function renderizarListaAgendamentos() {
 	}
 
 	filtrados.forEach((ag) => {
+		const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
 		const corObj = obterCorVeiculo(ag.cor);
-		const modeloTexto = ag.modelo ? ` • ${ag.modelo}` : '';
+		const modeloTexto = ag.modelo ? ` • ${esc(ag.modelo)}` : '';
 		const tr = document.createElement('tr');
 		
 		let statusBadge = `<span class="badge" style="background:#e0f2fe; color:#0369a1; border-color:#bae6fd;">🕒 Agendado</span>`;
@@ -282,25 +283,25 @@ function renderizarListaAgendamentos() {
 
 		tr.innerHTML = `
 			<td>
-				<div style="font-weight:700; color:var(--text-main); font-size: 0.95rem;">${ag.hora}</div>
+				<div style="font-weight:700; color:var(--text-main); font-size: 0.95rem;">${esc(ag.hora)}</div>
 				<small style="color:var(--text-muted); font-size:0.8rem;">${formatarDataBR(ag.data)} (${ag.duracaoMinutos || 60}m)</small>
 			</td>
 			<td>
 				<div class="veiculo-info-cell">
 					${renderizarIconeCarro(corObj, 26)}
 					<div class="veiculo-meta">
-						<span class="badge-placa">${ag.placa}</span>
-						<span class="veiculo-cor-nome">${corObj.nome}${modeloTexto}</span>
+						<span class="badge-placa">${esc(ag.placa)}</span>
+						<span class="veiculo-cor-nome">${esc(corObj.nome)}${modeloTexto}</span>
 					</div>
 				</div>
 			</td>
 			<td>
-				<div style="font-weight:600; color:var(--text-main);">${ag.clienteNome}</div>
-				<small style="color:var(--text-muted);">${ag.clienteTelefone || 'Sem tel'}</small>
+				<div style="font-weight:600; color:var(--text-main);">${esc(ag.clienteNome)}</div>
+				<small style="color:var(--text-muted);">${esc(ag.clienteTelefone || 'Sem tel')}</small>
 			</td>
 			<td>
-				<div style="font-size:0.88rem; color:var(--text-main); font-weight:500;">${ag.servicos}</div>
-				${ag.observacoes ? `<small style="color:var(--text-muted); display:block; font-style:italic;">Obs: ${ag.observacoes}</small>` : ''}
+				<div style="font-size:0.88rem; color:var(--text-main); font-weight:500;">${esc(ag.servicos)}</div>
+				${ag.observacoes ? `<small style="color:var(--text-muted); display:block; font-style:italic;">Obs: ${esc(ag.observacoes)}</small>` : ''}
 			</td>
 			<td><span class="badge-price">R$ ${parseFloat(ag.valor || 0).toFixed(2)}</span></td>
 			<td>${statusBadge}</td>

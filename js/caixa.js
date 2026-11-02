@@ -169,35 +169,36 @@ function renderizarRecebimentosHoje(dataHoje) {
 	movimentacoes.forEach((m) => {
 		const tr = document.createElement('tr');
 		const valorFormatado = m.valor.toFixed(2);
+		const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
 		
         if (m.tipo === 'entrada') {
             const corObj = obterCorVeiculo(m.cor);
-            const modeloTexto = m.modelo ? ` • ${m.modelo}` : '';
+            const modeloTexto = m.modelo ? ` • ${esc(m.modelo)}` : '';
             tr.innerHTML = `
-                <td><small style="font-weight:600; color:var(--text-muted);">${m.horario}</small></td>
+                <td><small style="font-weight:600; color:var(--text-muted);">${esc(m.horario)}</small></td>
                 <td><span class="badge" style="background: rgba(22,163,74,0.1); color: var(--success); border-color: rgba(22,163,74,0.2);">Entrada (O.S.)</span></td>
                 <td>
-                    <div style="font-weight: 500; font-size: 0.9rem; color: var(--text-main); margin-bottom: 4px;">Cliente: ${m.cliente || 'Não informado'}</div>
-                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px;">Serviços: ${m.descricao || '-'}</div>
+                    <div style="font-weight: 500; font-size: 0.9rem; color: var(--text-main); margin-bottom: 4px;">Cliente: ${esc(m.cliente || 'Não informado')}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px;">Serviços: ${esc(m.descricao || '-')}</div>
                     <div class="veiculo-info-cell">
                         ${renderizarIconeCarro(corObj, 22)}
                         <div class="veiculo-meta">
-                            <span class="badge-placa" style="font-size: 0.65rem;">${m.placa || 'SEM PLACA'}</span>
-                            <span class="veiculo-cor-nome" style="font-size: 0.75rem;">${corObj.nome}${modeloTexto}</span>
+                            <span class="badge-placa" style="font-size: 0.65rem;">${esc(m.placa || 'SEM PLACA')}</span>
+                            <span class="veiculo-cor-nome" style="font-size: 0.75rem;">${esc(corObj.nome)}${modeloTexto}</span>
                         </div>
                     </div>
                 </td>
                 <td><span class="badge-price" style="color: var(--success);">+ R$ ${valorFormatado}</span></td>
-                <td><span class="badge badge-payment">${m.forma}</span></td>
+                <td><span class="badge badge-payment">${esc(m.forma)}</span></td>
                 <td><a href="pedidos.html" class="btn btn-sm btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;">Ver O.S.</a></td>
             `;
         } else {
             tr.innerHTML = `
-                <td><small style="font-weight:600; color:var(--text-muted);">${m.horario}</small></td>
+                <td><small style="font-weight:600; color:var(--text-muted);">${esc(m.horario)}</small></td>
                 <td><span class="badge" style="background: rgba(239,68,68,0.1); color: #ef4444; border-color: rgba(239,68,68,0.2);">Saída / Sangria</span></td>
-                <td><span style="font-weight: 500; font-size: 0.9rem; color: var(--text-main);">${m.descricao}</span></td>
+                <td><span style="font-weight: 500; font-size: 0.9rem; color: var(--text-main);">${esc(m.descricao)}</span></td>
                 <td><span class="badge-price" style="color: #ef4444; background: rgba(239,68,68,0.05);">- R$ ${valorFormatado}</span></td>
-                <td><span class="badge" style="border: 1px solid #d1d5db; color: #4b5563;">${m.forma}</span></td>
+                <td><span class="badge" style="border: 1px solid #d1d5db; color: #4b5563;">${esc(m.forma)}</span></td>
                 <td><button type="button" class="btn btn-sm" style="padding: 4px 8px; font-size: 0.75rem; background: transparent; border: 1px solid #ef4444; color: #ef4444;" onclick="removerSaidaGlobal('${m.id}')">Excluir</button></td>
             `;
         }

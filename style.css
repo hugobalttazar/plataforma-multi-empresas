@@ -1,45 +1,110 @@
 /* ==========================================================================
-   Sistema Lava Jato & Estética Automotiva - Design Responsivo Moderno
+   Titanium Aerospace Bento & Precision Tech Design System
    ========================================================================== */
 
-:root {
-	--primary: #2563eb;
-	--primary-hover: #1d4ed8;
-	--primary-light: #eff6ff;
-	--primary-dark: #1e40af;
+:root,
+html[data-theme="light"] {
+	/* High-Tech Light Mode (Titanium Ceramic & Cobalt Precision) */
+	--primary: #0284c7;
+	--primary-hover: #0369a1;
+	--primary-light: #e0f2fe;
+	--primary-dark: #075985;
+	--primary-glow: rgba(2, 132, 199, 0.25);
+	
+	--accent-tech: #2563eb;
+	--accent-glow: rgba(37, 99, 235, 0.18);
 	
 	--secondary: #475569;
 	--secondary-hover: #334155;
 	
-	--success: #16a34a;
-	--success-light: #f0fdf4;
-	--success-border: #bbf7d0;
+	--success: #059669;
+	--success-light: #ecfdf5;
+	--success-border: #a7f3d0;
+	--success-glow: rgba(5, 150, 105, 0.2);
 	
 	--warning: #d97706;
-	--danger: #dc2626;
-	--danger-light: #fef2f2;
+	--danger: #e11d48;
+	--danger-light: #fff1f2;
 	
 	--bg-body: #f8fafc;
+	--bg-body-gradient: radial-gradient(at 0% 0%, rgba(2, 132, 199, 0.05) 0px, transparent 40%),
+	                    radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.04) 0px, transparent 40%),
+	                    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+	--bg-header: rgba(255, 255, 255, 0.94);
 	--bg-card: #ffffff;
+	--bg-card-subtle: #f8fafc;
 	--bg-surface: #f1f5f9;
+	--bg-input: #ffffff;
 	
 	--text-main: #0f172a;
 	--text-muted: #64748b;
 	--text-light: #94a3b8;
 	
-	--border-color: #e2e8f0;
-	--border-focus: #3b82f6;
+	--border-color: #cbd5e1;
+	--border-subtle: #e2e8f0;
+	--border-tech: rgba(2, 132, 199, 0.4);
+	--border-focus: #0284c7;
 	
 	--radius-sm: 8px;
-	--radius-md: 12px;
-	--radius-lg: 16px;
+	--radius-md: 14px;
+	--radius-lg: 18px;
 	--radius-full: 9999px;
 	
-	--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-	--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-	--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+	--shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+	--shadow-md: 0 4px 18px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+	--shadow-lg: 0 12px 28px -4px rgba(15, 23, 42, 0.1), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
+	--shadow-tech-glow: 0 0 18px -2px rgba(2, 132, 199, 0.18);
 	
-	--font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+	--font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	--font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+html[data-theme="dark"] {
+	/* High-Tech Dark Mode (Titanium Aerospace Dark & Electric Cyan) */
+	--primary: #38bdf8;
+	--primary-hover: #0ea5e9;
+	--primary-light: rgba(56, 189, 248, 0.14);
+	--primary-dark: #7dd3fc;
+	--primary-glow: rgba(56, 189, 248, 0.35);
+	
+	--accent-tech: #818cf8;
+	--accent-glow: rgba(129, 140, 248, 0.3);
+	
+	--secondary: #94a3b8;
+	--secondary-hover: #cbd5e1;
+	
+	--success: #34d399;
+	--success-light: rgba(52, 211, 153, 0.15);
+	--success-border: rgba(52, 211, 153, 0.35);
+	--success-glow: rgba(52, 211, 153, 0.3);
+	
+	--warning: #fbbf24;
+	--danger: #f43f5e;
+	--danger-light: rgba(244, 63, 94, 0.15);
+	
+	--bg-body: #090d16;
+	--bg-body-gradient: radial-gradient(ellipse at 15% 0%, rgba(37, 99, 235, 0.16) 0%, transparent 45%),
+	                    radial-gradient(ellipse at 85% 100%, rgba(124, 58, 237, 0.12) 0%, transparent 50%),
+	                    linear-gradient(180deg, #090d16 0%, #0d1322 100%);
+	--bg-header: rgba(13, 19, 34, 0.92);
+	--bg-card: rgba(17, 24, 43, 0.88);
+	--bg-card-subtle: rgba(22, 31, 56, 0.7);
+	--bg-surface: #151e33;
+	--bg-input: #101728;
+	
+	--text-main: #f8fafc;
+	--text-muted: #94a3b8;
+	--text-light: #64748b;
+	
+	--border-color: rgba(56, 189, 248, 0.22);
+	--border-subtle: rgba(255, 255, 255, 0.08);
+	--border-tech: rgba(56, 189, 248, 0.5);
+	--border-focus: #38bdf8;
+	
+	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+	--shadow-md: 0 6px 20px -2px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(56, 189, 248, 0.15);
+	--shadow-lg: 0 16px 36px -4px rgba(0, 0, 0, 0.8), 0 0 24px -2px rgba(56, 189, 248, 0.2);
+	--shadow-tech-glow: 0 0 24px -2px rgba(56, 189, 248, 0.35);
 }
 
 *, *::before, *::after {
@@ -51,6 +116,8 @@
 body {
 	font-family: var(--font-sans);
 	background-color: var(--bg-body);
+	background-image: var(--bg-body-gradient);
+	background-attachment: fixed;
 	color: var(--text-main);
 	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
@@ -58,17 +125,22 @@ body {
 	min-height: 100vh;
 	display: flex;
 	flex-direction: column;
+	transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* ==========================================================================
    Header & Navbar
    ========================================================================== */
 .site-header {
-	background: #ffffff;
-	box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+	background: var(--bg-header);
+	backdrop-filter: blur(14px);
+	-webkit-backdrop-filter: blur(14px);
+	box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+	border-bottom: 1px solid var(--border-color);
 	position: sticky;
 	top: 0;
 	z-index: 100;
+	transition: background 0.25s ease, border-color 0.25s ease;
 }
 
 .header-inner {
@@ -124,8 +196,87 @@ body {
 	order: 2;
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 10px;
 	margin-bottom: 12px;
+}
+
+/* ==========================================================================
+   Titanium Aerospace Theme Toggle Button
+   ========================================================================== */
+.theme-toggle-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 12px;
+	background: var(--bg-surface);
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-full);
+	color: var(--text-main);
+	font-size: 0.82rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+	box-shadow: var(--shadow-sm);
+	user-select: none;
+	outline: none;
+}
+
+.theme-toggle-btn:hover {
+	border-color: var(--primary);
+	box-shadow: var(--shadow-tech-glow);
+	transform: translateY(-1px);
+}
+
+.theme-toggle-track {
+	display: inline-flex;
+	align-items: center;
+	width: 38px;
+	height: 22px;
+	background: var(--border-color);
+	border-radius: var(--radius-full);
+	padding: 2px;
+	transition: all 0.25s ease;
+	position: relative;
+}
+
+.theme-toggle-thumb {
+	width: 18px;
+	height: 18px;
+	background: #ffffff;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 11px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+	transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s;
+	transform: translateX(0);
+}
+
+html[data-theme="dark"] .theme-toggle-track {
+	background: linear-gradient(135deg, #0284c7, #6366f1);
+}
+
+html[data-theme="dark"] .theme-toggle-thumb {
+	transform: translateX(16px);
+	background: #0f172a;
+	color: #f8fafc;
+}
+
+.theme-toggle-text {
+	display: inline-block;
+	white-space: nowrap;
+	font-size: 0.8rem;
+	letter-spacing: -0.01em;
+}
+
+@media (max-width: 480px) {
+	.theme-toggle-text {
+		display: none;
+	}
+	.theme-toggle-btn {
+		padding: 5px 8px;
+	}
 }
 
 .navbar {
@@ -447,7 +598,123 @@ body {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 	gap: 16px;
-	margin-bottom: 28px;
+	margin-bottom: 24px;
+}
+
+/* ==========================================================================
+   Titanium Aerospace Bento Layout & Telemetry Components
+   ========================================================================== */
+.bento-hero-grid {
+	display: grid;
+	grid-template-columns: 1fr 340px;
+	gap: 18px;
+	margin-bottom: 24px;
+}
+
+@media (max-width: 960px) {
+	.bento-hero-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+.bento-card {
+	background: var(--bg-card);
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-md);
+	padding: 22px;
+	box-shadow: var(--shadow-sm);
+	position: relative;
+	overflow: hidden;
+	transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+}
+
+.bento-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 2px;
+	background: linear-gradient(90deg, transparent, var(--border-tech), transparent);
+	opacity: 0.9;
+}
+
+.bento-card:hover {
+	border-color: var(--border-tech);
+	box-shadow: var(--shadow-tech-glow);
+	transform: translateY(-2px);
+}
+
+.bento-speedometer-box {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	padding: 8px 0;
+}
+
+.speedometer-svg {
+	width: 210px;
+	height: 120px;
+	overflow: visible;
+}
+
+.speedometer-needle {
+	transition: transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+	transform-origin: 100px 95px;
+}
+
+.speedometer-meta-text {
+	font-size: 0.82rem;
+	color: var(--text-muted);
+	font-weight: 500;
+	margin-top: 6px;
+}
+
+.speedometer-value-text {
+	font-size: 1.35rem;
+	font-weight: 800;
+	color: var(--text-main);
+	letter-spacing: -0.02em;
+}
+
+.pulse-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	background: var(--primary-light);
+	color: var(--primary);
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-full);
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.pulse-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background-color: var(--success);
+	box-shadow: 0 0 0 0 var(--success-glow);
+	animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+	0% {
+		box-shadow: 0 0 0 0 var(--success-glow);
+	}
+	70% {
+		box-shadow: 0 0 0 8px transparent;
+	}
+	100% {
+		box-shadow: 0 0 0 0 transparent;
+	}
 }
 
 .stat-card {
@@ -459,12 +726,28 @@ body {
 	display: flex;
 	align-items: center;
 	gap: 16px;
-	transition: transform 0.2s, box-shadow 0.2s;
+	transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s, border-color 0.25s;
+	position: relative;
+	overflow: hidden;
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+}
+
+.stat-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 2px;
+	background: linear-gradient(90deg, transparent, var(--border-tech), transparent);
+	opacity: 0.7;
 }
 
 .stat-card:hover {
 	transform: translateY(-2px);
-	box-shadow: var(--shadow-md);
+	box-shadow: var(--shadow-tech-glow);
+	border-color: var(--border-tech);
 }
 
 .stat-icon {
@@ -476,21 +759,25 @@ body {
 	justify-content: center;
 	font-size: 24px;
 	flex-shrink: 0;
+	border: 1px solid transparent;
 }
 
 .stat-icon.blue {
-	background: #eff6ff;
-	color: #2563eb;
+	background: var(--primary-light);
+	color: var(--primary);
+	border-color: var(--border-color);
 }
 
 .stat-icon.green {
-	background: #f0fdf4;
-	color: #16a34a;
+	background: var(--success-light);
+	color: var(--success);
+	border-color: var(--success-border);
 }
 
 .stat-icon.amber {
 	background: #fffbeb;
 	color: #d97706;
+	border-color: #fde68a;
 }
 
 .stat-info {
@@ -499,19 +786,20 @@ body {
 }
 
 .stat-label {
-	font-size: 0.85rem;
-	font-weight: 600;
+	font-size: 0.8rem;
+	font-weight: 700;
 	color: var(--text-muted);
 	text-transform: uppercase;
-	letter-spacing: 0.04em;
+	letter-spacing: 0.05em;
 }
 
 .stat-value {
-	font-size: 1.55rem;
+	font-size: 1.6rem;
 	font-weight: 800;
 	color: var(--text-main);
 	line-height: 1.2;
 	margin-top: 2px;
+	letter-spacing: -0.02em;
 }
 
 /* Quick Navigation / Painel & Quick Actions */
@@ -2859,6 +3147,166 @@ textarea:focus {
 	margin-top: 4px;
 	font-size: 0.68rem;
 	color: #667781;
+}
+
+/* ==========================================================================
+   Titanium Aerospace Dark Mode Deep Component Overrides
+   ========================================================================== */
+
+html[data-theme="dark"] .content-card,
+html[data-theme="dark"] .quick-action-card,
+html[data-theme="dark"] .action-btn,
+html[data-theme="dark"] .settings-shell,
+html[data-theme="dark"] .settings-section-card,
+html[data-theme="dark"] .table-responsive,
+html[data-theme="dark"] .modal-card,
+html[data-theme="dark"] .caixa-dia,
+html[data-theme="dark"] .bento-card {
+	background-color: var(--bg-card);
+	border-color: var(--border-color);
+	color: var(--text-main);
+	box-shadow: var(--shadow-md);
+}
+
+html[data-theme="dark"] .content-card:hover,
+html[data-theme="dark"] .quick-action-card:hover,
+html[data-theme="dark"] .action-btn:hover,
+html[data-theme="dark"] .bento-card:hover {
+	border-color: var(--primary);
+	box-shadow: var(--shadow-tech-glow);
+}
+
+html[data-theme="dark"] .settings-sidebar {
+	background-color: var(--bg-surface);
+	border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .form input,
+html[data-theme="dark"] .form select,
+html[data-theme="dark"] .form textarea,
+html[data-theme="dark"] .whatsapp-textarea {
+	background-color: var(--bg-input);
+	border-color: var(--border-color);
+	color: var(--text-main);
+}
+
+html[data-theme="dark"] .form input:focus,
+html[data-theme="dark"] .form select:focus,
+html[data-theme="dark"] .form textarea:focus {
+	border-color: var(--primary);
+	background-color: #0b1120;
+	box-shadow: 0 0 0 4px var(--primary-glow);
+}
+
+html[data-theme="dark"] .tabela th {
+	background-color: var(--bg-surface);
+	color: var(--text-muted);
+	border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .tabela td {
+	border-color: var(--border-subtle);
+	color: var(--text-main);
+}
+
+html[data-theme="dark"] .tabela tbody tr:hover {
+	background-color: rgba(56, 189, 248, 0.05);
+}
+
+html[data-theme="dark"] .btn-secondary {
+	background-color: var(--bg-surface);
+	color: var(--text-main);
+	border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .btn-secondary:hover {
+	background-color: rgba(56, 189, 248, 0.15);
+	border-color: var(--primary);
+	color: var(--primary-dark);
+}
+
+html[data-theme="dark"] .badge-payment {
+	background-color: var(--bg-surface);
+	color: #cbd5e1;
+	border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .badge-price {
+	color: var(--primary);
+}
+
+html[data-theme="dark"] .badge-placa {
+	background: #0f172a;
+	color: #f8fafc;
+	border-color: var(--primary);
+	box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
+html[data-theme="dark"] .modal-header,
+html[data-theme="dark"] .modal-footer {
+	background-color: var(--bg-surface);
+	border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .excel-dropzone {
+	background-color: var(--bg-surface);
+	border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .sugestoes {
+	background-color: var(--bg-card);
+	border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .sugestaoItem {
+	border-color: var(--border-subtle);
+	color: var(--text-main);
+}
+
+html[data-theme="dark"] .sugestaoItem:hover {
+	background-color: var(--primary-light);
+	color: var(--primary);
+}
+
+html[data-theme="dark"] .navbar a {
+	color: var(--secondary);
+}
+
+html[data-theme="dark"] .navbar a:hover {
+	color: var(--primary);
+	background: var(--bg-surface);
+	border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .navbar a.active {
+	background-color: var(--primary);
+	color: #090d16;
+	border-color: var(--primary);
+	box-shadow: 0 0 16px var(--primary-glow);
+}
+
+html[data-theme="dark"] .btn-settings-gear {
+	background: var(--bg-surface);
+	border-color: var(--border-color);
+	color: var(--text-main);
+}
+
+html[data-theme="dark"] .btn-settings-gear:hover {
+	background: var(--primary-light);
+	color: var(--primary);
+	border-color: var(--primary);
+}
+
+html[data-theme="dark"] .tag-chip {
+	background: var(--bg-surface);
+	border-color: var(--border-color);
+	color: var(--text-main);
+}
+
+html[data-theme="dark"] .tag-chip:hover {
+	background: var(--primary-light);
+	border-color: var(--primary);
+	color: var(--primary);
 }
 
 
