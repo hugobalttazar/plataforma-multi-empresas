@@ -51,40 +51,57 @@ const BrandService = {
 		}
 	},
 
-	// Retorna a configuração atual com fallback para o padrão
+	// Retorna a empresa ativa selecionada no sistema (ou tenant atual)
+	getEmpresaAtivaInfo: function () {
+		try {
+			if (typeof window !== 'undefined' && window.EmpresaService && typeof window.EmpresaService.getEmpresaAtiva === 'function') {
+				const emp = window.EmpresaService.getEmpresaAtiva();
+				if (emp && emp.id) return emp;
+			}
+			const activeId = localStorage.getItem('master_active_empresaId');
+			const raw = localStorage.getItem('empresas_cadastradas');
+			if (raw) {
+				const list = JSON.parse(raw);
+				if (Array.isArray(list)) {
+					const found = list.find(e => e.id === activeId);
+					if (found) return found;
+					if (list.length > 0) return list[0];
+				}
+			}
+		} catch (e) {}
+		return null;
+	},
+
+	// Retorna a configuração atual com fallback inteligente para a empresa ativa
 	getConfig: function () {
+		let config = {};
 		try {
 			const salvo = localStorage.getItem(this.STORAGE_KEY);
 			if (salvo) {
-				const config = JSON.parse(salvo);
-				if (config && typeof config === 'object') {
-					return {
-						nomeEstabelecimento: config.nomeEstabelecimento || '',
-						razaoSocial: config.razaoSocial || '',
-						cnpj: config.cnpj || '',
-						tipoNegocio: config.tipoNegocio || 'geral',
-						tipoNegocioCustom: config.tipoNegocioCustom || '',
-						telefone: config.telefone || '',
-						endereco: config.endereco || '',
-						responsavel: config.responsavel || '',
-						iconeCustom: config.iconeCustom || ''
-					};
+				const parsed = JSON.parse(salvo);
+				if (parsed && typeof parsed === 'object') {
+					config = parsed;
 				}
 			}
 		} catch (e) {
 			console.error('Erro ao ler config_negocio:', e);
 		}
 
+		const empresa = this.getEmpresaAtivaInfo();
+		const nomePadrao = (empresa && empresa.nome) ? empresa.nome : '';
+		const tipoPadrao = (empresa && empresa.tipoNegocio) ? empresa.tipoNegocio : 'geral';
+		const iconePadrao = (empresa && empresa.icone) ? empresa.icone : '';
+
 		return {
-			nomeEstabelecimento: '',
-			razaoSocial: '',
-			cnpj: '',
-			tipoNegocio: 'geral',
-			tipoNegocioCustom: '',
-			telefone: '',
-			endereco: '',
-			responsavel: '',
-			iconeCustom: ''
+			nomeEstabelecimento: (config.nomeEstabelecimento && config.nomeEstabelecimento.trim()) ? config.nomeEstabelecimento.trim() : nomePadrao,
+			razaoSocial: config.razaoSocial || (empresa ? empresa.nome : ''),
+			cnpj: config.cnpj || '',
+			tipoNegocio: config.tipoNegocio || tipoPadrao,
+			tipoNegocioCustom: config.tipoNegocioCustom || '',
+			telefone: config.telefone || (empresa ? (empresa.telefone || '') : ''),
+			endereco: config.endereco || '',
+			responsavel: config.responsavel || (empresa ? (empresa.adminNome || '') : ''),
+			iconeCustom: config.iconeCustom || iconePadrao
 		};
 	},
 
@@ -102,21 +119,34 @@ const BrandService = {
 		return novaConfig;
 	},
 
-	// Obtém o título do segmento e o ícone correspondente
+	// Obtém o título do negócio e o ícone correspondente
 	getInfoVisual: function (config) {
 		const cfg = config || this.getConfig();
+		const empresa = this.getEmpresaAtivaInfo();
 		const infoTipo = this.TIPOS_NEGOCIO[cfg.tipoNegocio] || this.TIPOS_NEGOCIO['geral'];
 
-		let tituloNegocio = infoTipo.tituloPadrao;
-		if (cfg.tipoNegocioCustom && cfg.tipoNegocioCustom.trim().length > 0) {
-			tituloNegocio = cfg.tipoNegocioCustom.trim().toUpperCase();
+		// O Nome da Empresa é o título principal com máximo destaque
+		let nomeExibicao = cfg.nomeEstabelecimento;
+		if (!nomeExibicao && empresa && empresa.nome) {
+			nomeExibicao = empresa.nome;
+		}
+		if (!nomeExibicao || !nomeExibicao.trim()) {
+			nomeExibicao = infoTipo.tituloPadrao;
 		}
 
-		let icone = cfg.iconeCustom || infoTipo.icone;
+		// Subtítulo descritivo do segmento de atuação
+		let subtitulo = infoTipo.nome;
+		if (cfg.tipoNegocioCustom && cfg.tipoNegocioCustom.trim()) {
+			subtitulo = cfg.tipoNegocioCustom.trim();
+		} else if (empresa && empresa.tipoNegocio && this.TIPOS_NEGOCIO[empresa.tipoNegocio]) {
+			subtitulo = this.TIPOS_NEGOCIO[empresa.tipoNegocio].nome;
+		}
+
+		let icone = cfg.iconeCustom || (empresa ? empresa.icone : '') || infoTipo.icone;
 
 		return {
-			titulo: tituloNegocio,
-			subtitulo: (cfg.nomeEstabelecimento && cfg.nomeEstabelecimento.trim()) ? cfg.nomeEstabelecimento.trim() : 'SEU NEGÓCIO',
+			titulo: nomeExibicao.toUpperCase(),
+			subtitulo: subtitulo,
 			icone: icone,
 			infoTipo: infoTipo
 		};

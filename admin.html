@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+		<title>Painel do Administrador Master | Gestão SaaS</title>
+		<link rel="stylesheet" href="style.css" />
+		<link rel="manifest" href="manifest.json" />
+		<link rel="icon" type="image/svg+xml" href="icon.svg" />
+		<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+		<meta name="theme-color" content="#0f172a" />
+		<meta name="mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<meta name="apple-mobile-web-app-title" content="Painel Master" />
+		<script src="js/theme-service.js"></script>
+		<script src="js/ui-feedback.js"></script>
+		<script type="module" src="js/auth-service.js"></script>
+	</head>
+	<body>
+		<!-- Header Exclusivo Master -->
+		<header class="site-header">
+			<div class="header-inner">
+				<a href="admin.html" class="brand-wrapper">
+					<div class="brand-logo" style="background: linear-gradient(135deg, #0284c7, #6366f1);">🛡️</div>
+					<div class="brand-title">
+						<span>PAINEL DO ADMINISTRADOR MASTER</span>
+						<span class="brand-subtitle">PLATAFORMA SAAS • GOVERNANÇA MULTI-TENANT</span>
+					</div>
+				</a>
+				<div class="header-actions">
+					<span class="badge" style="background: var(--primary-light); color: var(--primary); font-family: var(--font-mono); font-size: 0.8rem; padding: 6px 12px;">
+						👑 MASTER GLOBAL
+					</span>
+					<button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Alternar entre Modo Claro e Escuro" aria-label="Alternar tema de interface">
+						<span class="theme-toggle-track">
+							<span class="theme-toggle-thumb">☀️</span>
+						</span>
+						<span class="theme-toggle-text">Modo Claro</span>
+					</button>
+					<button type="button" class="btn btn-secondary btn-sm" title="Bloquear e Sair do Sistema" onclick="AuthService.logout()" style="display: inline-flex; align-items: center; gap: 4px;">
+						🔒 Sair
+					</button>
+				</div>
+			</div>
+		</header>
+
+		<!-- Main Container -->
+		<main class="container">
+			<!-- Header da Página -->
+			<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+				<div>
+					<h1 class="page-title">Centro de Controle da Plataforma</h1>
+					<p class="page-subtitle">Configure novas empresas clientes, gerencie operadores e mantenha o isolamento seguro de dados</p>
+				</div>
+				<div style="display: flex; gap: 8px; flex-wrap: wrap;">
+					<button type="button" class="btn" id="btnAbrirModalEmpresa" style="background-color: var(--primary); color: #fff;">
+						➕ Nova Empresa
+					</button>
+					<button type="button" class="btn btn-secondary" id="btnAbrirModalUsuario">
+						👤 Incluir Usuário
+					</button>
+				</div>
+			</div>
+
+			<!-- Banner de Segurança e Privacidade -->
+			<div class="db-status-banner" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 24px;">
+				<span class="db-status-icon">🛡️</span>
+				<div class="db-status-text">
+					<strong style="color: var(--text-main);">Privacidade e Isolamento de Dados Operacionais Garantidos</strong>
+					<p style="color: var(--text-muted);">
+						Você está no painel de infraestrutura do sistema. Os dados confidenciais inseridos pelos clientes de cada empresa (clientes, histórico, faturamento e ordens de serviço) ficam estritamente isolados em seus respectivos bancos e não são expostos aqui.
+					</p>
+				</div>
+			</div>
+
+			<!-- KPIs da Plataforma Bento -->
+			<div class="dashboard-grid" style="margin-bottom: 28px;">
+				<div class="stat-card">
+					<div class="stat-icon blue">🏢</div>
+					<div class="stat-info">
+						<span class="stat-label">Empresas Cadastradas</span>
+						<span class="stat-value" id="kpiTotalEmpresas">0</span>
+					</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-icon green">👥</div>
+					<div class="stat-info">
+						<span class="stat-label">Usuários no Sistema</span>
+						<span class="stat-value" id="kpiTotalUsuarios">0</span>
+					</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-icon amber">☁️</div>
+					<div class="stat-info">
+						<span class="stat-label">Nuvem Firestore</span>
+						<span class="stat-value" style="font-size: 1.2rem; color: var(--success);" id="kpiStatusBanco">🟢 Online</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- SEÇÃO 1: GESTÃO DE EMPRESAS (TENANTS) -->
+			<div class="content-card" style="margin-bottom: 32px;">
+				<div class="content-card-title">
+					<div style="display: flex; align-items: center; gap: 8px;">
+						<span>🏢 Empresas / Estabelecimentos na Plataforma</span>
+						<span class="badge" id="badgeQtdEmpresas" style="background: var(--primary-light); color: var(--primary);">0</span>
+					</div>
+					<div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+						<input type="text" id="filtroEmpresas" placeholder="🔍 Filtrar empresas..." style="padding: 6px 12px; font-size: 0.85rem; border: 1px solid var(--border-color); border-radius: 8px; width: 220px; background: var(--bg-surface); color: var(--text-main);" />
+						<button type="button" class="btn btn-sm" id="btnNovaEmpresaTabela" style="background: var(--primary); color: #fff;">
+							+ Cadastrar Empresa
+						</button>
+					</div>
+				</div>
+
+				<div class="table-responsive">
+					<table class="tabela">
+						<thead>
+							<tr>
+								<th>Empresa & Segmento</th>
+								<th>ID do Tenant</th>
+								<th>Responsável</th>
+								<th>Status</th>
+								<th>Usuários</th>
+								<th style="text-align: center;">Ações</th>
+							</tr>
+						</thead>
+						<tbody id="corpoTabelaEmpresas">
+							<tr>
+								<td colspan="6" class="empty-table-message">Carregando empresas...</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			<!-- SEÇÃO 2: GESTÃO DE USUÁRIOS POR EMPRESA -->
+			<div class="content-card">
+				<div class="content-card-title">
+					<div style="display: flex; align-items: center; gap: 8px;">
+						<span>👥 Usuários e Operadores por Empresa</span>
+						<span class="badge" id="badgeQtdUsuarios" style="background: var(--primary-light); color: var(--primary);">0</span>
+					</div>
+					<div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+						<select id="filtroEmpresaUsuarios" style="padding: 6px 12px; font-size: 0.85rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-surface); color: var(--text-main);">
+							<option value="">Todas as Empresas</option>
+						</select>
+						<button type="button" class="btn btn-sm btn-secondary" id="btnNovoUsuarioTabela">
+							+ Novo Usuário
+						</button>
+					</div>
+				</div>
+
+				<div class="table-responsive">
+					<table class="tabela">
+						<thead>
+							<tr>
+								<th>Nome & Login</th>
+								<th>Empresa Vinculada</th>
+								<th>Tipo de Acesso</th>
+								<th>Permissões</th>
+								<th style="text-align: center;">Ações</th>
+							</tr>
+						</thead>
+						<tbody id="corpoTabelaUsuarios">
+							<tr>
+								<td colspan="5" class="empty-table-message">Carregando usuários...</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</main>
+
+		<!-- MODAL: CADASTRAR NOVA EMPRESA -->
+		<div class="modal-overlay" id="modalNovaEmpresa">
+			<div class="modal-card" style="max-width: 580px;">
+				<div class="modal-header">
+					<h3 id="modalEmpresaTitulo">🏢 Cadastrar Nova Empresa no SaaS</h3>
+					<button type="button" class="modal-close-btn" onclick="fecharModalEmpresa()">&times;</button>
+				</div>
+				<div class="modal-body">
+					<form id="formNovaEmpresa" class="form">
+						<div class="form-group full-width">
+							<label for="empresaNome">Nome da Empresa / Estabelecimento *</label>
+							<input type="text" id="empresaNome" required placeholder="Ex: Centro Automotivo Elite, Barbearia VIP, etc." />
+						</div>
+
+						<div class="form-group">
+							<label for="empresaSegmento">Segmento de Atuação</label>
+							<select id="empresaSegmento">
+								<option value="lava_jato">🚗 Lava Jato / Estética Automotiva</option>
+								<option value="barbearia">💈 Barbearia / Salão</option>
+								<option value="mecanica">🔧 Oficina Mecânica</option>
+								<option value="assistencia">📱 Assistência Técnica</option>
+								<option value="petshop">🐾 Pet Shop / Banho & Tosa</option>
+								<option value="geral">🛠️ Outro Segmento de Serviços</option>
+							</select>
+						</div>
+
+						<div class="form-group">
+							<label for="empresaTelefone">Telefone / WhatsApp</label>
+							<input type="text" id="empresaTelefone" placeholder="(00) 00000-0000" />
+						</div>
+
+						<div class="form-group full-width" style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 6px;">
+							<strong style="display: block; font-size: 0.95rem; color: var(--text-main); margin-bottom: 2px;">
+								👤 Primeiro Acesso do Administrador desta Empresa
+							</strong>
+							<small style="color: var(--text-muted); display: block; margin-bottom: 12px;">
+								Estas serão as credenciais que o proprietário da empresa usará para entrar e configurar o seu negócio.
+							</small>
+						</div>
+
+						<div class="form-group">
+							<label for="empresaAdminNome">Nome do Responsável *</label>
+							<input type="text" id="empresaAdminNome" required placeholder="Nome do gerente ou dono" />
+						</div>
+
+						<div class="form-group">
+							<label for="empresaAdminUser">Usuário de Login *</label>
+							<input type="text" id="empresaAdminUser" required placeholder="Ex: danilo, gerentevip" autocomplete="off" />
+						</div>
+
+						<div class="form-group full-width">
+							<label for="empresaAdminPass">Senha Inicial de Acesso *</label>
+							<input type="password" id="empresaAdminPass" required placeholder="Mínimo 8 dígitos, maiúscula, número e símbolo" autocomplete="new-password" />
+							<small style="color: var(--text-muted); margin-top: 4px; display: block;">
+								Regra de segurança: mín. 8 caracteres, 1 maiúscula, 1 número e 1 símbolo.
+							</small>
+						</div>
+
+						<div id="msgErroEmpresa" class="error-msg" style="grid-column: 1 / -1; display: none;"></div>
+
+						<div class="form-actions" style="margin-top: 16px;">
+							<button type="submit" class="btn" id="btnSalvarEmpresa" style="background-color: var(--primary); color: #fff;">
+								💾 Criar e Ativar Empresa
+							</button>
+							<button type="button" class="btn btn-secondary" onclick="fecharModalEmpresa()">
+								Cancelar
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<!-- MODAL: CADASTRAR NOVO USUÁRIO -->
+		<div class="modal-overlay" id="modalNovoUsuario">
+			<div class="modal-card" style="max-width: 540px;">
+				<div class="modal-header">
+					<h3>👤 Incluir Novo Usuário para Empresa</h3>
+					<button type="button" class="modal-close-btn" onclick="fecharModalUsuario()">&times;</button>
+				</div>
+				<div class="modal-body">
+					<form id="formNovoUsuario" class="form">
+						<div class="form-group full-width">
+							<label for="usuarioEmpresaDestino">Vincular à Empresa *</label>
+							<select id="usuarioEmpresaDestino" required>
+								<option value="">Selecione uma empresa...</option>
+							</select>
+						</div>
+
+						<div class="form-group">
+							<label for="usuarioNome">Nome Completo *</label>
+							<input type="text" id="usuarioNome" required placeholder="Ex: Carlos Oliveira" />
+						</div>
+
+						<div class="form-group">
+							<label for="usuarioLogin">Login de Acesso *</label>
+							<input type="text" id="usuarioLogin" required placeholder="Ex: carlos.lavador" autocomplete="off" />
+						</div>
+
+						<div class="form-group full-width">
+							<label for="usuarioSenha">Senha de Acesso *</label>
+							<input type="password" id="usuarioSenha" required placeholder="Senha segura para o operador" autocomplete="new-password" />
+							<small style="color: var(--text-muted); margin-top: 4px; display: block;">
+								Padrão seguro: mínimo 8 caracteres, maiúscula, número e caractere especial.
+							</small>
+						</div>
+
+						<div class="form-group full-width" style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 6px;">
+							<label style="margin-bottom: 8px;">Permissões de Acesso aos Módulos:</label>
+							<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;">
+								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="agenda" checked /> 📅 Agenda</label>
+								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="pedidos" checked /> 📋 O.S. / Pátio</label>
+								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="caixa" checked /> 💰 Caixa</label>
+								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="estoque" checked /> 📦 Estoque</label>
+								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="clientes" checked /> 👤 Clientes</label>
+								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="servicos" checked /> 🛠️ Serviços</label>
+								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="posvenda" checked /> 🎁 Pós-Venda</label>
+								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="configuracoes" /> ⚙️ Ajustes</label>
+							</div>
+						</div>
+
+						<div id="msgErroUsuario" class="error-msg" style="grid-column: 1 / -1; display: none;"></div>
+
+						<div class="form-actions" style="margin-top: 16px;">
+							<button type="submit" class="btn" id="btnSalvarUsuario" style="background-color: var(--primary); color: #fff;">
+								💾 Salvar Usuário
+							</button>
+							<button type="button" class="btn btn-secondary" onclick="fecharModalUsuario()">
+								Cancelar
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<!-- Scripts de Lógica Master -->
+		<script type="module" src="js/admin.js"></script>
+	</body>
+</html>

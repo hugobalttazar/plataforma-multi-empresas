@@ -112,6 +112,13 @@ const EmpresaService = {
             return;
         }
 
+        const p = window.location.pathname;
+        if (p.includes('admin.html') || p === '/admin' || p.endsWith('/admin/')) {
+            const existing = document.getElementById('masterTenantBar');
+            if (existing) existing.remove();
+            return;
+        }
+
         // Se o Master ainda não tiver empresaId definida ou for 'empresa_master', atribui a ativa
         const activeEmpresa = this.getEmpresaAtiva();
         if (!user.empresaId || user.empresaId === 'empresa_master') {
@@ -136,37 +143,29 @@ const EmpresaService = {
             }
         }
 
-        const empresas = this.getEmpresas();
-        let optionsHtml = empresas.map(emp => {
-            const selected = emp.id === activeEmpresa.id ? 'selected' : '';
-            return `<option value="${emp.id}" ${selected}>${emp.icone || '🏢'} ${emp.nome}</option>`;
-        }).join('');
-
         bar.innerHTML = `
-            <div class="master-tenant-badge" title="Você está logado como Administrador Master do SaaS">
-                <span class="master-crown">👑 MASTER</span>
-                <span class="tenant-label">Empresa Ativa:</span>
-                <select id="selectEmpresaAtivaMaster" class="master-select-tenant" onchange="EmpresaService.trocarEmpresaMaster(this.value)">
-                    ${optionsHtml}
-                </select>
-                <a href="configuracoes.html#empresas" class="btn-manage-tenants" title="Gerenciar e Cadastrar Novas Empresas">
-                    ➕ Gerenciar
+            <div class="master-tenant-badge" title="Você está navegando em modo de teste da empresa. Clique para voltar à administração.">
+                <span class="master-crown">🧪 MODO TESTE</span>
+                <a href="admin.html" class="btn-manage-tenants" title="Retornar ao Painel do Administrador Master">
+                    🛡️ Painel Master
                 </a>
             </div>
         `;
     },
 
-    trocarEmpresaMaster(empresaId) {
+    trocarEmpresaMaster(empresaId, redirectUrl = null) {
         const user = AuthService.getCurrentUser();
         if (!user || !user.isMaster) {
             if (window.UI) window.UI.toast('Apenas o Administrador Master pode alternar entre empresas.', 'error');
-            else alert('Apenas o Administrador Master pode alternar entre empresas.');
+            else if (typeof alert === 'function') alert('Apenas o Administrador Master pode alternar entre empresas.');
             return;
         }
 
         const empresas = this.getEmpresas();
-        const target = empresas.find(e => e.id === empresaId);
-        if (!target) return;
+        let target = empresas.find(e => e.id === empresaId);
+        if (!target) {
+            target = { id: empresaId, nome: empresaId };
+        }
 
         // Atualiza empresa no usuário logado
         user.empresaId = target.id;
@@ -186,8 +185,26 @@ const EmpresaService = {
         ];
         COLS.forEach(key => localStorage.removeItem(key));
 
-        // Recarrega a página para iniciar o FirebaseSync na nova empresa
-        window.location.reload();
+        // Inicializa imediatamente a identidade da empresa para o BrandService exibir o nome correto
+        const configInicial = {
+            nomeEstabelecimento: target.nome,
+            razaoSocial: target.nome,
+            tipoNegocio: target.tipoNegocio || 'geral',
+            telefone: target.telefone || '',
+            responsavel: target.adminNome || '',
+            iconeCustom: target.icone || ''
+        };
+        localStorage.setItem('config_negocio', JSON.stringify(configInicial));
+
+        if (typeof window !== 'undefined' && window.BrandService && typeof window.BrandService.aplicarIdentidadeVisual === 'function') {
+            window.BrandService.aplicarIdentidadeVisual();
+        }
+
+        if (redirectUrl) {
+            window.location.href = redirectUrl;
+        } else {
+            window.location.reload();
+        }
     },
 
     async criarEmpresa({ nome, tipoNegocio, adminNome, adminUsername, adminPassword, telefone }) {

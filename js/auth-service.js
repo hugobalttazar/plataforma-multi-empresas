@@ -715,6 +715,7 @@ const AuthService = {
         const user = this.getCurrentUser();
         const p = window.location.pathname;
         const isLoginPage = p.endsWith('login.html') || p.endsWith('/login') || p === '/login' || p.endsWith('/login/');
+        const isAdminPage = p.endsWith('admin.html') || p.endsWith('/admin') || p === '/admin' || p.endsWith('/admin/');
         
         if (!user && !isLoginPage) {
             window.location.replace('login.html');
@@ -722,6 +723,17 @@ const AuthService = {
         }
         
         if (user && isLoginPage) {
+            if (user.isMaster) {
+                window.location.replace('admin.html');
+            } else {
+                window.location.replace('index.html');
+            }
+            return;
+        }
+
+        if (isAdminPage && (!user || !user.isMaster)) {
+            if (window.UI) window.UI.toast('Acesso restrito ao Administrador Master.', 'error');
+            else alert('Acesso restrito ao Administrador Master.');
             window.location.replace('index.html');
             return;
         }

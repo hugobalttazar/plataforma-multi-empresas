@@ -274,7 +274,12 @@
 			try {
 				const success = await AuthService.login(user, pass);
 				if (success) {
-					window.location.replace('index.html');
+					const currentUser = AuthService.getCurrentUser();
+					if (currentUser && currentUser.isMaster) {
+						window.location.replace('admin.html');
+					} else {
+						window.location.replace('index.html');
+					}
 				} else {
 					errorBox.textContent = 'Usuário ou senha incorretos.';
 					errorBox.style.display = 'block';

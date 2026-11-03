@@ -1604,8 +1604,57 @@ html[data-theme="dark"] .theme-toggle-thumb {
 	}
 }
 
-/* Small smartphone refinements */
+/* Small smartphone refinements (Samsung Galaxy S22, iPhone mini, 360px-480px) */
 @media (max-width: 480px) {
+	.header-inner {
+		padding: 8px 10px 0;
+	}
+	.header-actions {
+		gap: 6px;
+	}
+	.theme-toggle-text {
+		display: none !important;
+	}
+	.theme-toggle-btn {
+		padding: 4px 6px;
+	}
+	.brand-title {
+		font-size: clamp(0.9rem, 3.8vw, 1.05rem);
+	}
+	.brand-subtitle {
+		font-size: 0.65rem;
+	}
+	.master-tenant-bar {
+		margin-right: 4px;
+	}
+	.master-tenant-badge {
+		padding: 3px 6px;
+		gap: 4px;
+	}
+	.btn-manage-tenants {
+		font-size: 0.72rem;
+		padding: 3px 7px;
+	}
+	.master-crown {
+		font-size: 0.68rem;
+		padding: 2px 4px;
+	}
+	.modal-overlay {
+		padding: 8px;
+	}
+	.modal-card {
+		max-height: 92vh;
+		display: flex;
+		flex-direction: column;
+	}
+	.modal-body {
+		padding: 14px 12px;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+	.modal-header {
+		padding: 12px 14px;
+	}
 	.stat-value {
 		font-size: 1.35rem;
 	}
@@ -2294,85 +2343,72 @@ html[data-theme="dark"] .theme-toggle-thumb {
 }
 
 /* ==========================================================================
-   Barra Multi-Tenant Master (SaaS)
+   Barra Multi-Tenant Master (SaaS) - Modo Teste & Retorno Master
    ========================================================================== */
 .master-tenant-bar {
 	display: inline-flex;
 	align-items: center;
-	margin-right: 12px;
+	margin-right: 8px;
 }
 
 .master-tenant-badge {
 	display: inline-flex;
 	align-items: center;
-	gap: 8px;
+	gap: 6px;
 	background: #fffbeb;
 	border: 1px solid #fde68a;
-	padding: 4px 10px;
+	padding: 4px 8px;
 	border-radius: var(--radius-sm);
 	box-shadow: var(--shadow-sm);
+	transition: all 0.2s ease;
+}
+
+html[data-theme="dark"] .master-tenant-badge {
+	background: rgba(245, 158, 11, 0.12);
+	border-color: rgba(245, 158, 11, 0.35);
 }
 
 .master-crown {
-	font-size: 0.78rem;
+	font-size: 0.74rem;
 	font-weight: 700;
 	color: #b45309;
 	background: #fef3c7;
 	padding: 2px 6px;
 	border-radius: 4px;
-	letter-spacing: 0.5px;
+	letter-spacing: 0.4px;
 	white-space: nowrap;
 }
 
-.tenant-label {
-	font-size: 0.8rem;
-	font-weight: 600;
-	color: #92400e;
-	white-space: nowrap;
-}
-
-.master-select-tenant {
-	padding: 4px 8px;
-	font-size: 0.85rem;
-	font-weight: 600;
-	color: #78350f;
-	background: #ffffff;
-	border: 1px solid #d97706;
-	border-radius: 4px;
-	cursor: pointer;
-	outline: none;
-}
-
-.master-select-tenant:focus {
-	border-color: #b45309;
-	box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
+html[data-theme="dark"] .master-crown {
+	color: #fbbf24;
+	background: rgba(245, 158, 11, 0.25);
 }
 
 .btn-manage-tenants {
 	font-size: 0.78rem;
-	font-weight: 600;
-	background: #d97706;
-	color: #ffffff;
+	font-weight: 700;
+	background: linear-gradient(135deg, #0284c7, #2563eb);
+	color: #ffffff !important;
 	text-decoration: none;
-	padding: 3px 8px;
-	border-radius: 4px;
-	transition: background 0.15s ease;
+	padding: 4px 10px;
+	border-radius: 6px;
+	transition: all 0.2s ease;
 	white-space: nowrap;
+	box-shadow: 0 1px 3px rgba(2, 132, 199, 0.3);
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 }
 
 .btn-manage-tenants:hover {
-	background: #b45309;
+	background: linear-gradient(135deg, #0369a1, #1d4ed8);
+	box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+	transform: translateY(-1px);
 }
 
 @media (max-width: 900px) {
 	.master-tenant-bar {
 		margin-right: 6px;
-	}
-	.tenant-label {
-		display: none;
-	}
-	.master-select-tenant {
-		max-width: 140px;
 	}
 }
 

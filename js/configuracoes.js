@@ -11,42 +11,33 @@ document.addEventListener('DOMContentLoaded', () => {
 	mascararCamposNegocio();
 	inicializarStatusFirebaseUI();
 
-	// Habilita aba exclusiva do Master se for administrador
-	const user = window.AuthService ? window.AuthService.getCurrentUser() : null;
-	const tabMaster = document.getElementById('tabNavEmpresasMaster');
-	if (tabMaster && user && user.isMaster) {
-		tabMaster.style.display = 'flex';
-	}
-
 	// Suporte a abertura direta de abas via query string (?aba=equipe) ou hash (#equipe)
 	const urlParams = new URLSearchParams(window.location.search);
 	const abaUrl = urlParams.get('aba');
 	const hashUrl = window.location.hash ? window.location.hash.replace('#', '') : null;
 	const abaDestino = abaUrl || hashUrl;
-	if (abaDestino && ['negocio', 'database', 'usuarios', 'equipe', 'mensagens', 'empresas'].includes(abaDestino)) {
+	if (abaDestino && ['negocio', 'database', 'usuarios', 'equipe', 'mensagens'].includes(abaDestino)) {
 		alternarAbaConfig(abaDestino);
 	}
 });
 
-// Alternância de Abas (Negócio, Database, Usuários, Equipe, Mensagens, Empresas SaaS)
+// Alternância de Abas (Negócio, Database, Usuários, Equipe, Mensagens)
 function alternarAbaConfig(aba) {
 	const tabNegocio = document.getElementById('tabNavNegocio');
 	const tabDatabase = document.getElementById('tabNavDatabase');
 	const tabUsuarios = document.getElementById('tabNavUsuarios');
 	const tabEquipe = document.getElementById('tabNavEquipe');
 	const tabMensagens = document.getElementById('tabNavMensagens');
-	const tabEmpresas = document.getElementById('tabNavEmpresasMaster');
 
 	const conteudoNegocio = document.getElementById('abaConteudoNegocio');
 	const conteudoDatabase = document.getElementById('abaConteudoDatabase');
 	const conteudoUsuarios = document.getElementById('abaConteudoUsuarios');
 	const conteudoEquipe = document.getElementById('abaConteudoEquipe');
 	const conteudoMensagens = document.getElementById('abaConteudoMensagens');
-	const conteudoEmpresas = document.getElementById('abaConteudoEmpresas');
 
 	// Desativa todas
-	[tabNegocio, tabDatabase, tabUsuarios, tabEquipe, tabMensagens, tabEmpresas].forEach(t => t && t.classList.remove('active'));
-	[conteudoNegocio, conteudoDatabase, conteudoUsuarios, conteudoEquipe, conteudoMensagens, conteudoEmpresas].forEach(c => c && (c.style.display = 'none'));
+	[tabNegocio, tabDatabase, tabUsuarios, tabEquipe, tabMensagens].forEach(t => t && t.classList.remove('active'));
+	[conteudoNegocio, conteudoDatabase, conteudoUsuarios, conteudoEquipe, conteudoMensagens].forEach(c => c && (c.style.display = 'none'));
 
 	if (aba === 'negocio') {
 		if (tabNegocio) tabNegocio.classList.add('active');
@@ -75,10 +66,6 @@ function alternarAbaConfig(aba) {
 		if (tabMensagens) tabMensagens.classList.add('active');
 		if (conteudoMensagens) conteudoMensagens.style.display = 'block';
 		carregarFormularioMensagens();
-	} else if (aba === 'empresas') {
-		if (tabEmpresas) tabEmpresas.classList.add('active');
-		if (conteudoEmpresas) conteudoEmpresas.style.display = 'block';
-		renderizarAbaEmpresasMaster();
 	}
 }
 
