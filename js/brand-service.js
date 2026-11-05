@@ -101,7 +101,9 @@ const BrandService = {
 			telefone: config.telefone || (empresa ? (empresa.telefone || '') : ''),
 			endereco: config.endereco || '',
 			responsavel: config.responsavel || (empresa ? (empresa.adminNome || '') : ''),
-			iconeCustom: config.iconeCustom || iconePadrao
+			iconeCustom: config.iconeCustom || iconePadrao,
+			metaMensal: parseFloat(config.metaMensal || 0),
+			diasTrabalhoSemana: Array.isArray(config.diasTrabalhoSemana) ? config.diasTrabalhoSemana : [1, 2, 3, 4, 5, 6] // Padrão: Seg a Sáb
 		};
 	},
 
@@ -117,6 +119,45 @@ const BrandService = {
 		localStorage.setItem(this.STORAGE_KEY, JSON.stringify(novaConfig));
 		this.aplicarIdentidadeVisual();
 		return novaConfig;
+	},
+
+	// Calcula a Meta Diária com base no mês e ano atuais e nos dias de trabalho configurados
+	calcularMetaDiaria: function (config) {
+		const cfg = config || this.getConfig();
+		const metaMensal = parseFloat(cfg.metaMensal || 0);
+		const diasConfig = Array.isArray(cfg.diasTrabalhoSemana) && cfg.diasTrabalhoSemana.length > 0 
+			? cfg.diasTrabalhoSemana 
+			: [1, 2, 3, 4, 5, 6];
+
+		const now = new Date();
+		const ano = now.getFullYear();
+		const mes = now.getMonth(); // 0 a 11
+		const totalDiasNoMes = new Date(ano, mes + 1, 0).getDate();
+
+		// Conta quantos dias do mês atual caem nos dias de expediente da empresa
+		let diasTrabalhoNoMes = 0;
+		for (let dia = 1; dia <= totalDiasNoMes; dia++) {
+			const d = new Date(ano, mes, dia);
+			const diaSemana = d.getDay(); // 0 (Domingo) a 6 (Sábado)
+			if (diasConfig.includes(diaSemana)) {
+				diasTrabalhoNoMes++;
+			}
+		}
+
+		if (diasTrabalhoNoMes === 0) diasTrabalhoNoMes = 26; // Fallback de segurança
+
+		let metaDiaria = 2000; // Valor padrão se a meta mensal não estiver configurada
+		if (metaMensal > 0) {
+			metaDiaria = Math.round((metaMensal / diasTrabalhoNoMes) * 100) / 100;
+		}
+
+		return {
+			metaMensal: metaMensal,
+			diasTrabalhoNoMes: diasTrabalhoNoMes,
+			diasConfig: diasConfig,
+			metaDiaria: metaDiaria,
+			personalizada: metaMensal > 0
+		};
 	},
 
 	// Obtém o título do negócio e o ícone correspondente

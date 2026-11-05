@@ -153,10 +153,74 @@ function carregarFormularioNegocio() {
 		elRowCustom.style.display = (tipoAtual === 'geral') ? 'flex' : 'none';
 	}
 
+	const elMetaMensal = document.getElementById('cfgMetaMensal');
+	if (elMetaMensal) {
+		elMetaMensal.value = config.metaMensal > 0 ? config.metaMensal : '';
+	}
+
+	// Dias de trabalho na semana (0 a 6)
+	const diasAtivos = Array.isArray(config.diasTrabalhoSemana) ? config.diasTrabalhoSemana : [1, 2, 3, 4, 5, 6];
+	const checksDias = document.querySelectorAll('input[name="cfgDiasTrabalho"]');
+	checksDias.forEach(chk => {
+		const val = parseInt(chk.value, 10);
+		chk.checked = diasAtivos.includes(val);
+	});
+
+	// Controle de Visibilidade: O Bloco de configuração de metas só aparece para quem tem permissão
+	const blocoMetas = document.getElementById('blocoConfigMetasExpediente');
+	if (blocoMetas) {
+		const user = window.AuthService ? window.AuthService.getCurrentUser() : null;
+		const podeConfigurarMetas = !user || user.isMaster || user.username === 'admin' || (user.permissoes && user.permissoes.includes('metas'));
+		blocoMetas.style.display = podeConfigurarMetas ? 'block' : 'none';
+	}
+
 	// Atualizar cartões visuais de segmento
 	atualizarCardsSegmentoUI(tipoAtual);
 	atualizarPreviewCabecalho();
+	atualizarCalculoMetaDiariaUI();
 }
+
+function atualizarCalculoMetaDiariaUI() {
+	if (typeof BrandService === 'undefined' || typeof BrandService.calcularMetaDiaria !== 'function') return;
+
+	const elMeta = document.getElementById('cfgMetaMensal');
+	const metaVal = elMeta ? parseFloat(elMeta.value || 0) : 0;
+
+	const checksDias = document.querySelectorAll('input[name="cfgDiasTrabalho"]:checked');
+	const diasSelecionados = Array.from(checksDias).map(c => parseInt(c.value, 10));
+
+	const calculo = BrandService.calcularMetaDiaria({
+		metaMensal: metaVal,
+		diasTrabalhoSemana: diasSelecionados
+	});
+
+	const txtMeta = document.getElementById('txtMetaDiariaCalculada');
+	const txtInfo = document.getElementById('txtDiasTrabalhoMesInfo');
+
+	if (txtMeta) {
+		txtMeta.textContent = `R$ ${calculo.metaDiaria.toFixed(2)} / dia`;
+	}
+	if (txtInfo) {
+		if (calculo.personalizada) {
+			txtInfo.textContent = `Divisão proporcional de R$ ${calculo.metaMensal.toFixed(2)} em ${calculo.diasTrabalhoNoMes} dias de funcionamento este mês`;
+		} else {
+			txtInfo.textContent = `Meta diária padrão (defina um valor mensal para calcular automaticamente)`;
+		}
+	}
+}
+
+// Vincula listeners para recalcular a meta em tempo real ao digitar ou alterar dias
+document.addEventListener('DOMContentLoaded', () => {
+	const elMeta = document.getElementById('cfgMetaMensal');
+	if (elMeta) {
+		elMeta.addEventListener('input', atualizarCalculoMetaDiariaUI);
+	}
+
+	const checksDias = document.querySelectorAll('input[name="cfgDiasTrabalho"]');
+	checksDias.forEach(chk => {
+		chk.addEventListener('change', atualizarCalculoMetaDiariaUI);
+	});
+});
 
 function selecionarSegmentoCard(segmentoKey) {
 	const elTipo = document.getElementById('cfgTipoNegocio');
@@ -243,6 +307,7 @@ function salvarConfiguracaoNegocio(e) {
 	const elTel = document.getElementById('cfgTelefone');
 	const elResp = document.getElementById('cfgResponsavel');
 	const elEnd = document.getElementById('cfgEndereco');
+	const elMeta = document.getElementById('cfgMetaMensal');
 
 	const nomeEstabelecimento = elNome ? elNome.value.trim() : '';
 	if (!nomeEstabelecimento) {
@@ -252,6 +317,9 @@ function salvarConfiguracaoNegocio(e) {
 		return;
 	}
 
+	const checksDias = document.querySelectorAll('input[name="cfgDiasTrabalho"]:checked');
+	const diasSelecionados = Array.from(checksDias).map(chk => parseInt(chk.value, 10));
+
 	const novosDados = {
 		nomeEstabelecimento: nomeEstabelecimento,
 		razaoSocial: elRazao ? elRazao.value.trim() : '',
@@ -260,7 +328,9 @@ function salvarConfiguracaoNegocio(e) {
 		tipoNegocioCustom: elTipoCustom ? elTipoCustom.value.trim() : '',
 		telefone: elTel ? elTel.value.trim() : '',
 		responsavel: elResp ? elResp.value.trim() : '',
-		endereco: elEnd ? elEnd.value.trim() : ''
+		endereco: elEnd ? elEnd.value.trim() : '',
+		metaMensal: elMeta ? parseFloat(elMeta.value || 0) : 0,
+		diasTrabalhoSemana: diasSelecionados.length > 0 ? diasSelecionados : [1, 2, 3, 4, 5, 6]
 	};
 
 	if (typeof BrandService !== 'undefined') {
@@ -277,6 +347,7 @@ function salvarConfiguracaoNegocio(e) {
 	}
 
 	atualizarPreviewCabecalho();
+	atualizarCalculoMetaDiariaUI();
 }
 
 // ==========================================================================

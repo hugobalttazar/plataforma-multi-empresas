@@ -31,26 +31,64 @@ document.addEventListener('DOMContentLoaded', () => {
 	const ticketMedio = qtdConcluidos > 0 ? (faturamentoHoje / qtdConcluidos) : (faturamentoHoje > 0 ? faturamentoHoje : 0);
 	if (elTicketMedio) elTicketMedio.textContent = `R$ ${ticketMedio.toFixed(2)}`;
 
-	// Atualiza Mostrador Velocímetro Bento de Metas
-	const metaDiaria = 2000;
-	const percMeta = Math.min(100, Math.round((faturamentoHoje / metaDiaria) * 100));
-	const needleAngle = -90 + (percMeta / 100) * 180; // de -90deg a +90deg
-	const needleEl = document.getElementById('speedometerNeedle');
-	const arcEl = document.getElementById('speedometerArc');
-	const gaugePercentEl = document.getElementById('gaugePercentText');
+	// --------------------------------------------------------------------------
+	// Controle de Permissão & Mostrador Velocímetro Bento de Metas
+	// --------------------------------------------------------------------------
+	const cardSpeedometer = document.getElementById('cardSpeedometerMetas');
+	const bentoGridPrincipal = document.querySelector('.bento-grid');
 
-	if (gaugePercentEl) gaugePercentEl.textContent = `${percMeta}%`;
-	if (needleEl) {
-		setTimeout(() => {
-			needleEl.style.transform = `rotate(${needleAngle}deg)`;
-		}, 150);
-	}
-	if (arcEl) {
-		const arcTotalLength = 251.2;
-		const offset = arcTotalLength - (percMeta / 100) * arcTotalLength;
-		setTimeout(() => {
-			arcEl.style.strokeDashoffset = String(offset);
-		}, 150);
+	// Verifica se o usuário autenticado possui a permissão 'metas' liberada
+	const userAtual = window.AuthService ? window.AuthService.getCurrentUser() : null;
+	const podeVisualizarMetas = !userAtual || userAtual.isMaster || userAtual.username === 'admin' || (userAtual.permissoes && userAtual.permissoes.includes('metas'));
+
+	if (!podeVisualizarMetas) {
+		if (cardSpeedometer) {
+			cardSpeedometer.style.display = 'none';
+		}
+		if (bentoGridPrincipal) {
+			bentoGridPrincipal.style.gridTemplateColumns = '1fr';
+		}
+	} else {
+		if (cardSpeedometer) {
+			cardSpeedometer.style.display = 'flex';
+		}
+
+		// Calcula a meta diária proporcional ao mês atual e aos dias úteis configurados
+		let metaDiaria = 2000;
+		let infoCalculo = null;
+		if (typeof BrandService !== 'undefined' && typeof BrandService.calcularMetaDiaria === 'function') {
+			infoCalculo = BrandService.calcularMetaDiaria();
+			metaDiaria = infoCalculo.metaDiaria || 2000;
+		}
+
+		const metaTextoEl = document.getElementById('speedometerMetaText');
+		if (metaTextoEl) {
+			if (infoCalculo && infoCalculo.personalizada) {
+				metaTextoEl.innerHTML = `Meta Diária: <strong>R$ ${metaDiaria.toFixed(2)}</strong> <span style="display:block; font-size:0.7rem; font-weight:normal; color:var(--text-muted);">(Meta: R$ ${infoCalculo.metaMensal.toFixed(2)} / ${infoCalculo.diasTrabalhoNoMes} dias)</span>`;
+			} else {
+				metaTextoEl.innerHTML = `Meta Diária: <strong>R$ ${metaDiaria.toFixed(2)}</strong>`;
+			}
+		}
+
+		const percMeta = Math.min(100, Math.round((faturamentoHoje / metaDiaria) * 100));
+		const needleAngle = -90 + (percMeta / 100) * 180; // de -90deg a +90deg
+		const needleEl = document.getElementById('speedometerNeedle');
+		const arcEl = document.getElementById('speedometerArc');
+		const gaugePercentEl = document.getElementById('gaugePercentText');
+
+		if (gaugePercentEl) gaugePercentEl.textContent = `${percMeta}%`;
+		if (needleEl) {
+			setTimeout(() => {
+				needleEl.style.transform = `rotate(${needleAngle}deg)`;
+			}, 150);
+		}
+		if (arcEl) {
+			const arcTotalLength = 251.2;
+			const offset = arcTotalLength - (percMeta / 100) * arcTotalLength;
+			setTimeout(() => {
+				arcEl.style.strokeDashoffset = String(offset);
+			}, 150);
+		}
 	}
 
 	// Adapta rótulos e subtítulos do Dashboard ao segmento configurado
