@@ -30,6 +30,106 @@ const pedidoServico = document.getElementById('pedidoServico');
 const pedidoValor = document.getElementById('pedidoValor');
 const sugestoesDiv = document.getElementById('sugestoesClientes');
 
+// Campos de Segmento (Lava Jato vs Outros)
+const blocoCamposLavaJato = document.getElementById('blocoCamposLavaJato');
+const blocoCamposOutroSegmento = document.getElementById('blocoCamposOutroSegmento');
+const osFotoInput = document.getElementById('osFotoInput');
+const btnEscolherFotoOS = document.getElementById('btnEscolherFotoOS');
+const btnRemoverFotoOS = document.getElementById('btnRemoverFotoOS');
+const osFotoPreviewImg = document.getElementById('osFotoPreviewImg');
+const osFotoPlaceholderIcon = document.getElementById('osFotoPlaceholderIcon');
+const pedidoItemDescricao = document.getElementById('pedidoItemDescricao');
+
+// Lightbox da Foto
+const modalVisualizadorFoto = document.getElementById('modalVisualizadorFoto');
+const modalVisualizadorImg = document.getElementById('modalVisualizadorImg');
+const modalVisualizadorTitulo = document.getElementById('modalVisualizadorTitulo');
+
+let fotoOSBase64Atual = '';
+
+// Verifica se o negócio atual é Lava Jato ou Outro Segmento
+function isSegmentoLavaJato() {
+	if (typeof BrandService !== 'undefined' && typeof BrandService.getConfig === 'function') {
+		const config = BrandService.getConfig();
+		return !config.tipoNegocio || config.tipoNegocio === 'lava_jato';
+	}
+	return true;
+}
+
+// Compressão de imagem via Canvas para manter alta resolução com tamanho pequeno (~15-25KB)
+function compactarFotoOS(file) {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			const img = new Image();
+			img.onload = () => {
+				const canvas = document.createElement('canvas');
+				const maxDim = 320;
+				let width = img.width;
+				let height = img.height;
+				if (width > height) {
+					if (width > maxDim) {
+						height = Math.round((height * maxDim) / width);
+						width = maxDim;
+					}
+				} else {
+					if (height > maxDim) {
+						width = Math.round((width * maxDim) / height);
+						height = maxDim;
+					}
+				}
+				canvas.width = width;
+				canvas.height = height;
+				const ctx = canvas.getContext('2d');
+				ctx.drawImage(img, 0, 0, width, height);
+				resolve(canvas.toDataURL('image/jpeg', 0.82));
+			};
+			img.onerror = reject;
+			img.src = e.target.result;
+		};
+		reader.onerror = reject;
+		reader.readAsDataURL(file);
+	});
+}
+
+function setOSFotoPreview(dataUrl) {
+	fotoOSBase64Atual = dataUrl || '';
+	if (fotoOSBase64Atual) {
+		if (osFotoPreviewImg) {
+			osFotoPreviewImg.src = fotoOSBase64Atual;
+			osFotoPreviewImg.style.display = 'block';
+		}
+		if (osFotoPlaceholderIcon) osFotoPlaceholderIcon.style.display = 'none';
+		if (btnRemoverFotoOS) btnRemoverFotoOS.style.display = 'inline-flex';
+	} else {
+		if (osFotoPreviewImg) {
+			osFotoPreviewImg.src = '';
+			osFotoPreviewImg.style.display = 'none';
+		}
+		if (osFotoPlaceholderIcon) osFotoPlaceholderIcon.style.display = 'block';
+		if (btnRemoverFotoOS) btnRemoverFotoOS.style.display = 'none';
+	}
+}
+
+// Funções de Lightbox
+function abrirVisualizadorFoto(fotoUrl, titulo = 'Foto do Atendimento') {
+	if (!modalVisualizadorFoto || !modalVisualizadorImg) return;
+	modalVisualizadorImg.src = fotoUrl;
+	if (modalVisualizadorTitulo) modalVisualizadorTitulo.textContent = `📸 ${titulo}`;
+	modalVisualizadorFoto.classList.add('open');
+	modalVisualizadorFoto.style.display = 'flex';
+}
+
+function fecharVisualizadorFoto() {
+	if (modalVisualizadorFoto) {
+		modalVisualizadorFoto.classList.remove('open');
+		modalVisualizadorFoto.style.display = 'none';
+	}
+}
+
+window.abrirVisualizadorFoto = abrirVisualizadorFoto;
+window.fecharVisualizadorFoto = fecharVisualizadorFoto;
+
 // Vistoria Checkboxes
 const vistoriaPertences = document.getElementById('vistoriaPertences');
 const vistoriaAvarias = document.getElementById('vistoriaAvarias');
@@ -337,9 +437,71 @@ if (tabPatioBtn && tabEncerradosBtn) {
 	});
 }
 
+// Função auxiliar para renderizar identificação da O.S. (Placa para Lava Jato OU Foto/Miniatura para outros segmentos)
+function renderizarIdentificacaoOS(p, isLavaJato, tamanhoIcone = 32) {
+	const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
+
+	if (isLavaJato) {
+		const corObj = obterCorVeiculo(p.cor);
+		const modeloTexto = p.modelo ? ` • ${esc(p.modelo)}` : '';
+		return `
+			<div class="veiculo-info-cell">
+				${renderizarIconeCarro(corObj, tamanhoIcone)}
+				<div class="veiculo-meta">
+					<span class="badge-placa">${esc(p.placa || 'SEM PLACA')}</span>
+					<span class="veiculo-cor-nome">${esc(corObj.nome)}${modeloTexto}</span>
+				</div>
+			</div>
+		`;
+	}
+
+	// Outros Segmentos: Prioriza Foto do Pedido/Atendimento, fallback para Foto do Cliente ou Iniciais
+	const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+	const cliObj = clientes.find(c => c.nome && c.nome.toLowerCase() === (p.cliente || '').toLowerCase());
+	const fotoFinal = p.foto || (cliObj && cliObj.foto ? cliObj.foto : '');
+	const itemTexto = p.itemDescricao || p.modelo || 'Atendimento / Serviço';
+
+	if (fotoFinal) {
+		return `
+			<div class="os-foto-cell">
+				<div class="os-foto-thumbnail" style="background-image: url('${fotoFinal}'); width:${tamanhoIcone + 10}px; height:${tamanhoIcone + 10}px;" onclick="window.abrirVisualizadorFoto('${fotoFinal}', '${esc(p.cliente)} - ${esc(itemTexto)}')" title="Clique para ampliar foto"></div>
+				<div class="os-foto-meta">
+					<span class="os-foto-badge-tag">📸 ${esc(itemTexto)}</span>
+					<span class="os-foto-item-nome">${esc(p.cliente || 'Cliente')}</span>
+				</div>
+			</div>
+		`;
+	}
+
+	// Sem foto: Exibe avatar com iniciais do cliente
+	const iniciais = (p.cliente || 'CL').trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
+	return `
+		<div class="os-foto-cell">
+			<div class="os-foto-thumbnail sem-foto" style="width:${tamanhoIcone + 10}px; height:${tamanhoIcone + 10}px;" title="Sem foto anexada">
+				${iniciais}
+			</div>
+			<div class="os-foto-meta">
+				<span class="os-foto-badge-tag" style="background:#f1f5f9; color:#475569; border-color:#cbd5e1;">📋 ${esc(itemTexto)}</span>
+				<span class="os-foto-item-nome">${esc(p.cliente || 'Cliente')}</span>
+			</div>
+		</div>
+	`;
+}
+
 // Renderização das Tabelas (Pátio e Encerrados)
 function renderizarTabelas() {
 	const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+	const isLavaJato = isSegmentoLavaJato();
+
+	// Ajusta títulos dos cabeçalhos da tabela conforme o segmento
+	const thVeiculoPatio = document.getElementById('thVeiculoPatio');
+	const thVeiculoEncerrados = document.getElementById('thVeiculoEncerrados');
+	if (thVeiculoPatio) {
+		thVeiculoPatio.textContent = isLavaJato ? 'Veículo & Placa' : 'Identificação & Foto';
+	}
+	if (thVeiculoEncerrados) {
+		thVeiculoEncerrados.textContent = isLavaJato ? 'Veículo & Placa' : 'Identificação & Foto';
+	}
 	
 	const pedidosPatio = pedidos.filter((p) => p.status === 'aberto');
 	const pedidosEncerrados = pedidos.filter((p) => p.status === 'encerrado');
@@ -350,10 +512,13 @@ function renderizarTabelas() {
 	// Renderizar Pátio (Em Aberto)
 	corpoTabelaPatio.innerHTML = '';
 	if (pedidosPatio.length === 0) {
+		const msgLivre = isLavaJato 
+			? '🅿️ Nenhum veículo em atendimento no pátio no momento. Preencha o formulário acima para dar entrada.'
+			: '📋 Nenhum atendimento em andamento no momento. Preencha o formulário acima para abrir uma nova O.S.';
 		corpoTabelaPatio.innerHTML = `
 			<tr>
 				<td colspan="6" class="empty-table-message">
-					🅿️ Nenhum veículo em atendimento no pátio no momento. Preencha o formulário acima para dar entrada.
+					${msgLivre}
 				</td>
 			</tr>
 		`;
@@ -361,10 +526,8 @@ function renderizarTabelas() {
 		const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
 		// Mostrar mais recentes primeiro
 		[...pedidosPatio].reverse().forEach((p) => {
-			const corObj = obterCorVeiculo(p.cor);
 			const tr = document.createElement('tr');
 			const valorFormatado = parseFloat(p.valor || 0).toFixed(2);
-			const modeloTexto = p.modelo ? ` • ${esc(p.modelo)}` : '';
 
 			const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
 			const cliObj = clientes.find(c => c.nome && c.nome.toLowerCase() === (p.cliente || '').toLowerCase());
@@ -372,13 +535,7 @@ function renderizarTabelas() {
 
 			tr.innerHTML = `
 				<td>
-					<div class="veiculo-info-cell">
-						${renderizarIconeCarro(corObj, 32)}
-						<div class="veiculo-meta">
-							<span class="badge-placa">${esc(p.placa || 'SEM PLACA')}</span>
-							<span class="veiculo-cor-nome">${esc(corObj.nome)}${modeloTexto}</span>
-						</div>
-					</div>
+					${renderizarIdentificacaoOS(p, isLavaJato, 32)}
 				</td>
 				<td>
 					<strong>${esc(p.cliente || 'Não identificado')}</strong>
@@ -405,11 +562,11 @@ function renderizarTabelas() {
 				<td style="text-align: center;">
 					<div class="btn-action-group" style="flex-wrap:wrap; justify-content:center;">
 						${temTelefone ? `
-							<button type="button" class="btn btn-sm" onclick="abrirDisparoWhatsAppCarroPronto('${p.id}')" style="background:#16a34a; color:#fff; display:inline-flex; align-items:center; gap:4px;" title="Avisar cliente no WhatsApp que o veículo está pronto">
-								💬 Carro Pronto
+							<button type="button" class="btn btn-sm" onclick="abrirDisparoWhatsAppCarroPronto('${p.id}')" style="background:#16a34a; color:#fff; display:inline-flex; align-items:center; gap:4px;" title="Avisar cliente no WhatsApp que o serviço está pronto">
+								💬 ${isLavaJato ? 'Carro Pronto' : 'Avisar Pronto'}
 							</button>
 						` : ''}
-						<button type="button" class="btn btn-sm btn-receber-os" data-id="${p.id}" style="background-color: var(--success); color: #fff;">
+						<button type="button" class="btn btn-sm btn-receber-os" data-id="${p.id}" onclick="window.abrirModalEncerramento('${p.id}')" style="background-color: var(--success); color: #fff; cursor: pointer; font-weight:700;">
 							💰 Receber
 						</button>
 						<button type="button" class="btn btn-sm btn-secondary btn-cancelar-os" data-id="${p.id}" style="color: var(--danger);" title="Remover O.S.">
@@ -435,22 +592,14 @@ function renderizarTabelas() {
 	} else {
 		const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
 		[...pedidosEncerrados].reverse().forEach((p) => {
-			const corObj = obterCorVeiculo(p.cor);
 			const tr = document.createElement('tr');
 			const valorFormatado = parseFloat(p.valor || 0).toFixed(2);
-			const modeloTexto = p.modelo ? ` • ${esc(p.modelo)}` : '';
 			const dataSaida = p.dataEncerramento || p.data || '-';
 			const horaSaida = p.horaEncerramento ? ` às ${esc(p.horaEncerramento)}` : '';
 
 			tr.innerHTML = `
 				<td>
-					<div class="veiculo-info-cell">
-						${renderizarIconeCarro(corObj, 30)}
-						<div class="veiculo-meta">
-							<span class="badge-placa">${esc(p.placa || 'SEM PLACA')}</span>
-							<span class="veiculo-cor-nome">${esc(corObj.nome)}${modeloTexto}</span>
-						</div>
-					</div>
+					${renderizarIdentificacaoOS(p, isLavaJato, 30)}
 				</td>
 				<td><strong>${esc(p.cliente || 'Não identificado')}</strong></td>
 				<td>
@@ -473,7 +622,7 @@ function renderizarTabelas() {
 				</td>
 				<td style="text-align: center;">
 					<div style="display: inline-flex; align-items: center; gap: 6px;">
-						<button type="button" class="btn btn-sm btn-recibo-os" data-id="${p.id}" title="Ver e Imprimir Recibo Estilo Cupom Fiscal">
+						<button type="button" class="btn btn-sm btn-recibo-os" data-id="${p.id}" onclick="abrirModalRecibo('${p.id}')" title="Ver e Imprimir Recibo Estilo Cupom Fiscal">
 							🧾 Recibo
 						</button>
 						<button type="button" class="btn btn-sm btn-secondary btn-cancelar-os" data-id="${p.id}" style="color: var(--danger);" title="Excluir Registro">
@@ -494,7 +643,7 @@ function renderizarTabelas() {
 		});
 	});
 
-	// Vincular eventos de Receber & Encerrar
+	// Vincular eventos de Receber & Encerrar via Event Delegation
 	document.querySelectorAll('.btn-receber-os').forEach((btn) => {
 		btn.addEventListener('click', (e) => {
 			const osId = e.currentTarget.getAttribute('data-id');
@@ -507,24 +656,25 @@ function renderizarTabelas() {
 		btn.addEventListener('click', async (e) => {
 			const osId = e.currentTarget.getAttribute('data-id');
 			const todosPedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
-			const p = todosPedidos.find((item) => item.id === osId);
+			const p = todosPedidos.find((item) => String(item.id) === String(osId));
 			if (!p) return;
 
 			let confirmado = false;
+			const itemIdentificador = isLavaJato ? `placa "${p.placa || 'Sem placa'}"` : `item "${p.itemDescricao || 'Serviço'}"`;
 			if (window.UI) {
 				confirmado = await window.UI.confirm({
 					title: 'Cancelar O.S.',
-					message: `Deseja realmente remover o registro da O.S. da placa <strong>"${p.placa}"</strong> (${p.cliente})?`,
+					message: `Deseja realmente remover o registro da O.S. de ${itemIdentificador} (${p.cliente})?`,
 					confirmText: 'Sim, Remover O.S.',
 					danger: true,
 					icon: '🗑️'
 				});
 			} else {
-				confirmado = confirm(`Deseja realmente remover o registro da O.S. da placa "${p.placa}" (${p.cliente})?`);
+				confirmado = confirm(`Deseja realmente remover o registro da O.S. de ${itemIdentificador} (${p.cliente})?`);
 			}
 
 			if (confirmado) {
-				const atualizados = todosPedidos.filter((item) => item.id !== osId);
+				const atualizados = todosPedidos.filter((item) => String(item.id) !== String(osId));
 				localStorage.setItem('pedidos', JSON.stringify(atualizados));
 				if (window.UI) window.UI.toast('Ordem de serviço removida.', 'info');
 				renderizarTabelas();
@@ -536,21 +686,41 @@ function renderizarTabelas() {
 // Modal de Encerramento e Pagamento
 function abrirModalEncerramento(osId) {
 	const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
-	const p = pedidos.find((item) => item.id === osId);
-	if (!p) return;
+	const p = pedidos.find((item) => String(item.id) === String(osId));
+	if (!p) {
+		console.warn('O.S. não encontrada para encerramento:', osId);
+		return;
+	}
 
 	pedidoSelecionadoParaEncerrar = p;
-	const corObj = obterCorVeiculo(p.cor);
+	const isLavaJato = isSegmentoLavaJato();
 
-	if (modalTitulo) modalTitulo.textContent = `Receber O.S. - Placa ${p.placa}`;
+	if (modalTitulo) {
+		modalTitulo.textContent = isLavaJato 
+			? `Receber O.S. - Placa ${p.placa || 'S/P'}`
+			: `Receber Pagamento - ${p.cliente || 'Cliente'}`;
+	}
+
 	if (modalDetalhesVeiculo) {
-		modalDetalhesVeiculo.innerHTML = `
-			${renderizarIconeCarro(corObj, 28)}
-			<div>
-				<strong class="badge-placa">${p.placa}</strong> 
-				<span style="font-size:0.85rem; color:var(--text-muted); margin-left:6px;">${corObj.nome} ${p.modelo ? '• ' + p.modelo : ''}</span>
-			</div>
-		`;
+		if (isLavaJato) {
+			const corObj = obterCorVeiculo(p.cor);
+			modalDetalhesVeiculo.innerHTML = `
+				${renderizarIconeCarro(corObj, 28)}
+				<div>
+					<strong class="badge-placa">${p.placa}</strong> 
+					<span style="font-size:0.85rem; color:var(--text-muted); margin-left:6px;">${corObj.nome} ${p.modelo ? '• ' + p.modelo : ''}</span>
+				</div>
+			`;
+		} else {
+			const itemNome = p.itemDescricao || p.modelo || 'Atendimento / Serviço';
+			const fotoFinal = p.foto || '';
+			modalDetalhesVeiculo.innerHTML = `
+				${fotoFinal ? `<div class="os-foto-thumbnail" style="background-image: url('${fotoFinal}'); width:36px; height:36px;"></div>` : '📋'}
+				<div>
+					<strong style="font-size: 0.95rem; color: var(--text-main);">${itemNome}</strong>
+				</div>
+			`;
+		}
 	}
 
 	if (modalDetalhesCliente) {
@@ -578,8 +748,13 @@ function abrirModalEncerramento(osId) {
 		modalFormaPagamento.value = 'Pix';
 	}
 
-	modalEncerramento.classList.add('open');
+	if (modalEncerramento) {
+		modalEncerramento.classList.add('open');
+		modalEncerramento.style.display = 'flex';
+	}
 }
+
+window.abrirModalEncerramento = abrirModalEncerramento;
 
 function popularSelectProdutosBalcao() {
 	if (!modalSelectProdutoBalcao || typeof EstoqueService === 'undefined') return;
@@ -828,13 +1003,23 @@ if (pedidoForm) {
 	pedidoForm.addEventListener('submit', (e) => {
 		e.preventDefault();
 
+		const isLavaJato = isSegmentoLavaJato();
 		const clienteNome = pedidoCliente.value.trim();
-		const placa = pedidoPlaca.value.trim().toUpperCase();
-		const cor = pedidoCor.value;
-		const modelo = pedidoModelo.value.trim();
+		const placa = isLavaJato ? pedidoPlaca.value.trim().toUpperCase() : '';
+		const cor = isLavaJato ? pedidoCor.value : 'prata';
+		const modelo = isLavaJato ? pedidoModelo.value.trim() : '';
+		const itemDescricao = !isLavaJato && pedidoItemDescricao ? pedidoItemDescricao.value.trim() : '';
+		const fotoOS = fotoOSBase64Atual || '';
 		const valor = parseFloat(pedidoValor.value) || 0;
 		let data = pedidoData.value;
 		if (!data) data = obterDataHojeISO();
+
+		if (isLavaJato && !placa) {
+			if (window.UI) window.UI.toast('Por favor, informe a placa do veículo.', 'warning');
+			else alert('Por favor, informe a placa do veículo.');
+			if (pedidoPlaca) pedidoPlaca.focus();
+			return;
+		}
 
 		const operadorId = pedidoOperador ? pedidoOperador.value : '';
 		let operadorNome = '';
@@ -853,18 +1038,23 @@ if (pedidoForm) {
 			return;
 		}
 
-		// Se o cliente ainda não estiver cadastrado na base de clientes, sugerimos salvar
+		// Se o cliente ainda não estiver cadastrado na base de clientes, salvamos com a foto (se houver)
 		const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
-		const clienteExiste = clientes.some((c) => c.nome.toLowerCase() === clienteNome.toLowerCase());
-		if (!clienteExiste && clienteNome) {
+		const clienteIndex = clientes.findIndex((c) => c.nome.toLowerCase() === clienteNome.toLowerCase());
+		if (clienteIndex === -1 && clienteNome) {
 			clientes.push({
 				nome: clienteNome,
 				tel1: '',
 				wpp1: '❌',
 				tel2: '',
 				wpp2: '❌',
-				endereco: ''
+				endereco: '',
+				foto: fotoOS
 			});
+			localStorage.setItem('clientes', JSON.stringify(clientes));
+		} else if (clienteIndex !== -1 && fotoOS && !clientes[clienteIndex].foto) {
+			// Atualiza foto do cliente se não possuía
+			clientes[clienteIndex].foto = fotoOS;
 			localStorage.setItem('clientes', JSON.stringify(clientes));
 		}
 
@@ -896,9 +1086,11 @@ if (pedidoForm) {
 		const novoPedido = {
 			id: osId,
 			cliente: clienteNome,
-			placa: placa,
+			placa: placa || (isLavaJato ? 'SEM PLACA' : ''),
 			cor: cor,
 			modelo: modelo,
+			itemDescricao: itemDescricao || modelo,
+			foto: fotoOS,
 			servicos: servicosSelecionados.join(', '),
 			produtosVendidos: produtosEntradaSelecionados,
 			operadorId: operadorId,
@@ -906,7 +1098,7 @@ if (pedidoForm) {
 			data: data,
 			horaEntrada: obterHoraAtual(),
 			valor: valor,
-			status: 'aberto', // Veículo entra no pátio com O.S. aberta
+			status: 'aberto', // Entra no pátio com O.S. aberta
 			formaPagamento: '',
 			dataEncerramento: '',
 			horaEncerramento: ''
@@ -918,46 +1110,125 @@ if (pedidoForm) {
 
 		// Limpa formulário
 		pedidoForm.reset();
+		setOSFotoPreview('');
 		if (pedidoData) pedidoData.value = obterDataHojeISO();
 		popularCoresVeiculo();
 		popularSelectOperadores();
 		carregarProdutosVendaEntrada();
 		renderizarTabelas();
 
+		if (window.UI) window.UI.toast('Ordem de Serviço aberta com sucesso!', 'success');
+
 		// Rola até o pátio e garante a aba ativa
 		if (tabPatioBtn) tabPatioBtn.click();
 	});
 }
 
+// Configura campos do formulário de acordo com o segmento
+function configurarCamposSegmento() {
+	const isLavaJato = isSegmentoLavaJato();
+
+	if (blocoCamposLavaJato) {
+		blocoCamposLavaJato.style.display = isLavaJato ? 'contents' : 'none';
+	}
+	if (blocoCamposOutroSegmento) {
+		blocoCamposOutroSegmento.style.display = isLavaJato ? 'none' : 'block';
+	}
+
+	// Ajusta obrigatoriedade da placa
+	if (pedidoPlaca) {
+		pedidoPlaca.required = isLavaJato;
+	}
+	if (pedidoCor) {
+		pedidoCor.required = isLavaJato;
+	}
+
+	// Ajusta textos de botões e cartões
+	const btnDarEntradaOS = document.getElementById('btnDarEntradaOS');
+	if (btnDarEntradaOS) {
+		btnDarEntradaOS.innerHTML = isLavaJato 
+			? '🚗 Dar Entrada do Carro (Abrir O.S.)' 
+			: '📋 Abrir Ordem de Serviço';
+	}
+
+	const contentCardTitleOS = document.querySelector('#pedidoForm')?.closest('.content-card')?.querySelector('.content-card-title span');
+	if (contentCardTitleOS) {
+		contentCardTitleOS.textContent = isLavaJato 
+			? '🚗 Entrada de Veículo (Abrir O.S.)' 
+			: '📋 Nova Ordem de Serviço & Atendimento';
+	}
+
+	const tabPatioBtn = document.getElementById('tabPatioBtn');
+	if (tabPatioBtn) {
+		const countSpan = document.getElementById('countPatio');
+		const countVal = countSpan ? countSpan.textContent : '0';
+		tabPatioBtn.innerHTML = isLavaJato 
+			? `🚗 Carros no Pátio / Em Andamento <span class="tab-count" id="countPatio">${countVal}</span>` 
+			: `📋 Atendimentos em Andamento <span class="tab-count" id="countPatio">${countVal}</span>`;
+	}
+}
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
 	normalizarDadosPedidos();
+	configurarCamposSegmento();
 	popularCoresVeiculo();
 	carregarSelectServicos();
 	popularSelectOperadores();
 	carregarProdutosVendaEntrada();
 	renderizarTabelas();
+
+	// Setup do seletor de fotos na O.S.
+	if (btnEscolherFotoOS && osFotoInput) {
+		btnEscolherFotoOS.addEventListener('click', () => {
+			osFotoInput.click();
+		});
+
+		osFotoInput.addEventListener('change', async (e) => {
+			const file = e.target.files && e.target.files[0];
+			if (!file) return;
+
+			try {
+				const compressed = await compactarFotoOS(file);
+				setOSFotoPreview(compressed);
+				if (window.UI) window.UI.toast('Foto anexada à O.S.!', 'info');
+			} catch (err) {
+				console.error('Erro ao processar imagem:', err);
+				if (window.UI) window.UI.toast('Erro ao processar foto.', 'danger');
+			}
+			osFotoInput.value = '';
+		});
+	}
+
+	if (btnRemoverFotoOS) {
+		btnRemoverFotoOS.addEventListener('click', () => {
+			setOSFotoPreview('');
+		});
+	}
 });
 
 // Abertura do modal interativo de WhatsApp para Veículo Pronto
 function abrirDisparoWhatsAppCarroPronto(pedidoId) {
 	const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
-	const p = pedidos.find(item => item.id === pedidoId);
+	const p = pedidos.find(item => String(item.id) === String(pedidoId));
 	if (!p) return;
 
 	const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
 	const cliObj = clientes.find(c => c.nome && c.nome.toLowerCase() === (p.cliente || '').toLowerCase());
 	const telLimpo = cliObj && cliObj.tel1 ? cliObj.tel1 : '';
 
+	const isLavaJato = isSegmentoLavaJato();
+	const itemTexto = isLavaJato ? `veículo ${p.modelo || ''} (${p.placa})` : `atendimento do seu pedido (${p.itemDescricao || 'Serviço'})`;
+
 	if (typeof WhatsAppService !== 'undefined') {
 		WhatsAppService.abrirModalDisparo({
 			tipo: 'pronto',
 			dados: p,
 			telefone: telLimpo,
-			titulo: 'Avisar Conclusão & Veículo Pronto'
+			titulo: isLavaJato ? 'Avisar Conclusão & Veículo Pronto' : 'Avisar Conclusão do Serviço'
 		});
 	} else {
-		const msgWhats = `Olá ${p.cliente}! Seu veículo ${p.modelo || ''} (${p.placa}) está pronto para retirada!`;
+		const msgWhats = `Olá ${p.cliente}! O ${itemTexto} está pronto para retirada!`;
 		window.open(`https://wa.me/55${(telLimpo || '').replace(/\D/g, '')}?text=${encodeURIComponent(msgWhats)}`, '_blank');
 	}
 }

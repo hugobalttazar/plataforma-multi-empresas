@@ -8,6 +8,75 @@ const formCardTitle = document.querySelector('#formCardTitle');
 const btnCancelarEdicao = document.querySelector('#btnCancelarEdicao');
 const btnSalvar = document.querySelector('#btnSalvarCliente');
 
+// Elementos de Foto do Cliente
+const clienteFotoInput = document.querySelector('#clienteFotoInput');
+const btnEscolherFotoCliente = document.querySelector('#btnEscolherFotoCliente');
+const btnRemoverFotoCliente = document.querySelector('#btnRemoverFotoCliente');
+const clienteFotoPreviewImg = document.querySelector('#clienteFotoPreviewImg');
+const clienteFotoPlaceholderIcon = document.querySelector('#clienteFotoPlaceholderIcon');
+
+let fotoBase64Atual = ''; // Armazena a foto compactada em base64
+
+// Função de compressão de imagem via HTML5 Canvas (max 260x260, JPEG 82%)
+function compactarImagemParaBase64(file) {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			const img = new Image();
+			img.onload = () => {
+				const canvas = document.createElement('canvas');
+				const maxDim = 260;
+				let width = img.width;
+				let height = img.height;
+
+				if (width > height) {
+					if (width > maxDim) {
+						height = Math.round((height * maxDim) / width);
+						width = maxDim;
+					}
+				} else {
+					if (height > maxDim) {
+						width = Math.round((width * maxDim) / height);
+						height = maxDim;
+					}
+				}
+
+				canvas.width = width;
+				canvas.height = height;
+				const ctx = canvas.getContext('2d');
+				ctx.drawImage(img, 0, 0, width, height);
+
+				// Converte para JPEG 0.82 (geralmente ~15kb a 25kb)
+				const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+				resolve(dataUrl);
+			};
+			img.onerror = reject;
+			img.src = e.target.result;
+		};
+		reader.onerror = reject;
+		reader.readAsDataURL(file);
+	});
+}
+
+function setFotoPreview(dataUrl) {
+	fotoBase64Atual = dataUrl || '';
+	if (fotoBase64Atual) {
+		if (clienteFotoPreviewImg) {
+			clienteFotoPreviewImg.src = fotoBase64Atual;
+			clienteFotoPreviewImg.style.display = 'block';
+		}
+		if (clienteFotoPlaceholderIcon) clienteFotoPlaceholderIcon.style.display = 'none';
+		if (btnRemoverFotoCliente) btnRemoverFotoCliente.style.display = 'inline-flex';
+	} else {
+		if (clienteFotoPreviewImg) {
+			clienteFotoPreviewImg.src = '';
+			clienteFotoPreviewImg.style.display = 'none';
+		}
+		if (clienteFotoPlaceholderIcon) clienteFotoPlaceholderIcon.style.display = 'block';
+		if (btnRemoverFotoCliente) btnRemoverFotoCliente.style.display = 'none';
+	}
+}
+
 // Função utilitária para aplicar máscara de telefone (00) 00000-0000 ou (00) 0000-0000
 function mascararTelefone(input) {
 	if (!input) return;
@@ -36,9 +105,38 @@ document.addEventListener('DOMContentLoaded', () => {
 	mascararTelefone(inputTelefone1);
 	mascararTelefone(inputTelefone2);
 
+	// Setup do uploader de foto
+	if (btnEscolherFotoCliente && clienteFotoInput) {
+		btnEscolherFotoCliente.addEventListener('click', () => {
+			clienteFotoInput.click();
+		});
+
+		clienteFotoInput.addEventListener('change', async (e) => {
+			const file = e.target.files && e.target.files[0];
+			if (!file) return;
+
+			try {
+				const compressed = await compactarImagemParaBase64(file);
+				setFotoPreview(compressed);
+				if (window.UI) window.UI.toast('Foto carregada com sucesso!', 'info');
+			} catch (err) {
+				console.error('Erro ao processar imagem:', err);
+				if (window.UI) window.UI.toast('Erro ao processar imagem. Tente outra foto.', 'danger');
+			}
+			clienteFotoInput.value = '';
+		});
+	}
+
+	if (btnRemoverFotoCliente) {
+		btnRemoverFotoCliente.addEventListener('click', () => {
+			setFotoPreview('');
+		});
+	}
+
 	function resetFormState() {
 		editIndex = null;
 		form.reset();
+		setFotoPreview('');
 		if (inputWhatsApp1) inputWhatsApp1.checked = true;
 		if (formCardTitle) formCardTitle.textContent = 'Novo Cliente';
 		if (btnSalvar) btnSalvar.textContent = '💾 Salvar Cliente';
@@ -60,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		const tel2 = inputTelefone2.value.trim();
 		const wpp2 = inputWhatsApp2.checked ? '✅' : '❌';
 		const endereco = inputEndereco.value.trim();
+		const foto = fotoBase64Atual;
 
 		if (!tel1) {
 			if (window.UI) {
@@ -89,17 +188,17 @@ document.addEventListener('DOMContentLoaded', () => {
 							inputTelefone1.focus();
 							return;
 						}
-						salvarClienteFinal(clientes, nome, tel1, wpp1, tel2, wpp2, endereco);
+						salvarClienteFinal(clientes, nome, tel1, wpp1, tel2, wpp2, endereco, foto);
 					});
 					return;
 				}
 			}
 		}
 
-		salvarClienteFinal(clientes, nome, tel1, wpp1, tel2, wpp2, endereco);
+		salvarClienteFinal(clientes, nome, tel1, wpp1, tel2, wpp2, endereco, foto);
 	});
 
-	function salvarClienteFinal(clientes, nome, tel1, wpp1, tel2, wpp2, endereco) {
+	function salvarClienteFinal(clientes, nome, tel1, wpp1, tel2, wpp2, endereco, foto) {
 		if (editIndex !== null) {
 			// Editando cliente existente (preserva outros campos se existirem)
 			const clienteAtual = clientes[editIndex] || {};
@@ -110,19 +209,29 @@ document.addEventListener('DOMContentLoaded', () => {
 				wpp1,
 				tel2,
 				wpp2,
-				endereco
+				endereco,
+				foto: foto || clienteAtual.foto || ''
 			};
 			editIndex = null;
 			if (window.UI) window.UI.toast('Cliente atualizado com sucesso!', 'success');
 		} else {
 			// Adicionando novo cliente
-			clientes.push({ nome, tel1, wpp1, tel2, wpp2, endereco });
+			clientes.push({ nome, tel1, wpp1, tel2, wpp2, endereco, foto });
 			if (window.UI) window.UI.toast('Cliente cadastrado com sucesso!', 'success');
 		}
 
 		localStorage.setItem('clientes', JSON.stringify(clientes));
 		atualizarTabela();
 		resetFormState();
+	}
+
+	function gerarIniciais(nome) {
+		if (!nome) return 'CL';
+		const partes = nome.trim().split(/\s+/);
+		if (partes.length >= 2) {
+			return (partes[0][0] + partes[1][0]).toUpperCase();
+		}
+		return partes[0].substring(0, 2).toUpperCase();
 	}
 
 	function atualizarTabela() {
@@ -151,8 +260,20 @@ document.addEventListener('DOMContentLoaded', () => {
 				? `${esc(c.tel2)} ${c.wpp2 === '✅' ? '<span class="badge badge-whatsapp">WhatsApp</span>' : ''}` 
 				: '<span style="color:var(--text-muted);">-</span>';
 
+			// Avatar / Miniatura da Foto
+			const avatarHtml = c.foto
+				? `<div class="cliente-avatar-thumb" style="background-image: url('${c.foto}');" title="Foto de ${esc(c.nome)}"></div>`
+				: `<div class="cliente-avatar-thumb avatar-initials" title="${esc(c.nome)}">${gerarIniciais(c.nome)}</div>`;
+
 			tr.innerHTML = `
-				<td id="nomeSalvo"><strong>${esc(c.nome || '-')}</strong></td>
+				<td id="nomeSalvo">
+					<div class="cliente-nome-avatar-cell">
+						${avatarHtml}
+						<div class="cliente-nome-info">
+							<strong>${esc(c.nome || '-')}</strong>
+						</div>
+					</div>
+				</td>
 				<td id="telefonesSalvos">${tel1Html}</td>
 				<td id="telefone2Salvo">${tel2Html}</td>
 				<td id="enderecoSalvo">${c.endereco ? esc(c.endereco) : '<span style="color:var(--text-muted);">-</span>'}</td>
@@ -191,6 +312,9 @@ document.addEventListener('DOMContentLoaded', () => {
 				inputTelefone2.value = cliente.tel2 || '';
 				inputWhatsApp2.checked = cliente.wpp2 === '✅' || cliente.wpp2 === true;
 				inputEndereco.value = cliente.endereco || '';
+
+				// Carrega a foto no preview se houver
+				setFotoPreview(cliente.foto || '');
 
 				editIndex = index;
 				if (formCardTitle) formCardTitle.textContent = `Editando: ${cliente.nome}`;
@@ -238,6 +362,4 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	atualizarTabela();
-});
-
-// apenas comentaário para ver as modifvicações 
+}); 

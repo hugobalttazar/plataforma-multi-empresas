@@ -14,6 +14,8 @@
 		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 		<meta name="apple-mobile-web-app-title" content="Gestão SaaS" />
 		<script src="js/theme-service.js"></script>
+		<script src="js/ui-feedback.js"></script>
+		<script src="js/empresa-service.js"></script>
 		<script type="module" src="js/auth-service.js"></script>
 	</head>
 	<body>
@@ -62,6 +64,27 @@
 					<button type="button" id="btnCancelarEdicao" class="btn btn-secondary btn-sm" style="display: none;">Cancelar Edição</button>
 				</div>
 				<form id="clienteForm" class="form">
+					<!-- Foto do Cliente com Upload e Preview -->
+					<div class="form-group full-width cliente-foto-wrapper">
+						<label>Foto do Cliente / Perfil (Opcional)</label>
+						<div class="cliente-foto-uploader">
+							<div class="cliente-avatar-preview-box" id="clienteFotoPreviewBox">
+								<span id="clienteFotoPlaceholderIcon">👤</span>
+								<img id="clienteFotoPreviewImg" src="" alt="Foto do Cliente" style="display:none;" />
+							</div>
+							<div class="cliente-foto-actions">
+								<input type="file" id="clienteFotoInput" accept="image/*" capture="user" style="display:none;" />
+								<button type="button" class="btn btn-secondary btn-sm" id="btnEscolherFotoCliente">
+									📷 Tirar / Carregar Foto
+								</button>
+								<button type="button" class="btn btn-sm" id="btnRemoverFotoCliente" style="display:none; color:var(--danger); border-color:var(--danger); background:transparent;">
+									🗑️ Remover Foto
+								</button>
+								<small class="cliente-foto-hint">Compactada automaticamente em alta resolução para visualização rápida</small>
+							</div>
+						</div>
+					</div>
+
 					<div class="form-group">
 						<label for="clienteNome">Nome Completo *</label>
 						<input
@@ -118,7 +141,7 @@
 					<table id="clientesTable" class="tabela">
 						<thead>
 							<tr>
-								<th>Nome</th>
+								<th>Cliente & Foto</th>
 								<th>Telefone (Código ID)</th>
 								<th>Telefone Secundário</th>
 								<th>Endereço</th>

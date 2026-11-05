@@ -13,6 +13,8 @@
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 		<meta name="apple-mobile-web-app-title" content="Gestão SaaS" />
+		<script src="js/ui-feedback.js"></script>
+		<script src="js/empresa-service.js"></script>
 		<script src="js/theme-service.js"></script>
 		<script type="module" src="js/auth-service.js"></script>
 	</head>
@@ -74,38 +76,68 @@
 						<div id="sugestoesClientes" class="sugestoes"></div>
 					</div>
 
-					<!-- Placa do Veículo -->
-					<div class="form-group">
-						<label for="pedidoPlaca">Placa do Veículo *</label>
-						<input
-							type="text"
-							id="pedidoPlaca"
-							required
-							maxlength="8"
-							style="text-transform: uppercase; font-family: 'Courier New', monospace; font-weight: 700;"
-							placeholder="Ex: ABC1D23 ou ABC-1234" />
+					<!-- Bloco de Campos Exclusivo: LAVA JATO (Placa, Cor, Modelo) -->
+					<div id="blocoCamposLavaJato" class="campos-segmento-wrapper" style="display: contents;">
+						<!-- Placa do Veículo -->
+						<div class="form-group">
+							<label for="pedidoPlaca">Placa do Veículo *</label>
+							<input
+								type="text"
+								id="pedidoPlaca"
+								maxlength="8"
+								style="text-transform: uppercase; font-family: 'Courier New', monospace; font-weight: 700;"
+								placeholder="Ex: ABC1D23 ou ABC-1234" />
+						</div>
+
+						<!-- Cor do Veículo com Seletor e Preview -->
+						<div class="form-group">
+							<label for="pedidoCor" style="display: flex; align-items: center; justify-content: space-between;">
+								<span>Cor do Veículo *</span>
+								<span id="previewCorContainer" style="display: inline-flex; align-items: center; gap: 6px;">
+									<!-- Renderizado via JS -->
+								</span>
+							</label>
+							<select id="pedidoCor">
+								<!-- Preenchido dinamicamente via JS com as opções de cores -->
+							</select>
+						</div>
+
+						<!-- Modelo / Detalhe do Veículo -->
+						<div class="form-group">
+							<label for="pedidoModelo">Modelo / Veículo (Opcional)</label>
+							<input
+								type="text"
+								id="pedidoModelo"
+								placeholder="Ex: Honda Civic, Gol G5, Hilux..." />
+						</div>
 					</div>
 
-					<!-- Cor do Veículo com Seletor e Preview -->
-					<div class="form-group">
-						<label for="pedidoCor" style="display: flex; align-items: center; justify-content: space-between;">
-							<span>Cor do Veículo *</span>
-							<span id="previewCorContainer" style="display: inline-flex; align-items: center; gap: 6px;">
-								<!-- Renderizado via JS -->
-							</span>
-						</label>
-						<select id="pedidoCor" required>
-							<!-- Preenchido dinamicamente via JS com as opções de cores -->
-						</select>
-					</div>
-
-					<!-- Modelo / Detalhe do Veículo -->
-					<div class="form-group">
-						<label for="pedidoModelo">Modelo / Veículo (Opcional)</label>
-						<input
-							type="text"
-							id="pedidoModelo"
-							placeholder="Ex: Honda Civic, Gol G5, Hilux..." />
+					<!-- Bloco de Campos: OUTROS SEGMENTOS (Foto do Cliente / Produto / Item e Referência) -->
+					<div id="blocoCamposOutroSegmento" class="campos-segmento-wrapper full-width" style="display: none; background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px;">
+						<div style="font-weight: 700; font-size: 0.92rem; margin-bottom: 10px; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+							<span>📸 Identificação Visual (Foto do Cliente ou Produto / Item)</span>
+							<span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(Substitui a placa no seu tipo de negócio)</span>
+						</div>
+						<div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+							<div class="cliente-avatar-preview-box" id="osFotoPreviewBox" style="width: 72px; height: 72px; border-radius: 8px; border: 2px dashed var(--border-color); display: flex; align-items: center; justify-content: center; background: #fff; cursor: pointer; overflow: hidden; position: relative;">
+								<span id="osFotoPlaceholderIcon" style="font-size: 1.8rem;">📷</span>
+								<img id="osFotoPreviewImg" src="" alt="Foto O.S." style="display:none; width: 100%; height: 100%; object-fit: cover;" />
+							</div>
+							<div style="flex: 1; min-width: 200px;">
+								<input type="file" id="osFotoInput" accept="image/*" capture="environment" style="display: none;" />
+								<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
+									<button type="button" class="btn btn-secondary btn-sm" id="btnEscolherFotoOS">
+										📷 Tirar / Anexar Foto
+									</button>
+									<button type="button" class="btn btn-sm" id="btnRemoverFotoOS" style="display:none; color:var(--danger); border-color:var(--danger); background:transparent;">
+										🗑️ Remover
+									</button>
+								</div>
+								<div class="form-group" style="margin: 0;">
+									<input type="text" id="pedidoItemDescricao" placeholder="Descrição do item/aparelho/corte (ex: Notebook Dell i7, Shitzu Thor, Barba e Cabelo)..." style="font-size: 0.85rem;" />
+								</div>
+							</div>
+						</div>
 					</div>
 
 					<!-- Data e Hora de Entrada -->
@@ -204,7 +236,7 @@
 						<table id="tabelaPatio" class="tabela">
 							<thead>
 								<tr>
-									<th>Veículo & Placa</th>
+									<th id="thVeiculoPatio">Veículo & Placa</th>
 									<th>Cliente</th>
 									<th>Entrada</th>
 									<th>Serviços</th>
@@ -225,7 +257,7 @@
 						<table id="tabelaEncerrados" class="tabela">
 							<thead>
 								<tr>
-									<th>Veículo & Placa</th>
+									<th id="thVeiculoEncerrados">Veículo & Placa</th>
 									<th>Cliente</th>
 									<th>Conclusão / Saída</th>
 									<th>Serviços</th>
@@ -259,16 +291,16 @@
 						</div>
 
 						<!-- Adicionar Produtos Rápidos no Fechamento do Caixa / O.S. -->
-						<div style="margin-bottom: 14px; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm);">
-							<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+						<div class="modal-balcao-box" style="margin-bottom: 14px; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); box-sizing: border-box; width: 100%;">
+							<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 4px;">
 								<span style="font-size: 0.88rem; font-weight: 700; color: #166534;">🛍️ Produtos de Balcão Levados na Saída</span>
 								<span id="modalResumoSubtotalProdutos" style="font-size: 0.8rem; font-weight: 700; color: #15803d;"></span>
 							</div>
-							<div style="display: flex; gap: 8px;">
-								<select id="modalSelectProdutoBalcao" style="flex: 1; font-size: 0.85rem; padding: 6px 10px;">
+							<div class="modal-balcao-row" style="display: flex; gap: 8px; align-items: stretch; width: 100%; box-sizing: border-box;">
+								<select id="modalSelectProdutoBalcao" style="flex: 1 1 0; min-width: 0; font-size: 0.82rem; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid #86efac; background: #ffffff; color: var(--text-main); height: 38px; box-sizing: border-box;">
 									<option value="">Selecione um produto para adicionar à O.S....</option>
 								</select>
-								<button type="button" class="btn btn-sm" id="modalBtnAddProdutoBalcao" style="background: #166534; color: #ffffff; padding: 6px 12px; font-weight: 700; white-space: nowrap;">
+								<button type="button" class="btn btn-sm" id="modalBtnAddProdutoBalcao" style="background: #166534; color: #ffffff; padding: 0 14px; font-weight: 700; white-space: nowrap; flex-shrink: 0; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
 									+ Adicionar
 								</button>
 							</div>
@@ -338,6 +370,22 @@
 							🖨️ Imprimir
 						</button>
 					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Modal: Lightbox / Visualizador de Foto em Alta Resolução -->
+		<div id="modalVisualizadorFoto" class="modal-overlay" style="z-index: 10000;">
+			<div class="modal-card" style="max-width: 440px; text-align: center; padding: 16px;">
+				<div class="modal-header" style="margin-bottom: 12px;">
+					<h3 id="modalVisualizadorTitulo" style="font-size: 1rem; margin: 0;">📸 Foto do Cliente / Item</h3>
+					<button type="button" class="modal-close-btn" onclick="fecharVisualizadorFoto()">&times;</button>
+				</div>
+				<div style="background: #000; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; min-height: 240px; max-height: 360px;">
+					<img id="modalVisualizadorImg" src="" alt="Foto Ampliada" style="max-width: 100%; max-height: 360px; object-fit: contain;" />
+				</div>
+				<div style="margin-top: 14px; display: flex; justify-content: flex-end;">
+					<button type="button" class="btn btn-secondary btn-sm" onclick="fecharVisualizadorFoto()">Fechar</button>
 				</div>
 			</div>
 		</div>

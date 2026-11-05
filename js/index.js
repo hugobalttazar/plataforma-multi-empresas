@@ -78,39 +78,82 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
-	// Tabela: Carros no Pátio Agora
+	const isLavaJato = !BrandService.getConfig || !BrandService.getConfig().tipoNegocio || BrandService.getConfig().tipoNegocio === 'lava_jato';
+
+	// Helper de renderização de identificação (Placa x Foto)
+	function renderIdentificacaoDashboard(p, isLavaJato, tamanho) {
+		const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
+		if (isLavaJato) {
+			const corObj = obterCorVeiculo(p.cor);
+			const modeloTexto = p.modelo ? ` • ${esc(p.modelo)}` : '';
+			return `
+				<div class="veiculo-info-cell">
+					${renderizarIconeCarro(corObj, tamanho)}
+					<div class="veiculo-meta">
+						<span class="badge-placa">${esc(p.placa || 'SEM PLACA')}</span>
+						<span class="veiculo-cor-nome">${esc(corObj.nome)}${modeloTexto}</span>
+					</div>
+				</div>
+			`;
+		}
+
+		// Outro segmento: foto
+		const cliObj = clientes.find(c => c.nome && c.nome.toLowerCase() === (p.cliente || '').toLowerCase());
+		const fotoFinal = p.foto || (cliObj && cliObj.foto ? cliObj.foto : '');
+		const itemTexto = p.itemDescricao || p.modelo || 'Atendimento';
+
+		if (fotoFinal) {
+			return `
+				<div class="os-foto-cell">
+					<div class="os-foto-thumbnail" style="background-image: url('${fotoFinal}'); width:${tamanho + 8}px; height:${tamanho + 8}px;" title="${esc(itemTexto)}"></div>
+					<div class="os-foto-meta">
+						<span class="os-foto-badge-tag">📸 ${esc(itemTexto)}</span>
+						<span class="os-foto-item-nome">${esc(p.cliente || 'Cliente')}</span>
+					</div>
+				</div>
+			`;
+		}
+
+		const iniciais = (p.cliente || 'CL').trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
+		return `
+			<div class="os-foto-cell">
+				<div class="os-foto-thumbnail sem-foto" style="width:${tamanho + 8}px; height:${tamanho + 8}px;">${iniciais}</div>
+				<div class="os-foto-meta">
+					<span class="os-foto-badge-tag" style="background:#f1f5f9; color:#475569; border-color:#cbd5e1;">📋 ${esc(itemTexto)}</span>
+					<span class="os-foto-item-nome">${esc(p.cliente || 'Cliente')}</span>
+				</div>
+			</div>
+		`;
+	}
+
+	// Tabela: Carros no Pátio / Atendimentos Agora
 	const corpoPatioDashboard = document.getElementById('corpoPatioDashboard');
 	if (corpoPatioDashboard) {
 		corpoPatioDashboard.innerHTML = '';
 		if (carrosPatio.length === 0) {
+			const msgLivre = isLavaJato 
+				? '🅿️ O pátio está livre no momento. Nenhum carro aguardando ou em lavagem.'
+				: '📋 Nenhum atendimento em andamento no momento.';
 			corpoPatioDashboard.innerHTML = `
 				<tr>
 					<td colspan="6" class="empty-table-message">
-						🅿️ O pátio está livre no momento. Nenhum carro aguardando ou em lavagem.
+						${msgLivre}
 					</td>
 				</tr>
 			`;
 		} else {
 			[...carrosPatio].reverse().slice(0, 5).forEach((p) => {
-				const corObj = obterCorVeiculo(p.cor);
-				const modeloTexto = p.modelo ? ` • ${p.modelo}` : '';
 				const tr = document.createElement('tr');
 				tr.innerHTML = `
 					<td>
-						<div class="veiculo-info-cell">
-							${renderizarIconeCarro(corObj, 28)}
-							<div class="veiculo-meta">
-								<span class="badge-placa">${p.placa || 'SEM PLACA'}</span>
-								<span class="veiculo-cor-nome">${corObj.nome}${modeloTexto}</span>
-							</div>
-						</div>
+						${renderIdentificacaoDashboard(p, isLavaJato, 28)}
 					</td>
 					<td><strong>${p.cliente || 'Não identificado'}</strong></td>
 					<td>${p.data || '-'} <small style="color:var(--text-muted);">${p.horaEntrada ? 'às ' + p.horaEntrada : ''}</small></td>
 					<td>${p.servicos || '-'}</td>
 					<td><span class="badge-price">R$ ${parseFloat(p.valor || 0).toFixed(2)}</span></td>
 					<td style="text-align: center;">
-						<a href="pedidos.html" class="btn btn-sm" style="background-color: var(--success); color:#fff; padding: 4px 10px; font-size: 0.8rem;">
+						<a href="pedidos.html" class="btn btn-sm" style="background-color: var(--success); color:#fff; padding: 4px 10px; font-size: 0.8rem; font-weight:700;">
 							💰 Encerrar
 						</a>
 					</td>
@@ -134,18 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
 			`;
 		} else {
 			[...pedidosEncerrados].reverse().slice(0, 5).forEach((p) => {
-				const corObj = obterCorVeiculo(p.cor);
-				const modeloTexto = p.modelo ? ` • ${p.modelo}` : '';
 				const tr = document.createElement('tr');
 				tr.innerHTML = `
 					<td>
-						<div class="veiculo-info-cell">
-							${renderizarIconeCarro(corObj, 26)}
-							<div class="veiculo-meta">
-								<span class="badge-placa">${p.placa || 'SEM PLACA'}</span>
-								<span class="veiculo-cor-nome">${corObj.nome}${modeloTexto}</span>
-							</div>
-						</div>
+						${renderIdentificacaoDashboard(p, isLavaJato, 26)}
 					</td>
 					<td><strong>${p.cliente || 'Não identificado'}</strong></td>
 					<td>${p.dataEncerramento || p.data || '-'}</td>

@@ -27,6 +27,10 @@ const EquipeService = {
 		}
 	},
 
+	obterMembros: function () {
+		return this.getMembros();
+	},
+
 	salvarMembros: function (lista) {
 		localStorage.setItem(this.STORAGE_KEY, JSON.stringify(lista));
 	},
@@ -45,6 +49,21 @@ const EquipeService = {
 		lista.push(novo);
 		this.salvarMembros(lista);
 		return novo;
+	},
+
+	atualizarMembro: function (id, novosDados) {
+		const lista = this.getMembros();
+		const idx = lista.findIndex(m => m.id === id);
+		if (idx !== -1) {
+			lista[idx] = {
+				...lista[idx],
+				...novosDados,
+				valorComissao: parseFloat(novosDados.valorComissao !== undefined ? novosDados.valorComissao : lista[idx].valorComissao || 0)
+			};
+			this.salvarMembros(lista);
+			return lista[idx];
+		}
+		return null;
 	},
 
 	removerMembro: function (id) {

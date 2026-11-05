@@ -1427,7 +1427,10 @@ html[data-theme="dark"] .theme-toggle-thumb {
 	background: #ffffff;
 	border-radius: var(--radius-md);
 	width: 100%;
-	max-width: 500px;
+	max-width: 520px;
+	max-height: 92vh;
+	display: flex;
+	flex-direction: column;
 	box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
 	overflow: hidden;
 	transform: scale(0.96);
@@ -1439,18 +1442,20 @@ html[data-theme="dark"] .theme-toggle-thumb {
 }
 
 .modal-header {
-	padding: 18px 20px;
+	padding: 16px 20px;
 	background: var(--bg-surface);
 	border-bottom: 1px solid var(--border-color);
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	flex-shrink: 0;
 }
 
 .modal-header h3 {
 	font-size: 1.15rem;
 	font-weight: 700;
 	color: var(--text-main);
+	margin: 0;
 }
 
 .modal-close-btn {
@@ -1464,16 +1469,20 @@ html[data-theme="dark"] .theme-toggle-thumb {
 }
 
 .modal-body {
-	padding: 20px;
+	padding: 18px 20px;
+	overflow-y: auto;
+	-webkit-overflow-scrolling: touch;
+	flex: 1 1 auto;
 }
 
 .modal-footer {
-	padding: 16px 20px;
+	padding: 14px 20px;
 	background: var(--bg-surface);
 	border-top: 1px solid var(--border-color);
 	display: flex;
 	justify-content: flex-end;
 	gap: 10px;
+	flex-shrink: 0;
 }
 
 .modal-backdrop {
@@ -3343,6 +3352,258 @@ html[data-theme="dark"] .tag-chip:hover {
 	background: var(--primary-light);
 	border-color: var(--primary);
 	color: var(--primary);
+}
+
+/* ==========================================================================
+   Fotos de Clientes e Miniaturas Multi-Segmento
+   ========================================================================== */
+.cliente-foto-uploader {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 12px;
+	background: var(--bg-surface);
+	border: 1px dashed var(--border-color);
+	border-radius: var(--radius-sm);
+	flex-wrap: wrap;
+}
+
+.cliente-avatar-preview-box {
+	width: 68px;
+	height: 68px;
+	min-width: 68px;
+	border-radius: 50%;
+	background: #ffffff;
+	border: 2px solid var(--border-color);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+}
+
+.cliente-avatar-preview-box img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.cliente-avatar-preview-box span {
+	font-size: 2rem;
+	line-height: 1;
+}
+
+.cliente-foto-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	flex: 1;
+	min-width: 180px;
+}
+
+.cliente-foto-hint {
+	font-size: 0.75rem;
+	color: var(--text-muted);
+}
+
+.cliente-nome-avatar-cell {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.cliente-avatar-thumb {
+	width: 36px;
+	height: 36px;
+	min-width: 36px;
+	border-radius: 50%;
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	border: 1.5px solid var(--border-color);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 0.8rem;
+	color: #ffffff;
+}
+
+.cliente-avatar-thumb.avatar-initials {
+	background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+	color: #ffffff;
+	letter-spacing: 0.04em;
+}
+
+/* Miniatura da Foto na O.S. (Substitui a Placa em outros segmentos) */
+.os-foto-cell {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.os-foto-thumbnail {
+	width: 44px;
+	height: 44px;
+	min-width: 44px;
+	border-radius: 8px;
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	border: 2px solid var(--primary);
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+	cursor: pointer;
+	position: relative;
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.os-foto-thumbnail:hover {
+	transform: scale(1.08);
+	box-shadow: 0 4px 10px rgba(56, 189, 248, 0.4);
+}
+
+.os-foto-thumbnail.sem-foto {
+	background: #f1f5f9;
+	border: 1.5px dashed #cbd5e1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-muted);
+	font-size: 1.25rem;
+	cursor: default;
+}
+
+.os-foto-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.os-foto-badge-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: var(--primary-dark);
+	background: var(--primary-light);
+	border: 1px solid var(--primary);
+	border-radius: 4px;
+	padding: 1px 6px;
+	white-space: nowrap;
+}
+
+.os-foto-item-nome {
+	font-size: 0.78rem;
+	color: var(--text-muted);
+	font-weight: 500;
+	max-width: 140px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* ==========================================================================
+   Responsividade Extrema para Celulares Pequenos (Ex: Samsung Galaxy S22 360px)
+   ========================================================================== */
+@media (max-width: 480px) {
+	.container {
+		padding: 12px 8px 32px 8px;
+	}
+
+	.page-title {
+		font-size: 1.25rem;
+	}
+
+	.page-subtitle {
+		font-size: 0.82rem;
+	}
+
+	.content-card {
+		padding: 14px 10px;
+		margin-bottom: 16px;
+		border-radius: 8px;
+	}
+
+	.content-card-title {
+		font-size: 1rem;
+		margin-bottom: 12px;
+		padding-bottom: 8px;
+	}
+
+	.form {
+		grid-template-columns: 1fr;
+		gap: 12px;
+	}
+
+	.form input,
+	.form select,
+	.form textarea {
+		padding: 10px 12px;
+		font-size: 0.92rem;
+		min-height: 40px;
+	}
+
+	.modal-card {
+		max-width: 96vw;
+		padding: 10px;
+		margin: 8px;
+		max-height: 94vh;
+	}
+
+	.modal-body {
+		padding: 12px 10px;
+	}
+
+	.modal-balcao-row {
+		flex-direction: column !important;
+		gap: 6px !important;
+	}
+
+	.modal-balcao-row select,
+	.modal-balcao-row button {
+		width: 100% !important;
+		height: 38px !important;
+	}
+
+	.table-responsive {
+		width: 100%;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.tabela th,
+	.tabela td {
+		padding: 8px 6px;
+		font-size: 0.8rem;
+	}
+
+	.btn-action-group {
+		gap: 4px;
+	}
+
+	.btn-action-group .btn {
+		padding: 4px 8px;
+		font-size: 0.75rem;
+	}
+
+	.badge-placa {
+		font-size: 0.75rem;
+		padding: 2px 5px;
+		letter-spacing: 0.04em;
+	}
+
+	.os-foto-thumbnail {
+		width: 36px;
+		height: 36px;
+		min-width: 36px;
+	}
+
+	.veiculo-info-cell,
+	.os-foto-cell {
+		gap: 6px;
+	}
 }
 
 
