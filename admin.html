@@ -119,7 +119,7 @@
 						<thead>
 							<tr>
 								<th>Empresa & Segmento</th>
-								<th>ID do Tenant</th>
+								<th>Código da Empresa (Login)</th>
 								<th>Responsável</th>
 								<th>Status</th>
 								<th>Usuários</th>
@@ -184,7 +184,19 @@
 					<form id="formNovaEmpresa" class="form">
 						<div class="form-group full-width">
 							<label for="empresaNome">Nome da Empresa / Estabelecimento *</label>
-							<input type="text" id="empresaNome" required placeholder="Ex: Centro Automotivo Elite, Barbearia VIP, etc." />
+							<input type="text" id="empresaNome" required placeholder="Ex: Danilo Detailer Estética Automotiva" />
+						</div>
+
+						<div class="form-group full-width">
+							<div style="display: flex; justify-content: space-between; align-items: baseline;">
+								<label for="empresaCodigo">🔑 Código da Empresa (Chave Primária de Login) *</label>
+								<span style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">✍️ Totalmente Editável</span>
+							</div>
+							<input type="text" id="empresaCodigo" required placeholder="Ex: danilo, lava, retro, vip" spellcheck="false" autocomplete="off" style="font-family: var(--font-mono); font-weight: 700; font-size: 1rem; color: var(--primary); letter-spacing: 0.5px;" />
+							<div id="statusDisponibilidadeCodigo" style="font-size: 0.8rem; font-weight: 600; margin-top: 4px; display: none;"></div>
+							<small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">
+								Defina um código curto e fácil de lembrar. Todos os colaboradores desta empresa usarão este código no login (sempre em minúsculas).
+							</small>
 						</div>
 
 						<div class="form-group">
@@ -238,6 +250,94 @@
 								💾 Criar e Ativar Empresa
 							</button>
 							<button type="button" class="btn btn-secondary" onclick="fecharModalEmpresa()">
+								Cancelar
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<!-- MODAL: EDITAR EMPRESA EXISTENTE -->
+		<div class="modal-overlay" id="modalEditarEmpresa">
+			<div class="modal-card" style="max-width: 580px;">
+				<div class="modal-header">
+					<h3>✏️ Editar Dados da Empresa</h3>
+					<button type="button" class="modal-close-btn" onclick="fecharModalEditarEmpresa()">&times;</button>
+				</div>
+				<div class="modal-body">
+					<form id="formEditarEmpresa" class="form">
+						<input type="hidden" id="editEmpresaIdOriginal" />
+						<input type="hidden" id="editEmpresaCodigoOriginal" />
+
+						<div class="form-group full-width">
+							<label for="editEmpresaNome">Nome da Empresa / Estabelecimento *</label>
+							<input type="text" id="editEmpresaNome" required placeholder="Ex: Vasconcellos Barbearia" />
+						</div>
+
+						<div class="form-group full-width">
+							<div style="display: flex; justify-content: space-between; align-items: baseline;">
+								<label for="editEmpresaCodigo">🔑 Código da Empresa (Login) *</label>
+								<span style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">✍️ Editável</span>
+							</div>
+							<input type="text" id="editEmpresaCodigo" required placeholder="Ex: vasconcellos, danilo, retro" spellcheck="false" autocomplete="off" style="font-family: var(--font-mono); font-weight: 700; font-size: 1rem; color: var(--primary); letter-spacing: 0.5px;" />
+							<div id="statusDisponibilidadeCodigoEdit" style="font-size: 0.8rem; font-weight: 600; margin-top: 4px; display: none;"></div>
+							<small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">
+								Altere para um código curto e simples. Seus operadores usarão este código no login.
+							</small>
+						</div>
+
+						<div class="form-group">
+							<label for="editEmpresaSegmento">Segmento de Atuação</label>
+							<select id="editEmpresaSegmento">
+								<option value="lava_jato">🚗 Lava Jato / Estética Automotiva</option>
+								<option value="barbearia">💈 Barbearia / Salão</option>
+								<option value="mecanica">🔧 Oficina Mecânica</option>
+								<option value="assistencia">📱 Assistência Técnica</option>
+								<option value="petshop">🐾 Pet Shop / Banho & Tosa</option>
+								<option value="geral">🛠️ Outro Segmento de Serviços</option>
+							</select>
+						</div>
+
+						<div class="form-group">
+							<label for="editEmpresaTelefone">Telefone / WhatsApp</label>
+							<input type="text" id="editEmpresaTelefone" placeholder="(00) 00000-0000" />
+						</div>
+
+						<div class="form-group full-width" style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 6px;">
+							<strong style="display: block; font-size: 0.95rem; color: var(--text-main); margin-bottom: 2px;">
+								👤 Administrador / Proprietário da Empresa
+							</strong>
+							<small style="color: var(--text-muted); display: block; margin-bottom: 12px;">
+								Dados de acesso do responsável por este estabelecimento.
+							</small>
+						</div>
+
+						<div class="form-group">
+							<label for="editEmpresaAdminNome">Nome do Responsável *</label>
+							<input type="text" id="editEmpresaAdminNome" required placeholder="Nome do proprietário" />
+						</div>
+
+						<div class="form-group">
+							<label for="editEmpresaAdminUser">Usuário de Login *</label>
+							<input type="text" id="editEmpresaAdminUser" required placeholder="Ex: hugo, danilo" autocomplete="off" />
+						</div>
+
+						<div class="form-group full-width">
+							<label for="editEmpresaAdminPass">Nova Senha de Acesso (Opcional)</label>
+							<input type="password" id="editEmpresaAdminPass" placeholder="Deixe em branco para manter a senha atual" autocomplete="new-password" />
+							<small style="color: var(--text-muted); margin-top: 4px; display: block;">
+								Preencha apenas se desejar redefinir a senha do administrador desta empresa.
+							</small>
+						</div>
+
+						<div id="msgErroEditarEmpresa" class="error-msg" style="grid-column: 1 / -1; display: none;"></div>
+
+						<div class="form-actions" style="margin-top: 16px;">
+							<button type="submit" class="btn" id="btnSalvarEditarEmpresa" style="background-color: var(--primary); color: #fff;">
+								💾 Salvar Alterações
+							</button>
+							<button type="button" class="btn btn-secondary" onclick="fecharModalEditarEmpresa()">
 								Cancelar
 							</button>
 						</div>

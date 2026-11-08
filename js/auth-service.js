@@ -192,21 +192,21 @@ const AuthService = {
         const currentUser = this.getCurrentUser();
         const empresaId = currentUser?.empresaId || localStorage.getItem('master_active_empresaId') || '';
 
-        // 1. Verifica se já existe localmente
+        // 1. Verifica se já existe localmente nesta empresa
         const users = this.getUsers();
-        if (users.find(u => u.username && u.username.toLowerCase() === cleanUsername)) {
+        if (users.find(u => u.username && u.username.toLowerCase() === cleanUsername && (u.empresaId || '') === empresaId)) {
             throw new Error(`O usuário "${cleanUsername}" já existe nesta empresa.`);
         }
 
-        // 2. Verifica unicidade global no Firestore (evita colisões entre empresas)
-        if (db) {
+        // 2. Verifica unicidade na empresa no Firestore (evita colisões dentro da mesma empresa)
+        if (db && empresaId) {
             try {
-                const userDoc = await getDoc(doc(db, 'users', cleanUsername));
+                const userDoc = await getDoc(doc(db, 'users', `${empresaId}_${cleanUsername}`));
                 if (userDoc.exists()) {
-                    throw new Error(`O usuário "${cleanUsername}" já está em uso no sistema.`);
+                    throw new Error(`O usuário "${cleanUsername}" já existe nesta empresa.`);
                 }
             } catch (err) {
-                if (err.message && err.message.includes('já está em uso')) {
+                if (err.message && err.message.includes('já existe')) {
                     throw err;
                 }
                 console.warn('Aviso ao checar unicidade de usuário no Firestore:', err);
@@ -223,14 +223,21 @@ const AuthService = {
             username: cleanUsername,
             passwordHash: hash,
             empresaId: empresaId,
+            empresaCodigo: empresaId,
             isMaster: false,
             permissoes: Array.isArray(permissoes) ? permissoes : []
         };
 
-        // 4. Salva no Firestore na coleção global 'users' para o login autenticar de qualquer tela/dispositivo
+        // 4. Salva no Firestore isolado pelo tenant (chave composta e fallback direto)
         if (db) {
             try {
-                await setDoc(doc(db, 'users', cleanUsername), newUser);
+                if (empresaId) {
+                    await setDoc(doc(db, 'users', `${empresaId}_${cleanUsername}`), newUser);
+                }
+                const snapDireto = await getDoc(doc(db, 'users', cleanUsername));
+                if (!snapDireto.exists()) {
+                    await setDoc(doc(db, 'users', cleanUsername), newUser);
+                }
             } catch (err) {
                 console.error('Erro ao salvar usuário no Firestore (users):', err);
             }
@@ -369,14 +376,15 @@ const AuthService = {
         }
     },
 
-    async login(username, password) {
-        const usernameNormalized = username.trim().toLowerCase();
+    async login(username, password, empresaCodigo = '') {
+        const usernameNormalized = (username || '').trim().toLowerCase();
+        const empresaCodigoNormalized = (empresaCodigo || '').trim().toLowerCase();
         
-        let activeEmpresa = localStorage.getItem('master_active_empresaId');
+        let activeEmpresa = empresaCodigoNormalized || localStorage.getItem('master_active_empresaId');
         if (!activeEmpresa) {
             try {
                 const saved = JSON.parse(localStorage.getItem('empresas_cadastradas') || '[]');
-                activeEmpresa = saved.length > 0 ? saved[0].id : '';
+                activeEmpresa = saved.length > 0 ? (saved[0].codigo || saved[0].id) : '';
             } catch (e) {
                 activeEmpresa = '';
             }
@@ -385,12 +393,34 @@ const AuthService = {
         const localUsers = this.getUsers();
         const cloudUsers = [];
 
-        // 1. Tenta carregar usuário do Firestore se existir conexão
+        // 1. Tenta carregar usuário do Firestore com isolamento de tenant
         try {
             if (db) {
-                const userDoc = await getDoc(doc(db, 'users', usernameNormalized));
-                if (userDoc.exists()) {
-                    cloudUsers.push(userDoc.data());
+                // Tenta chave composta tenant_usuario (ex: danilodetailer_robson)
+                if (empresaCodigoNormalized) {
+                    const tenantUserDoc = await getDoc(doc(db, 'users', `${empresaCodigoNormalized}_${usernameNormalized}`));
+                    if (tenantUserDoc.exists()) {
+                        cloudUsers.push(tenantUserDoc.data());
+                    }
+                    // Tenta também carregar do subdocumento de usuários da própria empresa
+                    const empUsersSnap = await getDoc(doc(db, 'empresas', empresaCodigoNormalized, 'dados', 'usuarios'));
+                    if (empUsersSnap.exists()) {
+                        const parsed = JSON.parse(empUsersSnap.data()?.data || '[]');
+                        if (Array.isArray(parsed)) {
+                            parsed.forEach(u => {
+                                if (u && u.username && u.username.toLowerCase() === usernameNormalized) {
+                                    cloudUsers.push({ ...u, empresaId: empresaCodigoNormalized, empresaCodigo: empresaCodigoNormalized });
+                                }
+                            });
+                        }
+                    }
+                }
+                // Tenta chave direta legado se ainda não encontrou
+                if (cloudUsers.length === 0) {
+                    const userDoc = await getDoc(doc(db, 'users', usernameNormalized));
+                    if (userDoc.exists()) {
+                        cloudUsers.push(userDoc.data());
+                    }
                 }
             }
         } catch (err) {
@@ -405,6 +435,7 @@ const AuthService = {
                 body: JSON.stringify({
                     username: usernameNormalized,
                     password,
+                    empresaCodigo: empresaCodigoNormalized,
                     localUsers,
                     cloudUsers,
                     activeEmpresaId: activeEmpresa
@@ -417,7 +448,7 @@ const AuthService = {
                     if (data.token) {
                         sessionStorage.setItem('session_token', data.token);
                     }
-                    const targetEmpresa = data.user.empresaId || activeEmpresa;
+                    const targetEmpresa = data.user.empresaId || empresaCodigoNormalized || activeEmpresa;
                     const prevTenant = sessionStorage.getItem('current_tenant_session') || localStorage.getItem('current_tenant_session');
                     if (prevTenant !== targetEmpresa) {
                         this.limparCacheTenantLocal();
@@ -431,11 +462,15 @@ const AuthService = {
                 const data = await resp.json().catch(() => ({}));
                 const msg = data.message || 'Muitas tentativas incorretas. Conta temporariamente bloqueada por segurança.';
                 throw new Error(msg);
-            } else if (resp.status === 401) {
+            } else if (resp.status === 400 || resp.status === 401) {
+                const data = await resp.json().catch(() => ({}));
+                if (data && data.message && resp.status === 400) {
+                    throw new Error(data.message);
+                }
                 return false;
             }
         } catch (err) {
-            if (err && err.message && (err.message.includes('Muitas tentativas') || err.message.includes('bloqueada'))) {
+            if (err && err.message && (err.message.includes('Muitas tentativas') || err.message.includes('bloqueada') || err.message.includes('Código da Empresa'))) {
                 throw err;
             }
             console.warn('API de login do servidor inacessível, testando fallback local:', err);
@@ -464,10 +499,23 @@ const AuthService = {
             return true;
         }
 
-        // Usuários Firestore ou Locais
+        // Operador comum: exige código de empresa para direcionar o tenant
+        if (!empresaCodigoNormalized) {
+            throw new Error('Por favor, informe o Código da Empresa para acessar o seu ambiente.');
+        }
+
+        // Usuários Firestore ou Locais filtrados estritamente pela empresa
         const allCandidates = [...cloudUsers, ...localUsers];
         for (const u of allCandidates) {
             if (u && u.username && u.username.toLowerCase().trim() === usernameNormalized) {
+                const userTenant = (u.empresaId || u.empresaCodigo || '').toLowerCase().trim();
+                const tenantMatches = (
+                    userTenant === empresaCodigoNormalized ||
+                    (empresaCodigoNormalized === 'danilodetailer' && (userTenant === 'empresa_danilo' || userTenant === 'danilodetailer' || !userTenant))
+                );
+
+                if (!tenantMatches) continue;
+
                 let match = false;
                 if (u.passwordHash === shaHash) {
                     match = true;
@@ -499,7 +547,7 @@ const AuthService = {
                 }
 
                 if (match) {
-                    const targetEmpresa = u.empresaId || activeEmpresa;
+                    const targetEmpresa = u.empresaId || empresaCodigoNormalized || activeEmpresa;
                     const prevTenant = sessionStorage.getItem('current_tenant_session') || localStorage.getItem('current_tenant_session');
                     if (prevTenant !== targetEmpresa) {
                         this.limparCacheTenantLocal();
@@ -511,6 +559,7 @@ const AuthService = {
                         username: usernameNormalized,
                         isMaster: !!u.isMaster,
                         empresaId: targetEmpresa,
+                        empresaCodigo: empresaCodigoNormalized,
                         permissoes: u.permissoes || []
                     };
                     this.setCurrentUser(sessionData);

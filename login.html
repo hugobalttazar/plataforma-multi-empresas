@@ -214,6 +214,13 @@
 		<div id="loginError" class="error-msg">Usuário ou senha incorretos.</div>
 
 		<form id="formLogin">
+			<div class="form-group" id="groupEmpresa">
+				<label for="inputEmpresa">Código da Empresa</label>
+				<input type="text" id="inputEmpresa" placeholder="Ex: danilodetailer" autocomplete="organization" spellcheck="false" />
+				<small style="color: #64748b; font-size: 0.78rem; display: block; margin-top: 4px;">
+					Apenas letras minúsculas (deixe em branco se for o Administrador Master)
+				</small>
+			</div>
 			<div class="form-group">
 				<label for="inputUser">Usuário</label>
 				<input type="text" id="inputUser" required placeholder="Digite seu usuário" autocomplete="username" />
@@ -248,6 +255,17 @@
 			sessionStorage.removeItem('logout_reason');
 		}
 
+		// Campo de Código da Empresa: carrega lembrança e converte maiúsculas para minúsculas em tempo real
+		const inputEmpresa = document.getElementById('inputEmpresa');
+		if (inputEmpresa) {
+			const salvo = localStorage.getItem('ultimo_codigo_empresa') || '';
+			if (salvo) inputEmpresa.value = salvo;
+
+			inputEmpresa.addEventListener('input', (e) => {
+				e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+			});
+		}
+
 		const inputPass = document.getElementById('inputPass');
 		const btnToggle = document.getElementById('btnToggleLoginPass');
 		if (btnToggle && inputPass) {
@@ -261,10 +279,19 @@
 
 		document.getElementById('formLogin').addEventListener('submit', async (e) => {
 			e.preventDefault();
-			const user = document.getElementById('inputUser').value;
+			const empresaCodigo = (document.getElementById('inputEmpresa')?.value || '').trim().toLowerCase();
+			const user = document.getElementById('inputUser').value.trim();
 			const pass = document.getElementById('inputPass').value;
 			const btn = document.querySelector('.btn-login');
 			const errorBox = document.getElementById('loginError');
+
+			// Usuários comuns (não-master) devem obrigatoriamente informar o código da empresa
+			if (user.toLowerCase() !== 'admin' && !empresaCodigo) {
+				errorBox.textContent = 'Por favor, informe o Código da Empresa para acessar o seu ambiente.';
+				errorBox.style.display = 'block';
+				document.getElementById('inputEmpresa')?.focus();
+				return;
+			}
 			
 			btn.disabled = true;
 			btn.textContent = 'Autenticando...';
@@ -272,8 +299,11 @@
 			if (noticeBox) noticeBox.style.display = 'none';
 
 			try {
-				const success = await AuthService.login(user, pass);
+				const success = await AuthService.login(user, pass, empresaCodigo);
 				if (success) {
+					if (empresaCodigo) {
+						localStorage.setItem('ultimo_codigo_empresa', empresaCodigo);
+					}
 					const currentUser = AuthService.getCurrentUser();
 					if (currentUser && currentUser.isMaster) {
 						window.location.replace('admin.html');
@@ -281,7 +311,7 @@
 						window.location.replace('index.html');
 					}
 				} else {
-					errorBox.textContent = 'Usuário ou senha incorretos.';
+					errorBox.textContent = 'Código da empresa, usuário ou senha incorretos.';
 					errorBox.style.display = 'block';
 					btn.disabled = false;
 					btn.textContent = 'Entrar';

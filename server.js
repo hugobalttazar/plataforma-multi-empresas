@@ -239,14 +239,15 @@ app.post('/api/auth/hash', (req, res) => {
 // 3. Login Centralizado com Verificação Criptográfica e Proteção contra Força Bruta
 app.post('/api/auth/login', async (req, res) => {
 	const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-	const { username, password, localUsers, cloudUsers } = req.body || {};
+	const { username, password, empresaCodigo, localUsers, cloudUsers } = req.body || {};
 
 	if (!username || !password) {
 		return res.status(400).json({ success: false, message: 'Usuário e senha são obrigatórios.' });
 	}
 
 	const normalizedUser = username.trim().toLowerCase();
-	const rateLimitKey = `${clientIp}:${normalizedUser}`;
+	const normalizedEmpresa = (empresaCodigo || '').trim().toLowerCase();
+	const rateLimitKey = `${clientIp}:${normalizedEmpresa}:${normalizedUser}`;
 
 	// Verificação de Limite de Tentativas (Rate Limiting)
 	const rateCheck = checkRateLimit(rateLimitKey);
@@ -279,41 +280,61 @@ app.post('/api/auth/login', async (req, res) => {
 				nome: 'Administrador Master',
 				username: MASTER_USER,
 				isMaster: true,
-				empresaId: req.body.activeEmpresaId || '',
+				empresaId: normalizedEmpresa || req.body.activeEmpresaId || '',
 				permissoes: ['agenda', 'pedidos', 'caixa', 'estoque', 'posvenda', 'clientes', 'servicos', 'configuracoes']
 			};
 			const token = createSessionToken(masterUser);
 			return res.json({ success: true, user: masterUser, token });
+		} else {
+			recordFailedLogin(rateLimitKey, clientIp, normalizedUser);
+			return res.status(401).json({ success: false, message: 'Usuário ou senha incorretos.' });
 		}
 	}
 
-	// 2. VERIFICAÇÃO EM USUÁRIOS FORNECIDOS (Locais ou Nuvem)
+	// 2. EXIGÊNCIA DE CÓDIGO DA EMPRESA PARA USUÁRIOS COMUNS (ISOLAMENTO MULTI-TENANT)
+	if (!normalizedEmpresa) {
+		return res.status(400).json({
+			success: false,
+			message: 'Por favor, informe o Código da Empresa para acessar o seu ambiente.'
+		});
+	}
+
+	// 3. VERIFICAÇÃO EM USUÁRIOS FILTRADOS POR EMPRESA (Locais ou Nuvem)
 	const combinedUsers = [];
 	if (Array.isArray(cloudUsers)) combinedUsers.push(...cloudUsers);
 	if (Array.isArray(localUsers)) combinedUsers.push(...localUsers);
 
 	for (const u of combinedUsers) {
 		if (u && u.username && u.username.toLowerCase().trim() === normalizedUser) {
-			const storedHash = u.passwordHash;
-			if (storedHash && verifyPassword(password, storedHash)) {
-				clearLoginAttempts(rateLimitKey);
-				console.log(`[AUDITORIA DE SEGURANÇA] Login bem-sucedido: Usuário '${normalizedUser}' via ${clientIp}`);
-				const sessionUser = {
-					id: u.id || normalizedUser,
-					nome: u.nome || u.username,
-					username: normalizedUser,
-					isMaster: false,
-					empresaId: u.empresaId || req.body.activeEmpresaId || '',
-					permissoes: u.permissoes || []
-				};
-				const token = createSessionToken(sessionUser);
-				return res.json({ success: true, user: sessionUser, token });
+			const userTenant = (u.empresaId || u.empresaCodigo || '').toLowerCase().trim();
+			const empresaMatches = (
+				userTenant === normalizedEmpresa ||
+				(normalizedEmpresa === 'danilodetailer' && (userTenant === 'empresa_danilo' || userTenant === 'danilodetailer' || !userTenant))
+			);
+
+			if (empresaMatches) {
+				const storedHash = u.passwordHash;
+				if (storedHash && verifyPassword(password, storedHash)) {
+					clearLoginAttempts(rateLimitKey);
+					console.log(`[AUDITORIA DE SEGURANÇA] Login bem-sucedido: Usuário '${normalizedUser}' na empresa '${normalizedEmpresa}' via ${clientIp}`);
+					const sessionUser = {
+						id: u.id || normalizedUser,
+						nome: u.nome || u.username,
+						username: normalizedUser,
+						isMaster: false,
+						empresaId: u.empresaId || normalizedEmpresa,
+						empresaCodigo: normalizedEmpresa,
+						permissoes: u.permissoes || []
+					};
+					const token = createSessionToken(sessionUser);
+					return res.json({ success: true, user: sessionUser, token });
+				}
 			}
 		}
 	}
 
 	recordFailedLogin(rateLimitKey, clientIp, normalizedUser);
-	return res.status(401).json({ success: false, message: 'Usuário ou senha incorretos.' });
+	return res.status(401).json({ success: false, message: 'Código da empresa, usuário ou senha incorretos.' });
 });
 
 // 4. Verificação de Integridade de Sessão

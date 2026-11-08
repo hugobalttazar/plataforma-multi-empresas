@@ -130,8 +130,8 @@ function renderizarTabelaEmpresas(filtro = '') {
                 </div>
             </td>
             <td>
-                <span class="badge" style="font-family: var(--font-mono); background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border-color);">
-                    ${esc(emp.id)}
+                <span class="badge" style="font-family: var(--font-mono); font-weight: 700; background: rgba(59, 130, 246, 0.1); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 8px; border-radius: 6px;" title="Código de login dos colaboradores">
+                    🔑 ${esc(emp.codigo || emp.id)}
                 </span>
             </td>
             <td>
@@ -153,12 +153,17 @@ function renderizarTabelaEmpresas(filtro = '') {
                     <button type="button" class="btn btn-sm btn-acessar-empresa" data-id="${emp.id}" style="background-color: var(--primary); color: #fff;" title="Acessar o ambiente desta empresa em modo de teste/suporte">
                         🧪 Acessar (Modo Teste)
                     </button>
-                    <button type="button" class="btn btn-sm btn-secondary btn-filtrar-usuarios" data-id="${emp.id}" title="Ver usuários desta empresa">
-                        👥 Usuários
-                    </button>
-                    <button type="button" class="btn btn-sm btn-secondary btn-excluir-empresa" data-id="${emp.id}" style="color: var(--danger);" title="Excluir Empresa">
-                        🗑️
-                    </button>
+                    <div style="display: flex; gap: 4px; justify-content: center; width: 100%; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-sm btn-secondary btn-editar-empresa" data-id="${emp.id}" title="Editar Dados da Empresa e Código de Acesso">
+                            ✏️ Editar
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary btn-filtrar-usuarios" data-id="${emp.id}" title="Ver usuários desta empresa">
+                            👥 Usuários
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary btn-excluir-empresa" data-id="${emp.id}" style="color: var(--danger);" title="Excluir Empresa">
+                            🗑️
+                        </button>
+                    </div>
                 </div>
             </td>
         `;
@@ -171,6 +176,14 @@ function renderizarTabelaEmpresas(filtro = '') {
         btn.addEventListener('click', (e) => {
             const id = e.currentTarget.getAttribute('data-id');
             acessarEmpresaModoTeste(id);
+        });
+    });
+
+    // Vincular botões de Editar Empresa
+    document.querySelectorAll('.btn-editar-empresa').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            abrirModalEditarEmpresa(id);
         });
     });
 
@@ -322,11 +335,30 @@ async function cadastrarNovaEmpresa(e) {
     if (erroBox) erroBox.style.display = 'none';
 
     const nome = document.getElementById('empresaNome').value.trim();
+    const codigo = (document.getElementById('empresaCodigo')?.value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
     const tipoNegocio = document.getElementById('empresaSegmento').value;
     const telefone = document.getElementById('empresaTelefone').value.trim();
     const adminNome = document.getElementById('empresaAdminNome').value.trim();
     const adminUsername = document.getElementById('empresaAdminUser').value.trim();
     const adminPassword = document.getElementById('empresaAdminPass').value;
+
+    if (!codigo || codigo.length < 2) {
+        if (erroBox) {
+            erroBox.textContent = 'O código da empresa deve ter pelo menos 2 caracteres (apenas letras minúsculas e números).';
+            erroBox.style.display = 'block';
+        }
+        document.getElementById('empresaCodigo')?.focus();
+        return;
+    }
+
+    if (!EmpresaService.verificarDisponibilidadeCodigo(codigo)) {
+        if (erroBox) {
+            erroBox.textContent = `O código "${codigo}" já está sendo utilizado por outra empresa. Escolha outro código.`;
+            erroBox.style.display = 'block';
+        }
+        document.getElementById('empresaCodigo')?.focus();
+        return;
+    }
 
     btn.disabled = true;
     btn.textContent = 'Criando empresa e ambiente isolado...';
@@ -334,6 +366,7 @@ async function cadastrarNovaEmpresa(e) {
     try {
         const nova = await EmpresaService.criarEmpresa({
             nome,
+            codigo,
             tipoNegocio,
             telefone,
             adminNome,
@@ -356,6 +389,71 @@ async function cadastrarNovaEmpresa(e) {
     } finally {
         btn.disabled = false;
         btn.textContent = '💾 Criar e Ativar Empresa';
+    }
+}
+
+// 8.1 Edição de Empresa Existente
+async function salvarEdicaoEmpresa(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSalvarEditarEmpresa');
+    const erroBox = document.getElementById('msgErroEditarEmpresa');
+    if (erroBox) erroBox.style.display = 'none';
+
+    const idOriginal = document.getElementById('editEmpresaIdOriginal').value;
+    const nome = document.getElementById('editEmpresaNome').value.trim();
+    const codigo = (document.getElementById('editEmpresaCodigo')?.value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const tipoNegocio = document.getElementById('editEmpresaSegmento').value;
+    const telefone = document.getElementById('editEmpresaTelefone').value.trim();
+    const adminNome = document.getElementById('editEmpresaAdminNome').value.trim();
+    const adminUsername = document.getElementById('editEmpresaAdminUser').value.trim();
+    const adminPassword = document.getElementById('editEmpresaAdminPass').value;
+
+    if (!codigo || codigo.length < 2) {
+        if (erroBox) {
+            erroBox.textContent = 'O código da empresa deve ter pelo menos 2 caracteres (apenas letras minúsculas e números).';
+            erroBox.style.display = 'block';
+        }
+        document.getElementById('editEmpresaCodigo')?.focus();
+        return;
+    }
+
+    if (!EmpresaService.verificarDisponibilidadeCodigo(codigo, idOriginal)) {
+        if (erroBox) {
+            erroBox.textContent = `O código "${codigo}" já está sendo utilizado por outra empresa. Escolha outro código.`;
+            erroBox.style.display = 'block';
+        }
+        document.getElementById('editEmpresaCodigo')?.focus();
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando alterações da empresa...';
+
+    try {
+        const atualizada = await EmpresaService.atualizarEmpresa(idOriginal, {
+            nome,
+            codigo,
+            tipoNegocio,
+            telefone,
+            adminNome,
+            adminUsername,
+            adminPassword
+        });
+
+        if (window.UI) window.UI.toast(`Empresa "${atualizada.nome}" atualizada com sucesso!`, 'success');
+        window.fecharModalEditarEmpresa();
+        await carregarDadosPlataforma();
+    } catch (err) {
+        console.error(err);
+        if (erroBox) {
+            erroBox.textContent = err.message || 'Erro ao salvar alterações da empresa.';
+            erroBox.style.display = 'block';
+        } else if (window.UI) {
+            window.UI.toast(err.message, 'error');
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 Salvar Alterações';
     }
 }
 
@@ -494,13 +592,84 @@ async function confirmarExclusaoUsuario(username, id) {
 }
 
 // 12. Controle dos Modais
+let codigoEditadoManualmente = false;
+
+function atualizarStatusDisponibilidadeCodigo(codigo) {
+    const elStatus = document.getElementById('statusDisponibilidadeCodigo');
+    if (!elStatus) return;
+
+    const clean = (codigo || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!clean) {
+        elStatus.style.display = 'none';
+        elStatus.textContent = '';
+        return;
+    }
+
+    elStatus.style.display = 'block';
+    if (clean.length < 2) {
+        elStatus.style.color = '#f59e0b';
+        elStatus.textContent = '⚠️ Digite pelo menos 2 caracteres (letras e números)';
+        return;
+    }
+
+    const disponivel = EmpresaService.verificarDisponibilidadeCodigo(clean);
+    if (!disponivel) {
+        elStatus.style.color = '#ef4444';
+        elStatus.textContent = `❌ O código "${clean}" já está em uso por outra empresa. Escolha outro.`;
+    } else {
+        elStatus.style.color = '#10b981';
+        elStatus.textContent = `✅ Código "${clean}" disponível!`;
+    }
+}
+
 window.abrirModalEmpresa = function() {
+    codigoEditadoManualmente = false;
     const modal = document.getElementById('modalNovaEmpresa');
     if (modal) modal.classList.add('open');
+    const elStatus = document.getElementById('statusDisponibilidadeCodigo');
+    if (elStatus) elStatus.style.display = 'none';
+    const form = document.getElementById('formNovaEmpresa');
+    if (form) form.reset();
 };
 
 window.fecharModalEmpresa = function() {
     const modal = document.getElementById('modalNovaEmpresa');
+    if (modal) modal.classList.remove('open');
+    codigoEditadoManualmente = false;
+};
+
+// Funções do Modal de Edição de Empresa
+function abrirModalEditarEmpresa(empresaId) {
+    const emp = todasEmpresas.find(e => e.id === empresaId || e.codigo === empresaId);
+    if (!emp) {
+        if (window.UI) window.UI.toast('Empresa não encontrada para edição.', 'error');
+        return;
+    }
+
+    const modal = document.getElementById('modalEditarEmpresa');
+    if (!modal) return;
+
+    document.getElementById('editEmpresaIdOriginal').value = emp.id;
+    document.getElementById('editEmpresaCodigoOriginal').value = emp.codigo || emp.id;
+    document.getElementById('editEmpresaNome').value = emp.nome || '';
+    document.getElementById('editEmpresaCodigo').value = emp.codigo || emp.id || '';
+    document.getElementById('editEmpresaSegmento').value = emp.tipoNegocio || 'geral';
+    document.getElementById('editEmpresaTelefone').value = emp.telefone || '';
+    document.getElementById('editEmpresaAdminNome').value = emp.adminNome || '';
+    document.getElementById('editEmpresaAdminUser').value = emp.adminUsername || '';
+    document.getElementById('editEmpresaAdminPass').value = '';
+
+    const elStatus = document.getElementById('statusDisponibilidadeCodigoEdit');
+    if (elStatus) elStatus.style.display = 'none';
+
+    const erroBox = document.getElementById('msgErroEditarEmpresa');
+    if (erroBox) erroBox.style.display = 'none';
+
+    modal.classList.add('open');
+}
+
+window.fecharModalEditarEmpresa = function() {
+    const modal = document.getElementById('modalEditarEmpresa');
     if (modal) modal.classList.remove('open');
 };
 
@@ -550,6 +719,60 @@ document.addEventListener('DOMContentLoaded', () => {
     const formNovaEmpresa = document.getElementById('formNovaEmpresa');
     if (formNovaEmpresa) formNovaEmpresa.addEventListener('submit', cadastrarNovaEmpresa);
 
+    const formEditarEmpresa = document.getElementById('formEditarEmpresa');
+    if (formEditarEmpresa) formEditarEmpresa.addEventListener('submit', salvarEdicaoEmpresa);
+
     const formNovoUsuario = document.getElementById('formNovoUsuario');
     if (formNovoUsuario) formNovoUsuario.addEventListener('submit', cadastrarNovoUsuario);
+
+    // Campo de Código da Empresa (Criação): 100% editável e com sugestão curta inicial
+    const inputEmpresaNome = document.getElementById('empresaNome');
+    const inputEmpresaCodigo = document.getElementById('empresaCodigo');
+
+    if (inputEmpresaNome && inputEmpresaCodigo) {
+        inputEmpresaNome.addEventListener('input', () => {
+            if (!codigoEditadoManualmente) {
+                const sugestaoCurta = EmpresaService.gerarCodigoEmpresa(inputEmpresaNome.value);
+                inputEmpresaCodigo.value = sugestaoCurta;
+                atualizarStatusDisponibilidadeCodigo(sugestaoCurta);
+            }
+        });
+
+        inputEmpresaCodigo.addEventListener('input', (e) => {
+            codigoEditadoManualmente = true;
+            e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '');
+            atualizarStatusDisponibilidadeCodigo(e.target.value);
+        });
+    }
+
+    // Campo de Código da Empresa (Edição): validação em tempo real e minúsculas
+    const inputEditCodigo = document.getElementById('editEmpresaCodigo');
+    if (inputEditCodigo) {
+        inputEditCodigo.addEventListener('input', (e) => {
+            e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const clean = e.target.value;
+            const originalId = document.getElementById('editEmpresaIdOriginal')?.value;
+            const elStatus = document.getElementById('statusDisponibilidadeCodigoEdit');
+            if (!elStatus) return;
+
+            if (!clean) {
+                elStatus.style.display = 'none';
+                return;
+            }
+            elStatus.style.display = 'block';
+            if (clean.length < 2) {
+                elStatus.style.color = '#f59e0b';
+                elStatus.textContent = '⚠️ Mínimo de 2 caracteres.';
+                return;
+            }
+            const disponivel = EmpresaService.verificarDisponibilidadeCodigo(clean, originalId);
+            if (!disponivel) {
+                elStatus.style.color = '#ef4444';
+                elStatus.textContent = `❌ O código "${clean}" já pertence a outra empresa.`;
+            } else {
+                elStatus.style.color = '#10b981';
+                elStatus.textContent = `✅ Código "${clean}" disponível!`;
+            }
+        });
+    }
 });
