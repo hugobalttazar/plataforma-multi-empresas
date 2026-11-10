@@ -170,7 +170,7 @@ function carregarFormularioNegocio() {
 	const blocoMetas = document.getElementById('blocoConfigMetasExpediente');
 	if (blocoMetas) {
 		const user = window.AuthService ? window.AuthService.getCurrentUser() : null;
-		const podeConfigurarMetas = !user || user.isMaster || user.username === 'admin' || (user.permissoes && user.permissoes.includes('metas'));
+		const podeConfigurarMetas = !user || user.isMaster || user.username === 'admin' || (user.permissoes && (user.permissoes.includes('metas') || user.permissoes.includes('configuracoes')));
 		blocoMetas.style.display = podeConfigurarMetas ? 'block' : 'none';
 	}
 

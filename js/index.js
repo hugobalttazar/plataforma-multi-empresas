@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	// Verifica se o usuário autenticado possui a permissão 'metas' liberada
 	const userAtual = window.AuthService ? window.AuthService.getCurrentUser() : null;
-	const podeVisualizarMetas = !userAtual || userAtual.isMaster || userAtual.username === 'admin' || (userAtual.permissoes && userAtual.permissoes.includes('metas'));
+	const podeVisualizarMetas = !userAtual || userAtual.isMaster || userAtual.username === 'admin' || (userAtual.permissoes && (userAtual.permissoes.includes('metas') || userAtual.permissoes.includes('configuracoes')));
 
 	if (!podeVisualizarMetas) {
 		if (cardSpeedometer) {

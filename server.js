@@ -281,7 +281,7 @@ app.post('/api/auth/login', async (req, res) => {
 				username: MASTER_USER,
 				isMaster: true,
 				empresaId: normalizedEmpresa || req.body.activeEmpresaId || '',
-				permissoes: ['agenda', 'pedidos', 'caixa', 'estoque', 'posvenda', 'clientes', 'servicos', 'configuracoes']
+				permissoes: ['agenda', 'pedidos', 'caixa', 'estoque', 'posvenda', 'clientes', 'servicos', 'configuracoes', 'metas']
 			};
 			const token = createSessionToken(masterUser);
 			return res.json({ success: true, user: masterUser, token });

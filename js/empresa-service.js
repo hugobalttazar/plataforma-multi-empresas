@@ -348,7 +348,7 @@ const EmpresaService = {
                 empresaId: empresaId,
                 empresaCodigo: codigo,
                 isMaster: false,
-                permissoes: ['agenda', 'pedidos', 'caixa', 'estoque', 'posvenda', 'clientes', 'servicos', 'configuracoes']
+                permissoes: ['agenda', 'pedidos', 'caixa', 'estoque', 'posvenda', 'clientes', 'servicos', 'configuracoes', 'metas']
             };
             // Salva na chave com prefixo do tenant para evitar colisão entre empresas no Firestore global
             await setDoc(doc(db, 'users', `${empresaId}_${cleanUsername}`), userRecord);
@@ -508,38 +508,96 @@ const EmpresaService = {
                 newPasswordHash = await AuthService.hashPassword(adminPassword);
             }
 
-            // Atualiza usuários associados na coleção users
+            // Atualiza usuários associados na coleção users garantindo unicidade estrita (sem duplicatas)
             try {
                 const usersSnap = await getDocs(collection(db, 'users'));
                 const userUpdates = [];
+                const docsToDelete = [];
+
                 usersSnap.forEach(uDoc => {
                     const uData = uDoc.data();
-                    if (uData && (uData.empresaId === empresaIdOriginal || uData.empresaCodigo === codigoAntigo || uData.empresaId === novoId)) {
+                    const userBelongsToEmpresa = (
+                        uData && (
+                            uData.empresaId === empresaIdOriginal || 
+                            uData.empresaCodigo === codigoAntigo || 
+                            uData.empresaId === novoId ||
+                            uDoc.id === `${empresaIdOriginal}_${uData.username}`
+                        )
+                    );
+
+                    if (userBelongsToEmpresa) {
+                        const userPermissoes = Array.isArray(uData.permissoes) ? [...uData.permissoes] : ['agenda', 'pedidos', 'caixa', 'estoque', 'posvenda', 'clientes', 'servicos', 'configuracoes', 'metas'];
+                        if (!userPermissoes.includes('metas') && (uData.username === empresaAtualizada.adminUsername || userPermissoes.includes('configuracoes'))) {
+                            userPermissoes.push('metas');
+                        }
                         const updatedUser = {
                             ...uData,
                             empresaId: novoId,
-                            empresaCodigo: novoCodigo
+                            empresaCodigo: novoCodigo,
+                            permissoes: userPermissoes
                         };
                         if (newPasswordHash && uData.username === empresaAtualizada.adminUsername) {
                             updatedUser.passwordHash = newPasswordHash;
                         }
-                        userUpdates.push(setDoc(doc(db, 'users', `${novoId}_${uData.username}`), updatedUser));
-                        userUpdates.push(setDoc(doc(db, 'users', uDoc.id), updatedUser));
+
+                        const canonicalId = `${novoId}_${uData.username}`;
+                        userUpdates.push(setDoc(doc(db, 'users', canonicalId), updatedUser));
+
+                        // Se o ID do documento atual for diferente do canônico (ex: prefixo anterior ou chave legada direta), remove para não gerar duplicidade
+                        if (uDoc.id !== canonicalId) {
+                            docsToDelete.push(uDoc.id);
+                        }
                     }
                 });
+
                 await Promise.all(userUpdates);
+                await Promise.all(docsToDelete.map(oldId => deleteDoc(doc(db, 'users', oldId)).catch(() => {})));
             } catch (uErr) {
                 console.warn('Aviso ao atualizar usuários no Firestore:', uErr);
             }
+
+            // Atualiza subdocumento de usuários da própria empresa
+            try {
+                const empUsersSnap = await getDoc(doc(db, 'empresas', novoId, 'dados', 'usuarios'));
+                let empUsersList = [];
+                if (empUsersSnap.exists()) {
+                    try { empUsersList = JSON.parse(empUsersSnap.data()?.data || '[]'); } catch (e) {}
+                }
+                if (Array.isArray(empUsersList)) {
+                    empUsersList = empUsersList.map(u => {
+                        const updated = {
+                            ...u,
+                            empresaId: novoId,
+                            empresaCodigo: novoCodigo
+                        };
+                        if (newPasswordHash && u.username === empresaAtualizada.adminUsername) {
+                            updated.passwordHash = newPasswordHash;
+                        }
+                        return updated;
+                    });
+                    await setDoc(doc(db, 'empresas', novoId, 'dados', 'usuarios'), {
+                        data: JSON.stringify(empUsersList)
+                    });
+                }
+            } catch (uSubErr) {
+                console.warn('Aviso ao sincronizar subcoleção de usuários da empresa:', uSubErr);
+            }
         }
 
-        // 2. Atualizar usuários locais no localStorage
+        // 2. Atualizar usuários locais no localStorage e deduplicar
         let locais = AuthService.getUsers();
         locais = locais.map(u => {
             if (u.empresaId === empresaIdOriginal || u.empresaCodigo === codigoAntigo) {
                 return { ...u, empresaId: novoId, empresaCodigo: novoCodigo };
             }
             return u;
+        });
+        const seenLocais = new Set();
+        locais = locais.filter(u => {
+            const key = `${(u.empresaId || '').trim()}:${(u.username || '').toLowerCase().trim()}`;
+            if (seenLocais.has(key)) return false;
+            seenLocais.add(key);
+            return true;
         });
         AuthService.saveUsers(locais);
 

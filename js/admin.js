@@ -30,38 +30,84 @@ async function carregarDadosPlataforma() {
         await EmpresaService.init();
         todasEmpresas = EmpresaService.getEmpresas();
 
-        // Carrega usuários da coleção global 'users' no Firestore
+        // Carrega usuários da coleção global 'users' no Firestore com deduplicação rigorosa
         todosUsuarios = [];
         if (db) {
             try {
                 const userSnapshot = await getDocs(collection(db, 'users'));
+                const seenUserKeys = new Map();
+                const duplicateDocsToDelete = [];
+
                 userSnapshot.forEach(docSnap => {
                     const data = docSnap.data();
-                    todosUsuarios.push({
+                    const username = (data.username || docSnap.id).toLowerCase().trim();
+                    const empresaId = (data.empresaId || data.empresaCodigo || '').trim();
+                    const uniqueKey = `${empresaId}:${username}`;
+                    const permissoesArr = Array.isArray(data.permissoes) ? [...data.permissoes] : [];
+                    if (!permissoesArr.includes('metas') && (permissoesArr.includes('configuracoes') || data.isMaster)) {
+                        permissoesArr.push('metas');
+                        if (db) {
+                            setDoc(doc(db, 'users', docSnap.id), { ...data, permissoes: permissoesArr }).catch(() => {});
+                        }
+                    }
+
+                    const candidate = {
                         id: docSnap.id,
-                        username: data.username || docSnap.id,
+                        username: username,
                         nome: data.nome || data.username || 'Sem nome',
-                        empresaId: data.empresaId || '',
+                        empresaId: empresaId,
                         isMaster: !!data.isMaster,
-                        permissoes: data.permissoes || []
-                    });
+                        permissoes: permissoesArr
+                    };
+
+                    if (seenUserKeys.has(uniqueKey)) {
+                        const existing = seenUserKeys.get(uniqueKey);
+                        // Prioriza o documento que possui a chave canônica do tenant (ex: vasconcellos_hugo)
+                        if (docSnap.id.startsWith(`${empresaId}_`)) {
+                            duplicateDocsToDelete.push(existing.id);
+                            seenUserKeys.set(uniqueKey, candidate);
+                        } else {
+                            duplicateDocsToDelete.push(docSnap.id);
+                        }
+                    } else {
+                        seenUserKeys.set(uniqueKey, candidate);
+                    }
                 });
+
+                todosUsuarios = Array.from(seenUserKeys.values());
+
+                // Remove do Firestore documentos duplicados legados
+                if (duplicateDocsToDelete.length > 0) {
+                    duplicateDocsToDelete.forEach(orphanId => {
+                        deleteDoc(doc(db, 'users', orphanId)).catch(() => {});
+                    });
+                }
             } catch (err) {
                 console.warn('Carregamento de usuários do Firestore:', err);
             }
         }
 
-        // Se Firestore estiver sem usuários ou offline, mescla com usuários locais
+        // Se Firestore estiver sem usuários ou offline, mescla com usuários locais deduplicados
         if (todosUsuarios.length === 0) {
             const locais = AuthService.getUsers();
-            todosUsuarios = locais.map(u => ({
-                id: u.id || u.username,
-                username: u.username,
-                nome: u.nome || u.username,
-                empresaId: u.empresaId || '',
-                isMaster: !!u.isMaster,
-                permissoes: u.permissoes || []
-            }));
+            const seenLocais = new Set();
+            todosUsuarios = [];
+            locais.forEach(u => {
+                const username = (u.username || '').toLowerCase().trim();
+                const empresaId = (u.empresaId || '').trim();
+                const key = `${empresaId}:${username}`;
+                if (!seenLocais.has(key)) {
+                    seenLocais.add(key);
+                    todosUsuarios.push({
+                        id: u.id || username,
+                        username: username,
+                        nome: u.nome || username,
+                        empresaId: empresaId,
+                        isMaster: !!u.isMaster,
+                        permissoes: u.permissoes || []
+                    });
+                }
+            });
         }
 
         atualizarKPIs();
@@ -504,7 +550,7 @@ async function cadastrarNovoUsuario(e) {
         };
 
         if (db) {
-            await setDoc(doc(db, 'users', cleanUsername), novoUser);
+            await setDoc(doc(db, 'users', `${empresaId}_${cleanUsername}`), novoUser);
         }
 
         // Salva também localmente
