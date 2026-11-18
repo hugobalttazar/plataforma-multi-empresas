@@ -26,15 +26,61 @@ function obterCorVeiculo(corIdOuNome) {
 	return encontrada || { id: 'personalizada', nome: corIdOuNome, hex: '#3b82f6', borda: '#2563eb', texto: '#ffffff' };
 }
 
-function renderizarIconeCarro(corObj, tamanho = 28) {
+function normalizarPlaca(placa) {
+	return (placa || '').toString().toUpperCase().replace(/[^A-Z0-9-]/g, '').trim();
+}
+
+function normalizarTipoVeiculo(tipo) {
+	const t = (tipo || '').toString().toLowerCase().trim();
+	if (t === 'moto') return 'moto';
+	if (t === 'caminhao' || t === 'caminhão') return 'caminhao';
+	return 'carro';
+}
+
+function obterLabelTipoVeiculo(tipo, comIcone = false) {
+	const t = normalizarTipoVeiculo(tipo);
+	if (t === 'moto') return comIcone ? '🏍️ Moto' : 'Moto';
+	if (t === 'caminhao') return comIcone ? '🚛 Caminhão' : 'Caminhão';
+	return comIcone ? '🚗 Carro' : 'Carro';
+}
+
+function renderizarIconeCarro(corObj, tamanho = 28, tipo = 'carro') {
 	const c = typeof corObj === 'string' ? obterCorVeiculo(corObj) : (corObj || CORES_VEICULOS[0]);
-	return `
-		<span class="veiculo-icone-wrapper" title="Cor: ${c.nome}" style="display:inline-flex; align-items:center; justify-content:center; width:${tamanho}px; height:${tamanho}px; min-width:${tamanho}px; border-radius:6px; background-color:${c.hex}; border:2px solid ${c.borda}; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
-			<svg width="${Math.round(tamanho * 0.72)}" height="${Math.round(tamanho * 0.72)}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+	const iconSize = Math.round(tamanho * 0.72);
+	const tipoNorm = normalizarTipoVeiculo(tipo);
+	const labelTipo = obterLabelTipoVeiculo(tipoNorm, false);
+
+	let svgContent = '';
+	if (tipoNorm === 'moto') {
+		svgContent = `
+			<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<circle cx="5.5" cy="16.5" r="3" stroke="${c.texto}" stroke-width="2"/>
+				<circle cx="18.5" cy="16.5" r="3" stroke="${c.texto}" stroke-width="2"/>
+				<path d="M5.5 16.5L9.5 10.5H14.5L18.5 16.5M14.5 10.5L16.5 7.5H19M9.5 10.5L8 8.5H5.5" stroke="${c.texto}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+		`;
+	} else if (tipoNorm === 'caminhao') {
+		svgContent = `
+			<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path d="M2 6.5C2 5.95 2.45 5.5 3 5.5H14.5C15.05 5.5 15.5 5.95 15.5 6.5V16.5H2V6.5Z" stroke="${c.texto}" stroke-width="2" stroke-linejoin="round"/>
+				<path d="M15.5 9.5H19L21.5 12.5V16.5H15.5V9.5Z" stroke="${c.texto}" stroke-width="2" stroke-linejoin="round"/>
+				<circle cx="6.5" cy="17.5" r="2.2" fill="${c.hex}" stroke="${c.texto}" stroke-width="2"/>
+				<circle cx="18" cy="17.5" r="2.2" fill="${c.hex}" stroke="${c.texto}" stroke-width="2"/>
+			</svg>
+		`;
+	} else {
+		svgContent = `
+			<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 				<path d="M5 11L6.5 6.5C6.7 5.9 7.3 5.5 8 5.5H16C16.7 5.5 17.3 5.9 17.5 6.5L19 11M5 11H19M5 11C3.9 11 3 11.9 3 13V17C3 17.6 3.4 18 4 18H5M19 11C20.1 11 21 11.9 21 13V17C21 17.6 20.6 18 20 18H19M7 18H17" stroke="${c.texto}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 				<circle cx="7.5" cy="14.5" r="1.5" fill="${c.texto}"/>
 				<circle cx="16.5" cy="14.5" r="1.5" fill="${c.texto}"/>
 			</svg>
+		`;
+	}
+
+	return `
+		<span class="veiculo-icone-wrapper" title="${labelTipo} - Cor: ${c.nome}" style="display:inline-flex; align-items:center; justify-content:center; width:${tamanho}px; height:${tamanho}px; min-width:${tamanho}px; border-radius:6px; background-color:${c.hex}; border:2px solid ${c.borda}; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
+			${svgContent}
 		</span>
 	`;
 }

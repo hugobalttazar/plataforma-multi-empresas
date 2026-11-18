@@ -198,4 +198,244 @@
         confirm: showConfirmDialog,
         alert: showAlertModal
     };
+
+    // ======================================================================
+    // Utilitário Global de Datas Brasileiras (dd/mm/aaaa)
+    // ======================================================================
+    const DateBR = {
+        aplicarMascaraTexto(valor) {
+            const digitos = String(valor || '').replace(/\D/g, '').slice(0, 8);
+            if (digitos.length <= 2) return digitos;
+            if (digitos.length <= 4) return `${digitos.slice(0, 2)}/${digitos.slice(2)}`;
+            return `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
+        },
+
+        formatarParaBR(valor) {
+            if (!valor) return '';
+            const str = String(valor).trim();
+            const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (isoMatch) {
+                return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+            }
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+                return str;
+            }
+            return str;
+        },
+
+        validarDataBR(valorBR) {
+            const str = String(valorBR || '').trim();
+            const match = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (!match) {
+                return { valido: false, iso: null, br: null };
+            }
+            const dia = parseInt(match[1], 10);
+            const mes = parseInt(match[2], 10);
+            const ano = parseInt(match[3], 10);
+
+            if (ano < 1900 || ano > 2100 || mes < 1 || mes > 12 || dia < 1 || dia > 31) {
+                return { valido: false, iso: null, br: null };
+            }
+
+            const dataObj = new Date(ano, mes - 1, dia);
+            if (
+                dataObj.getFullYear() !== ano ||
+                dataObj.getMonth() !== mes - 1 ||
+                dataObj.getDate() !== dia
+            ) {
+                return { valido: false, iso: null, br: null };
+            }
+
+            const dd = String(dia).padStart(2, '0');
+            const mm = String(mes).padStart(2, '0');
+            return {
+                valido: true,
+                iso: `${ano}-${mm}-${dd}`,
+                br: `${dd}/${mm}/${ano}`
+            };
+        },
+
+        converterBRParaISO(valor) {
+            const str = String(valor || '').trim();
+            if (!str) return '';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                const [ano, mes, dia] = str.split('-');
+                const check = this.validarDataBR(`${dia}/${mes}/${ano}`);
+                return check.valido ? check.iso : null;
+            }
+            const res = this.validarDataBR(str);
+            return res.valido ? res.iso : null;
+        },
+
+        resolverElemento(inputOrId) {
+            if (!inputOrId) return null;
+            if (typeof inputOrId === 'string') return document.getElementById(inputOrId);
+            return inputOrId;
+        },
+
+        setInputISO(inputOrId, valorISO) {
+            const input = this.resolverElemento(inputOrId);
+            if (!input) return;
+            if (!valorISO) {
+                input.value = '';
+                input.classList.remove('date-br-invalid');
+                input.setCustomValidity('');
+                if (input._datePickerInput) input._datePickerInput.value = '';
+                return;
+            }
+            const br = this.formatarParaBR(valorISO);
+            const iso = this.converterBRParaISO(br);
+            input.value = br;
+            input.classList.remove('date-br-invalid');
+            input.setCustomValidity('');
+            if (input._datePickerInput) {
+                input._datePickerInput.value = iso || '';
+            }
+        },
+
+        getInputISO(inputOrId) {
+            const input = this.resolverElemento(inputOrId);
+            if (!input) return '';
+            return this.converterBRParaISO(input.value);
+        },
+
+        setupCampoData(input) {
+            if (!input || input.dataset.dateBrReady === 'true') return;
+            input.dataset.dateBrReady = 'true';
+
+            input.type = 'text';
+            input.inputMode = 'numeric';
+            input.maxLength = 10;
+            input.placeholder = input.placeholder || 'dd/mm/aaaa';
+            input.autocomplete = 'off';
+            input.classList.add('date-br-input');
+
+            if (input.value && /^\d{4}-\d{2}-\d{2}/.test(input.value.trim())) {
+                input.value = this.formatarParaBR(input.value);
+            }
+
+            let wrapper = input.parentElement;
+            if (!wrapper || !wrapper.classList.contains('date-br-wrapper')) {
+                wrapper = document.createElement('div');
+                wrapper.className = 'date-br-wrapper';
+                if (input.dataset.dateCompact === 'true') {
+                    wrapper.classList.add('date-br-compact');
+                }
+                input.parentNode.insertBefore(wrapper, input);
+                wrapper.appendChild(input);
+            }
+
+            const nativePicker = document.createElement('input');
+            nativePicker.type = 'date';
+            nativePicker.className = 'date-br-native-picker';
+            nativePicker.tabIndex = -1;
+            nativePicker.setAttribute('aria-hidden', 'true');
+
+            const isoInicial = this.converterBRParaISO(input.value);
+            if (isoInicial) {
+                nativePicker.value = isoInicial;
+            }
+
+            const pickerBtn = document.createElement('button');
+            pickerBtn.type = 'button';
+            pickerBtn.className = 'date-br-picker-btn';
+            pickerBtn.title = 'Selecionar data no calendário';
+            pickerBtn.setAttribute('aria-label', 'Selecionar data no calendário');
+            pickerBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`;
+
+            wrapper.appendChild(pickerBtn);
+            wrapper.appendChild(nativePicker);
+            input._datePickerInput = nativePicker;
+
+            pickerBtn.addEventListener('click', () => {
+                const isoAtual = this.converterBRParaISO(input.value);
+                nativePicker.value = isoAtual || '';
+                if (typeof nativePicker.showPicker === 'function') {
+                    try {
+                        nativePicker.showPicker();
+                        return;
+                    } catch (err) {
+                        // Fallback abaixo
+                    }
+                }
+                nativePicker.focus();
+                nativePicker.click();
+            });
+
+            nativePicker.addEventListener('change', () => {
+                if (nativePicker.value) {
+                    input.value = this.formatarParaBR(nativePicker.value);
+                    input.classList.remove('date-br-invalid');
+                    input.setCustomValidity('');
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+
+            input.addEventListener('input', () => {
+                const posAnterior = input.selectionStart || 0;
+                const digitosAntes = input.value.slice(0, posAnterior).replace(/\D/g, '').length;
+                const mascarado = this.aplicarMascaraTexto(input.value);
+
+                if (input.value !== mascarado) {
+                    input.value = mascarado;
+                    let novaPos = mascarado.length;
+                    if (digitosAntes <= 2) {
+                        novaPos = digitosAntes;
+                    } else if (digitosAntes <= 4) {
+                        novaPos = digitosAntes + 1;
+                    } else {
+                        novaPos = digitosAntes + 2;
+                    }
+                    try {
+                        input.setSelectionRange(novaPos, novaPos);
+                    } catch (e) {}
+                }
+
+                input.classList.remove('date-br-invalid');
+                input.setCustomValidity('');
+
+                const isoAtual = this.converterBRParaISO(input.value);
+                if (isoAtual) {
+                    nativePicker.value = isoAtual;
+                } else if (!input.value.trim()) {
+                    nativePicker.value = '';
+                }
+            });
+
+            input.addEventListener('blur', () => {
+                const val = input.value.trim();
+                if (!val) {
+                    input.classList.remove('date-br-invalid');
+                    input.setCustomValidity('');
+                    return;
+                }
+                const check = this.validarDataBR(val);
+                if (!check.valido) {
+                    input.classList.add('date-br-invalid');
+                    input.setCustomValidity('Informe uma data válida no formato dd/mm/aaaa.');
+                } else {
+                    input.value = check.br;
+                    input.classList.remove('date-br-invalid');
+                    input.setCustomValidity('');
+                    nativePicker.value = check.iso;
+                }
+            });
+        },
+
+        inicializarTodos() {
+            document.querySelectorAll('input[data-date-br="true"]').forEach((el) => {
+                this.setupCampoData(el);
+            });
+        }
+    };
+
+    window.DateBR = DateBR;
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => DateBR.inicializarTodos());
+    } else {
+        DateBR.inicializarTodos();
+    }
 })();
+

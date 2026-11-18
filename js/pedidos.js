@@ -20,6 +20,7 @@ if (!localStorage.getItem('servicos_initialized')) {
 // Elementos do DOM
 const pedidoForm = document.getElementById('pedidoForm');
 const pedidoCliente = document.getElementById('pedidoCliente');
+const pedidoVeiculoTipo = document.getElementById('pedidoVeiculoTipo');
 const pedidoPlaca = document.getElementById('pedidoPlaca');
 const pedidoCor = document.getElementById('pedidoCor');
 const previewCorContainer = document.getElementById('previewCorContainer');
@@ -30,7 +31,26 @@ const pedidoServico = document.getElementById('pedidoServico');
 const pedidoValor = document.getElementById('pedidoValor');
 const sugestoesDiv = document.getElementById('sugestoesClientes');
 
-// Campos de Segmento (Lava Jato vs Outros)
+// Painel e Modal de Veículos do Cliente na O.S.
+const painelVeiculosClienteOS = document.getElementById('painelVeiculosClienteOS');
+const osVeiculosTitulo = document.getElementById('osVeiculosTitulo');
+const osVeiculosMeta = document.getElementById('osVeiculosMeta');
+const osVeiculosGrid = document.getElementById('osVeiculosGrid');
+const btnAbrirCadastroRapidoVeiculo = document.getElementById('btnAbrirCadastroRapidoVeiculo');
+const modalCadastroRapidoVeiculo = document.getElementById('modalCadastroRapidoVeiculo');
+const formCadastroRapidoVeiculo = document.getElementById('formCadastroRapidoVeiculo');
+const btnFecharModalRapidoVeiculo = document.getElementById('btnFecharModalRapidoVeiculo');
+const btnCancelarModalRapidoVeiculo = document.getElementById('btnCancelarModalRapidoVeiculo');
+const rapidoVeiculoClienteNome = document.getElementById('rapidoVeiculoClienteNome');
+const rapidoVeiculoTipo = document.getElementById('rapidoVeiculoTipo');
+const rapidoVeiculoPlaca = document.getElementById('rapidoVeiculoPlaca');
+const rapidoVeiculoModelo = document.getElementById('rapidoVeiculoModelo');
+const rapidoVeiculoCor = document.getElementById('rapidoVeiculoCor');
+
+let clienteSelecionadoOS = null;
+let veiculoSelecionadoId = null;
+
+// Campos de Segmento (Lava Jato / Oficina Mecânica vs Outros)
 const blocoCamposLavaJato = document.getElementById('blocoCamposLavaJato');
 const blocoCamposOutroSegmento = document.getElementById('blocoCamposOutroSegmento');
 const osFotoInput = document.getElementById('osFotoInput');
@@ -47,11 +67,16 @@ const modalVisualizadorTitulo = document.getElementById('modalVisualizadorTitulo
 
 let fotoOSBase64Atual = '';
 
-// Verifica se o negócio atual é Lava Jato ou Outro Segmento
+// Verifica se o negócio atual utiliza veículos/placas (Lava Jato ou Oficina Mecânica)
 function isSegmentoLavaJato() {
-	if (typeof BrandService !== 'undefined' && typeof BrandService.getConfig === 'function') {
-		const config = BrandService.getConfig();
-		return !config.tipoNegocio || config.tipoNegocio === 'lava_jato';
+	if (typeof BrandService !== 'undefined') {
+		if (typeof BrandService.isSegmentoAutomotivo === 'function') {
+			return BrandService.isSegmentoAutomotivo();
+		}
+		if (typeof BrandService.getConfig === 'function') {
+			const config = BrandService.getConfig();
+			return !config.tipoNegocio || config.tipoNegocio === 'lava_jato' || config.tipoNegocio === 'mecanica';
+		}
 	}
 	return true;
 }
@@ -215,38 +240,67 @@ function normalizarDadosPedidos() {
 
 // Popular seletor de cores do veículo
 function popularCoresVeiculo() {
-	if (!pedidoCor) return;
-	pedidoCor.innerHTML = '';
-	
-	CORES_VEICULOS.forEach((c) => {
-		const opt = document.createElement('option');
-		opt.value = c.id;
-		opt.textContent = `${c.nome}`;
-		pedidoCor.appendChild(opt);
-	});
+	if (pedidoCor) {
+		pedidoCor.innerHTML = '';
+		CORES_VEICULOS.forEach((c) => {
+			const opt = document.createElement('option');
+			opt.value = c.id;
+			opt.textContent = `${c.nome}`;
+			pedidoCor.appendChild(opt);
+		});
+		if (!pedidoCor.dataset.listenerBound) {
+			pedidoCor.addEventListener('change', atualizarPreviewCor);
+			pedidoCor.dataset.listenerBound = 'true';
+		}
+		atualizarPreviewCor();
+	}
 
-	pedidoCor.addEventListener('change', atualizarPreviewCor);
-	atualizarPreviewCor();
+	if (rapidoVeiculoCor) {
+		rapidoVeiculoCor.innerHTML = '';
+		CORES_VEICULOS.forEach((c) => {
+			const opt = document.createElement('option');
+			opt.value = c.id;
+			opt.textContent = `${c.nome}`;
+			rapidoVeiculoCor.appendChild(opt);
+		});
+		rapidoVeiculoCor.value = 'prata';
+	}
 }
 
 function atualizarPreviewCor() {
 	if (!pedidoCor || !previewCorContainer) return;
 	const corId = pedidoCor.value;
 	const corObj = obterCorVeiculo(corId);
+	const tipoAtual = pedidoVeiculoTipo ? pedidoVeiculoTipo.value : 'carro';
 	previewCorContainer.innerHTML = `
-		${renderizarIconeCarro(corObj, 24)}
+		${renderizarIconeCarro(corObj, 24, tipoAtual)}
 		<small style="font-weight:600; color:var(--text-muted);">${corObj.nome}</small>
 	`;
 }
 
+if (pedidoVeiculoTipo) {
+	pedidoVeiculoTipo.addEventListener('change', atualizarPreviewCor);
+}
+
 // Data atual padrão
 if (pedidoData && !pedidoData.value) {
-	pedidoData.value = obterDataHojeISO();
+	if (window.DateBR) {
+		window.DateBR.setInputISO(pedidoData, obterDataHojeISO());
+	} else {
+		pedidoData.value = obterDataHojeISO();
+	}
 }
 
 // Formatação automática da placa para maiúsculas
 if (pedidoPlaca) {
 	pedidoPlaca.addEventListener('input', (e) => {
+		let v = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+		e.target.value = v;
+	});
+}
+
+if (rapidoVeiculoPlaca) {
+	rapidoVeiculoPlaca.addEventListener('input', (e) => {
 		let v = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
 		e.target.value = v;
 	});
@@ -371,6 +425,243 @@ function carregarProdutosVendaEntrada() {
 	});
 }
 
+function encontrarClientePorNome(nome) {
+	if (!nome) return null;
+	const termo = nome.trim().toLowerCase();
+	if (!termo) return null;
+	const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+	return clientes.find((c) => c.nome && c.nome.trim().toLowerCase() === termo) || null;
+}
+
+function aplicarVeiculoNoFormularioOS(veiculo) {
+	if (!veiculo) return;
+	veiculoSelecionadoId = veiculo.id || veiculo.placa;
+	const tipoNorm = typeof normalizarTipoVeiculo === 'function'
+		? normalizarTipoVeiculo(veiculo.tipo)
+		: (veiculo.tipo === 'moto' ? 'moto' : (veiculo.tipo === 'caminhao' ? 'caminhao' : 'carro'));
+	if (pedidoVeiculoTipo) pedidoVeiculoTipo.value = tipoNorm;
+	if (pedidoPlaca) pedidoPlaca.value = (veiculo.placa || '').toUpperCase();
+	if (pedidoModelo) pedidoModelo.value = veiculo.modelo || '';
+	if (pedidoCor && veiculo.cor) {
+		pedidoCor.value = veiculo.cor;
+	}
+	atualizarPreviewCor();
+
+	if (osVeiculosGrid) {
+		osVeiculosGrid.querySelectorAll('.os-veiculo-option').forEach((btn) => {
+			if (btn.dataset.vid === String(veiculoSelecionadoId)) {
+				btn.classList.add('active');
+			} else {
+				btn.classList.remove('active');
+			}
+		});
+	}
+}
+
+function atualizarPainelVeiculosClienteOS(clienteObj, autoSelecionar = true) {
+	if (!painelVeiculosClienteOS) return;
+
+	if (!isSegmentoLavaJato() || !clienteObj) {
+		painelVeiculosClienteOS.style.display = 'none';
+		if (osVeiculosGrid) osVeiculosGrid.innerHTML = '';
+		return;
+	}
+
+	clienteSelecionadoOS = clienteObj;
+	const veiculos = Array.isArray(clienteObj.veiculos) ? clienteObj.veiculos : [];
+	const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
+
+	painelVeiculosClienteOS.style.display = 'block';
+	if (osVeiculosTitulo) {
+		osVeiculosTitulo.textContent = `Veículos de ${clienteObj.nome}`;
+	}
+	if (osVeiculosMeta) {
+		if (veiculos.length === 0) {
+			osVeiculosMeta.textContent = 'Nenhum veículo cadastrado para este cliente ainda';
+		} else if (veiculos.length === 1) {
+			osVeiculosMeta.textContent = '1 veículo cadastrado · selecionado automaticamente';
+		} else {
+			osVeiculosMeta.textContent = `${veiculos.length} veículos cadastrados · clique em uma placa para selecionar`;
+		}
+	}
+
+	if (!osVeiculosGrid) return;
+	osVeiculosGrid.innerHTML = '';
+
+	if (veiculos.length === 0) {
+		osVeiculosGrid.innerHTML = `
+			<div class="os-veiculos-empty" style="grid-column: 1 / -1;">
+				Este cliente ainda não possui placas cadastradas. Clique em <strong>+ Cadastrar Veículo</strong> para salvar a placa e o modelo diretamente no cadastro dele.
+			</div>
+		`;
+		return;
+	}
+
+	veiculos.forEach((v) => {
+		const vid = v.id || v.placa;
+		const corObj = obterCorVeiculo(v.cor);
+		const tipoLabel = typeof obterLabelTipoVeiculo === 'function'
+			? obterLabelTipoVeiculo(v.tipo, false)
+			: (v.tipo === 'moto' ? 'Moto' : (v.tipo === 'caminhao' ? 'Caminhão' : 'Carro'));
+		const btn = document.createElement('button');
+		btn.type = 'button';
+		btn.className = 'os-veiculo-option' + (String(veiculoSelecionadoId) === String(vid) ? ' active' : '');
+		btn.dataset.vid = String(vid);
+		btn.innerHTML = `
+			${renderizarIconeCarro(corObj, 28, v.tipo)}
+			<div class="os-veiculo-option-info">
+				<span class="os-veiculo-option-placa">${esc(v.placa)}</span>
+				<span class="os-veiculo-option-desc">${esc(tipoLabel)} · ${esc(v.modelo || 'Modelo não inf.')} · ${esc(corObj.nome)}</span>
+			</div>
+		`;
+		btn.addEventListener('click', () => {
+			aplicarVeiculoNoFormularioOS(v);
+		});
+		osVeiculosGrid.appendChild(btn);
+	});
+
+	if (autoSelecionar && veiculos.length === 1) {
+		aplicarVeiculoNoFormularioOS(veiculos[0]);
+	}
+}
+
+function abrirModalCadastroRapidoVeiculo() {
+	const clienteAtual = clienteSelecionadoOS || encontrarClientePorNome(pedidoCliente ? pedidoCliente.value : '');
+	if (!clienteAtual) {
+		if (window.UI) window.UI.toast('Selecione primeiro um cliente cadastrado antes de vincular um veículo.', 'warning');
+		if (pedidoCliente) pedidoCliente.focus();
+		return;
+	}
+
+	clienteSelecionadoOS = clienteAtual;
+	if (rapidoVeiculoClienteNome) {
+		rapidoVeiculoClienteNome.textContent = clienteAtual.tel1
+			? `${clienteAtual.nome} (${clienteAtual.tel1})`
+			: clienteAtual.nome;
+	}
+	if (rapidoVeiculoTipo && pedidoVeiculoTipo) {
+		rapidoVeiculoTipo.value = pedidoVeiculoTipo.value || 'carro';
+	}
+	if (rapidoVeiculoPlaca) {
+		rapidoVeiculoPlaca.value = pedidoPlaca ? pedidoPlaca.value.trim().toUpperCase() : '';
+	}
+	if (rapidoVeiculoModelo) {
+		rapidoVeiculoModelo.value = pedidoModelo ? pedidoModelo.value.trim() : '';
+	}
+	if (rapidoVeiculoCor && pedidoCor) {
+		rapidoVeiculoCor.value = pedidoCor.value || 'prata';
+	}
+
+	if (modalCadastroRapidoVeiculo) {
+		modalCadastroRapidoVeiculo.classList.add('open');
+		modalCadastroRapidoVeiculo.style.display = 'flex';
+		setTimeout(() => {
+			if (rapidoVeiculoPlaca && !rapidoVeiculoPlaca.value) {
+				rapidoVeiculoPlaca.focus();
+			} else if (rapidoVeiculoModelo) {
+				rapidoVeiculoModelo.focus();
+			}
+		}, 60);
+	}
+}
+
+function fecharModalCadastroRapidoVeiculo() {
+	if (modalCadastroRapidoVeiculo) {
+		modalCadastroRapidoVeiculo.classList.remove('open');
+		modalCadastroRapidoVeiculo.style.display = 'none';
+	}
+	if (formCadastroRapidoVeiculo) {
+		formCadastroRapidoVeiculo.reset();
+	}
+}
+
+if (btnAbrirCadastroRapidoVeiculo) {
+	btnAbrirCadastroRapidoVeiculo.addEventListener('click', abrirModalCadastroRapidoVeiculo);
+}
+if (btnFecharModalRapidoVeiculo) {
+	btnFecharModalRapidoVeiculo.addEventListener('click', fecharModalCadastroRapidoVeiculo);
+}
+if (btnCancelarModalRapidoVeiculo) {
+	btnCancelarModalRapidoVeiculo.addEventListener('click', fecharModalCadastroRapidoVeiculo);
+}
+
+if (formCadastroRapidoVeiculo) {
+	formCadastroRapidoVeiculo.addEventListener('submit', (e) => {
+		e.preventDefault();
+		const clienteRef = clienteSelecionadoOS || encontrarClientePorNome(pedidoCliente ? pedidoCliente.value : '');
+		if (!clienteRef) {
+			if (window.UI) window.UI.toast('Cliente selecionado não encontrado.', 'error');
+			return;
+		}
+
+		const tipo = rapidoVeiculoTipo ? rapidoVeiculoTipo.value : 'carro';
+		const placa = (rapidoVeiculoPlaca ? rapidoVeiculoPlaca.value : '').toUpperCase().replace(/[^A-Z0-9-]/g, '').trim();
+		const modelo = rapidoVeiculoModelo ? rapidoVeiculoModelo.value.trim() : '';
+		const cor = rapidoVeiculoCor ? rapidoVeiculoCor.value : 'prata';
+
+		if (!placa || placa.length < 3) {
+			if (window.UI) window.UI.toast('Informe uma placa válida para cadastrar.', 'warning');
+			if (rapidoVeiculoPlaca) rapidoVeiculoPlaca.focus();
+			return;
+		}
+		if (!modelo) {
+			if (window.UI) window.UI.toast('Informe o modelo do veículo.', 'warning');
+			if (rapidoVeiculoModelo) rapidoVeiculoModelo.focus();
+			return;
+		}
+
+		const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+		const idx = clientes.findIndex((c) =>
+			c.nome && c.nome.trim().toLowerCase() === clienteRef.nome.trim().toLowerCase() &&
+			((!clienteRef.tel1) || (c.tel1 || '') === (clienteRef.tel1 || ''))
+		);
+
+		if (idx === -1) {
+			if (window.UI) window.UI.toast('Não foi possível localizar o cliente no cadastro.', 'error');
+			return;
+		}
+
+		if (!Array.isArray(clientes[idx].veiculos)) {
+			clientes[idx].veiculos = [];
+		}
+
+		const placaLimpa = placa.replace(/-/g, '');
+		const jaExiste = clientes[idx].veiculos.find((v) => (v.placa || '').replace(/-/g, '').toUpperCase() === placaLimpa);
+		if (jaExiste) {
+			if (window.UI) window.UI.toast(`A placa ${placa} já está cadastrada para este cliente. Selecionando veículo existente.`, 'info');
+			clienteSelecionadoOS = clientes[idx];
+			fecharModalCadastroRapidoVeiculo();
+			atualizarPainelVeiculosClienteOS(clientes[idx], false);
+			aplicarVeiculoNoFormularioOS(jaExiste);
+			return;
+		}
+
+		const tipoNormRapido = typeof normalizarTipoVeiculo === 'function'
+			? normalizarTipoVeiculo(tipo)
+			: (tipo === 'moto' ? 'moto' : (tipo === 'caminhao' ? 'caminhao' : 'carro'));
+
+		const novoVeiculo = {
+			id: `veh_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+			tipo: tipoNormRapido,
+			placa,
+			modelo,
+			cor: cor || 'prata'
+		};
+
+		clientes[idx].veiculos.push(novoVeiculo);
+		localStorage.setItem('clientes', JSON.stringify(clientes));
+
+		clienteSelecionadoOS = clientes[idx];
+		fecharModalCadastroRapidoVeiculo();
+		atualizarPainelVeiculosClienteOS(clientes[idx], false);
+		aplicarVeiculoNoFormularioOS(novoVeiculo);
+
+		if (window.UI) {
+			window.UI.toast(`Veículo ${placa} (${modelo}) salvo no cadastro de ${clientes[idx].nome}!`, 'success');
+		}
+	});
+}
+
 // Autocomplete de clientes (por Nome ou Telefone/Código)
 if (pedidoCliente && sugestoesDiv) {
 	pedidoCliente.addEventListener('input', () => {
@@ -378,7 +669,23 @@ if (pedidoCliente && sugestoesDiv) {
 		const termo = pedidoCliente.value.trim().toLowerCase();
 		const termoApenasDigitos = termo.replace(/\D/g, '');
 		sugestoesDiv.innerHTML = '';
-		if (termo === '') return;
+
+		if (clienteSelecionadoOS && clienteSelecionadoOS.nome.trim().toLowerCase() !== termo) {
+			clienteSelecionadoOS = null;
+			veiculoSelecionadoId = null;
+		}
+
+		if (termo === '') {
+			atualizarPainelVeiculosClienteOS(null);
+			return;
+		}
+
+		const clienteExato = clientes.find((c) => c.nome && c.nome.trim().toLowerCase() === termo);
+		if (clienteExato) {
+			atualizarPainelVeiculosClienteOS(clienteExato, false);
+		} else {
+			atualizarPainelVeiculosClienteOS(null);
+		}
 
 		const resultados = clientes.filter((c) => {
 			const nomeMatch = c.nome && c.nome.toLowerCase().includes(termo);
@@ -403,14 +710,29 @@ if (pedidoCliente && sugestoesDiv) {
 		resultados.forEach((c) => {
 			const div = document.createElement('div');
 			const telDestaque = c.tel1 ? ` • 📞 ${c.tel1}` : '';
-			div.innerHTML = `<strong>${c.nome}</strong>${telDestaque}`;
+			const qtdVeiculos = Array.isArray(c.veiculos) ? c.veiculos.length : 0;
+			const veiculosTag = (isSegmentoLavaJato() && qtdVeiculos > 0)
+				? ` • 🚗 ${qtdVeiculos} ${qtdVeiculos === 1 ? 'veículo' : 'veículos'}`
+				: '';
+			div.innerHTML = `<strong>${c.nome}</strong>${telDestaque}${veiculosTag}`;
 			div.classList.add('sugestaoItem');
 			div.addEventListener('click', () => {
 				pedidoCliente.value = c.nome;
 				sugestoesDiv.innerHTML = '';
+				veiculoSelecionadoId = null;
+				if (pedidoPlaca) pedidoPlaca.value = '';
+				if (pedidoModelo) pedidoModelo.value = '';
+				atualizarPainelVeiculosClienteOS(c, true);
 			});
 			sugestoesDiv.appendChild(div);
 		});
+	});
+
+	pedidoCliente.addEventListener('change', () => {
+		const clienteExato = encontrarClientePorNome(pedidoCliente.value);
+		if (clienteExato) {
+			atualizarPainelVeiculosClienteOS(clienteExato, true);
+		}
 	});
 
 	document.addEventListener('click', (e) => {
@@ -437,7 +759,7 @@ if (tabPatioBtn && tabEncerradosBtn) {
 	});
 }
 
-// Função auxiliar para renderizar identificação da O.S. (Placa para Lava Jato OU Foto/Miniatura para outros segmentos)
+// Função auxiliar para renderizar identificação da O.S. (Placa para Lava Jato/Mecânica OU Foto/Miniatura para outros segmentos)
 function renderizarIdentificacaoOS(p, isLavaJato, tamanhoIcone = 32) {
 	const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
 
@@ -446,7 +768,7 @@ function renderizarIdentificacaoOS(p, isLavaJato, tamanhoIcone = 32) {
 		const modeloTexto = p.modelo ? ` • ${esc(p.modelo)}` : '';
 		return `
 			<div class="veiculo-info-cell">
-				${renderizarIconeCarro(corObj, tamanhoIcone)}
+				${renderizarIconeCarro(corObj, tamanhoIcone, p.veiculoTipo)}
 				<div class="veiculo-meta">
 					<span class="badge-placa">${esc(p.placa || 'SEM PLACA')}</span>
 					<span class="veiculo-cor-nome">${esc(corObj.nome)}${modeloTexto}</span>
@@ -542,7 +864,7 @@ function renderizarTabelas() {
 					${p.operadorNome ? `<small style="display:block; color:var(--text-muted);">👤 Resp: ${esc(p.operadorNome)}</small>` : ''}
 				</td>
 				<td>
-					<div>${esc(p.data || '-')}</div>
+					<div>${esc(window.DateBR ? (window.DateBR.formatarParaBR(p.data) || '-') : (p.data || '-'))}</div>
 					<small style="color:var(--text-muted);">${p.horaEntrada ? 'Chegada: ' + esc(p.horaEntrada) : ''}</small>
 				</td>
 				<td>
@@ -594,7 +916,8 @@ function renderizarTabelas() {
 		[...pedidosEncerrados].reverse().forEach((p) => {
 			const tr = document.createElement('tr');
 			const valorFormatado = parseFloat(p.valor || 0).toFixed(2);
-			const dataSaida = p.dataEncerramento || p.data || '-';
+			const dataSaidaBruta = p.dataEncerramento || p.data || '';
+			const dataSaida = window.DateBR ? (window.DateBR.formatarParaBR(dataSaidaBruta) || '-') : (dataSaidaBruta || '-');
 			const horaSaida = p.horaEncerramento ? ` às ${esc(p.horaEncerramento)}` : '';
 
 			tr.innerHTML = `
@@ -705,7 +1028,7 @@ function abrirModalEncerramento(osId) {
 		if (isLavaJato) {
 			const corObj = obterCorVeiculo(p.cor);
 			modalDetalhesVeiculo.innerHTML = `
-				${renderizarIconeCarro(corObj, 28)}
+				${renderizarIconeCarro(corObj, 28, p.veiculoTipo)}
 				<div>
 					<strong class="badge-placa">${p.placa}</strong> 
 					<span style="font-size:0.85rem; color:var(--text-muted); margin-left:6px;">${corObj.nome} ${p.modelo ? '• ' + p.modelo : ''}</span>
@@ -724,7 +1047,8 @@ function abrirModalEncerramento(osId) {
 	}
 
 	if (modalDetalhesCliente) {
-		modalDetalhesCliente.innerHTML = `👤 Cliente: <strong>${p.cliente}</strong> (Entrada: ${p.data} às ${p.horaEntrada || '--:--'})`;
+		const dataEntradaFmt = window.DateBR ? (window.DateBR.formatarParaBR(p.data) || p.data || '-') : (p.data || '-');
+		modalDetalhesCliente.innerHTML = `👤 Cliente: <strong>${p.cliente}</strong> (Entrada: ${dataEntradaFmt} às ${p.horaEntrada || '--:--'})`;
 	}
 
 	if (modalDetalhesServicos) {
@@ -1005,14 +1329,25 @@ if (pedidoForm) {
 
 		const isLavaJato = isSegmentoLavaJato();
 		const clienteNome = pedidoCliente.value.trim();
+		const tipoRaw = isLavaJato && pedidoVeiculoTipo ? pedidoVeiculoTipo.value : 'carro';
+		const veiculoTipo = typeof normalizarTipoVeiculo === 'function'
+			? normalizarTipoVeiculo(tipoRaw)
+			: (tipoRaw === 'moto' ? 'moto' : (tipoRaw === 'caminhao' ? 'caminhao' : 'carro'));
 		const placa = isLavaJato ? pedidoPlaca.value.trim().toUpperCase() : '';
 		const cor = isLavaJato ? pedidoCor.value : 'prata';
 		const modelo = isLavaJato ? pedidoModelo.value.trim() : '';
 		const itemDescricao = !isLavaJato && pedidoItemDescricao ? pedidoItemDescricao.value.trim() : '';
 		const fotoOS = fotoOSBase64Atual || '';
 		const valor = parseFloat(pedidoValor.value) || 0;
-		let data = pedidoData.value;
-		if (!data) data = obterDataHojeISO();
+		const rawData = pedidoData ? pedidoData.value.trim() : '';
+		let data = rawData
+			? (window.DateBR ? window.DateBR.converterBRParaISO(rawData) : rawData)
+			: obterDataHojeISO();
+		if (rawData && !data) {
+			if (window.UI) window.UI.toast('Informe uma Data de Chegada válida no formato dd/mm/aaaa.', 'warning');
+			if (pedidoData) pedidoData.focus();
+			return;
+		}
 
 		if (isLavaJato && !placa) {
 			if (window.UI) window.UI.toast('Por favor, informe a placa do veículo.', 'warning');
@@ -1038,10 +1373,19 @@ if (pedidoForm) {
 			return;
 		}
 
-		// Se o cliente ainda não estiver cadastrado na base de clientes, salvamos com a foto (se houver)
+		// Se o cliente ainda não estiver cadastrado na base de clientes, salvamos com foto/veículo se aplicável
 		const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
 		const clienteIndex = clientes.findIndex((c) => c.nome.toLowerCase() === clienteNome.toLowerCase());
 		if (clienteIndex === -1 && clienteNome) {
+			const veiculosIniciais = (isLavaJato && placa)
+				? [{
+					id: `veh_${Date.now()}`,
+					tipo: veiculoTipo,
+					placa,
+					modelo: modelo || 'Não informado',
+					cor: cor || 'prata'
+				}]
+				: [];
 			clientes.push({
 				nome: clienteNome,
 				tel1: '',
@@ -1049,7 +1393,8 @@ if (pedidoForm) {
 				tel2: '',
 				wpp2: '❌',
 				endereco: '',
-				foto: fotoOS
+				foto: fotoOS,
+				veiculos: veiculosIniciais
 			});
 			localStorage.setItem('clientes', JSON.stringify(clientes));
 		} else if (clienteIndex !== -1 && fotoOS && !clientes[clienteIndex].foto) {
@@ -1086,6 +1431,7 @@ if (pedidoForm) {
 		const novoPedido = {
 			id: osId,
 			cliente: clienteNome,
+			veiculoTipo: veiculoTipo,
 			placa: placa || (isLavaJato ? 'SEM PLACA' : ''),
 			cor: cor,
 			modelo: modelo,
@@ -1110,8 +1456,15 @@ if (pedidoForm) {
 
 		// Limpa formulário
 		pedidoForm.reset();
+		clienteSelecionadoOS = null;
+		veiculoSelecionadoId = null;
+		atualizarPainelVeiculosClienteOS(null);
+		if (pedidoVeiculoTipo) pedidoVeiculoTipo.value = 'carro';
 		setOSFotoPreview('');
-		if (pedidoData) pedidoData.value = obterDataHojeISO();
+		if (pedidoData) {
+			if (window.DateBR) window.DateBR.setInputISO(pedidoData, obterDataHojeISO());
+			else pedidoData.value = obterDataHojeISO();
+		}
 		popularCoresVeiculo();
 		popularSelectOperadores();
 		carregarProdutosVendaEntrada();
@@ -1234,4 +1587,19 @@ function abrirDisparoWhatsAppCarroPronto(pedidoId) {
 }
 
 window.abrirDisparoWhatsAppCarroPronto = abrirDisparoWhatsAppCarroPronto;
+window.renderizarTabelaPedidos = renderizarTabelas;
+
+window.addEventListener('cloudDataChanged', (e) => {
+	const key = e.detail;
+	if (key === 'config_negocio') {
+		configurarCamposSegmento();
+		renderizarTabelas();
+	}
+	if (key === 'clientes' && clienteSelecionadoOS) {
+		const atualizado = encontrarClientePorNome(clienteSelecionadoOS.nome);
+		if (atualizado) {
+			atualizarPainelVeiculosClienteOS(atualizado, false);
+		}
+	}
+});
 

@@ -70,9 +70,13 @@ if (historico.length === 0) {
 			? '<span class="badge badge-status badge-status-aberto">No Pátio</span>'
 			: '<span class="badge badge-status badge-status-encerrado">Encerrado</span>';
 
+		const dataAbertaFmt = window.DateBR ? (window.DateBR.formatarParaBR(p.data) || '-') : (p.data || '-');
+		const dataFechadaBruta = p.dataEncerramento || p.data || '';
+		const dataFechadaFmt = window.DateBR ? (window.DateBR.formatarParaBR(dataFechadaBruta) || '-') : (dataFechadaBruta || '-');
+
 		const dataTexto = estaAberto
-			? `${esc(p.data || '-')} <small style="color:var(--text-muted);">${p.horaEntrada ? 'às ' + esc(p.horaEntrada) : ''}</small>`
-			: `${esc(p.dataEncerramento || p.data || '-')} <small style="color:var(--text-muted);">${p.horaEncerramento ? 'às ' + esc(p.horaEncerramento) : ''}</small>`;
+			? `${esc(dataAbertaFmt)} <small style="color:var(--text-muted);">${p.horaEntrada ? 'às ' + esc(p.horaEntrada) : ''}</small>`
+			: `${esc(dataFechadaFmt)} <small style="color:var(--text-muted);">${p.horaEncerramento ? 'às ' + esc(p.horaEncerramento) : ''}</small>`;
 
 		const pagamentoTexto = estaAberto
 			? '<span style="color:var(--text-muted); font-size:0.85rem;">Aguardando saída</span>'
@@ -85,7 +89,7 @@ if (historico.length === 0) {
 		tr.innerHTML = `
 			<td>
 				<div class="veiculo-info-cell">
-					${renderizarIconeCarro(corObj, 28)}
+					${renderizarIconeCarro(corObj, 28, p.veiculoTipo)}
 					<div class="veiculo-meta">
 						<span class="badge-placa">${esc(p.placa || 'SEM PLACA')}</span>
 						<span class="veiculo-cor-nome">${esc(corObj.nome)}${modeloTexto}</span>

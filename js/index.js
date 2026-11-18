@@ -116,7 +116,9 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
-	const isLavaJato = !BrandService.getConfig || !BrandService.getConfig().tipoNegocio || BrandService.getConfig().tipoNegocio === 'lava_jato';
+	const isLavaJato = (typeof BrandService.isSegmentoAutomotivo === 'function')
+		? BrandService.isSegmentoAutomotivo()
+		: (!BrandService.getConfig || !BrandService.getConfig().tipoNegocio || BrandService.getConfig().tipoNegocio === 'lava_jato' || BrandService.getConfig().tipoNegocio === 'mecanica');
 
 	// Helper de renderização de identificação (Placa x Foto)
 	function renderIdentificacaoDashboard(p, isLavaJato, tamanho) {
@@ -126,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			const modeloTexto = p.modelo ? ` • ${esc(p.modelo)}` : '';
 			return `
 				<div class="veiculo-info-cell">
-					${renderizarIconeCarro(corObj, tamanho)}
+					${renderizarIconeCarro(corObj, tamanho, p.veiculoTipo)}
 					<div class="veiculo-meta">
 						<span class="badge-placa">${esc(p.placa || 'SEM PLACA')}</span>
 						<span class="veiculo-cor-nome">${esc(corObj.nome)}${modeloTexto}</span>
@@ -187,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
 						${renderIdentificacaoDashboard(p, isLavaJato, 28)}
 					</td>
 					<td><strong>${p.cliente || 'Não identificado'}</strong></td>
-					<td>${p.data || '-'} <small style="color:var(--text-muted);">${p.horaEntrada ? 'às ' + p.horaEntrada : ''}</small></td>
+					<td>${window.DateBR ? (window.DateBR.formatarParaBR(p.data) || '-') : (p.data || '-')} <small style="color:var(--text-muted);">${p.horaEntrada ? 'às ' + p.horaEntrada : ''}</small></td>
 					<td>${p.servicos || '-'}</td>
 					<td><span class="badge-price">R$ ${parseFloat(p.valor || 0).toFixed(2)}</span></td>
 					<td style="text-align: center;">
@@ -221,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
 						${renderIdentificacaoDashboard(p, isLavaJato, 26)}
 					</td>
 					<td><strong>${p.cliente || 'Não identificado'}</strong></td>
-					<td>${p.dataEncerramento || p.data || '-'}</td>
+					<td>${window.DateBR ? (window.DateBR.formatarParaBR(p.dataEncerramento || p.data) || '-') : (p.dataEncerramento || p.data || '-')}</td>
 					<td><span class="badge-price">R$ ${parseFloat(p.valor || 0).toFixed(2)}</span></td>
 					<td><span class="badge badge-payment">${p.formaPagamento || 'Outro'}</span></td>
 				`;

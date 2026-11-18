@@ -15,6 +15,7 @@
 		<meta name="apple-mobile-web-app-title" content="Gestão SaaS" />
 		<script src="https://accounts.google.com/gsi/client" async defer></script>
 		<script src="js/theme-service.js"></script>
+		<script src="js/ui-feedback.js"></script>
 		<script type="module" src="js/auth-service.js"></script>
 	</head>
 	<body>
@@ -110,6 +111,30 @@
 						<div id="sugestoesClientesAgendamento" class="sugestoes"></div>
 					</div>
 
+					<!-- Painel Contextual: Veículos Cadastrados do Cliente Selecionado -->
+					<div id="painelVeiculosClienteAgendamento" class="os-veiculos-panel" style="display: none;">
+						<div class="os-veiculos-header">
+							<div class="os-veiculos-title-group">
+								<span class="os-veiculos-title" id="agendamentoVeiculosTitulo">Veículos do Cliente</span>
+								<span class="os-veiculos-meta" id="agendamentoVeiculosMeta">Selecione uma placa para preencher ou cadastre um novo veículo</span>
+							</div>
+							<button type="button" id="btnAbrirCadastroRapidoVeiculoAgendamento" class="btn btn-secondary btn-sm">
+								+ Cadastrar Veículo
+							</button>
+						</div>
+						<div id="agendamentoVeiculosGrid" class="os-veiculos-grid"></div>
+					</div>
+
+					<!-- Tipo do Veículo -->
+					<div class="form-group">
+						<label for="agendamentoVeiculoTipo">Tipo do Veículo</label>
+						<select id="agendamentoVeiculoTipo">
+							<option value="carro">🚗 Carro</option>
+							<option value="moto">🏍️ Moto</option>
+							<option value="caminhao">🚛 Caminhão</option>
+						</select>
+					</div>
+
 					<!-- Placa do Veículo -->
 					<div class="form-group">
 						<label for="agendamentoPlaca">Placa do Veículo *</label>
@@ -143,7 +168,7 @@
 					<!-- Data do Agendamento -->
 					<div class="form-group">
 						<label for="agendamentoData">Data Marcada *</label>
-						<input type="date" id="agendamentoData" required />
+						<input type="text" id="agendamentoData" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-date-br="true" required />
 					</div>
 
 					<!-- Horário do Agendamento -->
@@ -211,10 +236,10 @@
 			<div class="content-card">
 				<div class="content-card-title" style="flex-wrap: wrap; gap: 10px;">
 					<span>Agenda de Atendimentos</span>
-					<div style="display:flex; align-items:center; gap:8px;">
+					<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
 						<label for="filtroDataAgendamento" style="font-size:0.85rem; color:var(--text-muted); margin:0;">Filtrar por data:</label>
-						<input type="date" id="filtroDataAgendamento" style="padding:4px 8px; font-size:0.85rem;" />
-						<button type="button" id="btnVerTodosAgendamentos" class="btn btn-secondary btn-sm" onclick="document.getElementById('filtroDataAgendamento').value=''; renderizarListaAgendamentos();">Ver Todos</button>
+						<input type="text" id="filtroDataAgendamento" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-date-br="true" data-date-compact="true" style="padding:4px 8px; font-size:0.85rem;" />
+						<button type="button" id="btnVerTodosAgendamentos" class="btn btn-secondary btn-sm">Ver Todos</button>
 					</div>
 				</div>
 
@@ -250,7 +275,7 @@
 					<div class="modal-body">
 						<div class="form-group" style="margin-bottom: 14px;">
 							<label for="reagendarData">Nova Data *</label>
-							<input type="date" id="reagendarData" required />
+							<input type="text" id="reagendarData" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-date-br="true" required />
 						</div>
 						<div class="form-group">
 							<label for="reagendarHora">Novo Horário *</label>
@@ -260,6 +285,63 @@
 					<div class="modal-footer">
 						<button type="button" class="btn btn-secondary" id="modalCancelarReagendarBtn">Cancelar</button>
 						<button type="submit" class="btn btn-primary">Salvar Novo Horário</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<!-- Modal: Cadastro Rápido de Veículo no Agendamento -->
+		<div id="modalCadastroRapidoVeiculoAgendamento" class="modal-overlay" style="z-index: 9999;">
+			<div class="modal-card" style="max-width: 480px;">
+				<div class="modal-header">
+					<h3>Cadastrar Veículo do Cliente</h3>
+					<button type="button" class="modal-close-btn" id="btnFecharModalRapidoAgVeiculo">&times;</button>
+				</div>
+				<form id="formCadastroRapidoVeiculoAgendamento">
+					<div class="modal-body">
+						<div style="margin-bottom: 14px; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 0.88rem; color: var(--text-muted);">
+							Cliente vinculado: <strong id="rapidoAgVeiculoClienteNome" style="color: var(--text-main);">-</strong>
+						</div>
+
+						<div class="form" style="gap: 12px;">
+							<div class="form-group">
+								<label for="rapidoAgVeiculoTipo">Tipo *</label>
+								<select id="rapidoAgVeiculoTipo" required>
+									<option value="carro">🚗 Carro</option>
+									<option value="moto">🏍️ Moto</option>
+									<option value="caminhao">🚛 Caminhão</option>
+								</select>
+							</div>
+
+							<div class="form-group">
+								<label for="rapidoAgVeiculoPlaca">Placa *</label>
+								<input
+									type="text"
+									id="rapidoAgVeiculoPlaca"
+									maxlength="8"
+									required
+									style="text-transform: uppercase; font-family: var(--font-mono); font-weight: 700;"
+									placeholder="ABC1D23" />
+							</div>
+
+							<div class="form-group full-width">
+								<label for="rapidoAgVeiculoModelo">Modelo *</label>
+								<input
+									type="text"
+									id="rapidoAgVeiculoModelo"
+									required
+									placeholder="Ex: Honda Civic, CG 160, Volvo FH..." />
+							</div>
+
+							<div class="form-group full-width">
+								<label for="rapidoAgVeiculoCor">Cor *</label>
+								<select id="rapidoAgVeiculoCor" required></select>
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" id="btnCancelarModalRapidoAgVeiculo">Cancelar</button>
+						<button type="submit" class="btn">💾 Salvar Veículo no Cliente</button>
 					</div>
 				</form>
 			</div>

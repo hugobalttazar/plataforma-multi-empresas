@@ -125,6 +125,75 @@
 							placeholder="Rua, número, bairro, cidade (opcional)" />
 					</div>
 
+					<!-- Subtabela de Veículos do Cliente (Carros, Motos e Caminhões - Lava Jato e Mecânica) -->
+					<div id="secaoVeiculosCliente" class="form-group full-width veiculos-cliente-section">
+						<div class="veiculos-section-header">
+							<div>
+								<div class="veiculos-section-title">Veículos do Cliente (Carros, Motos e Caminhões)</div>
+								<div class="veiculos-section-subtitle">Adicione um ou mais veículos para puxar as placas automaticamente ao abrir a O.S. ou agendamento</div>
+							</div>
+							<span id="contadorVeiculosForm" class="veiculos-count-text">0 veículos</span>
+						</div>
+
+						<div class="veiculo-inline-grid">
+							<div class="veiculo-inline-field">
+								<label for="veiculoTipoInput">Tipo</label>
+								<select id="veiculoTipoInput">
+									<option value="carro">🚗 Carro</option>
+									<option value="moto">🏍️ Moto</option>
+									<option value="caminhao">🚛 Caminhão</option>
+								</select>
+							</div>
+							<div class="veiculo-inline-field">
+								<label for="veiculoPlacaInput">Placa</label>
+								<input
+									type="text"
+									id="veiculoPlacaInput"
+									maxlength="8"
+									style="text-transform: uppercase; font-family: var(--font-mono); font-weight: 700;"
+									placeholder="ABC1D23" />
+							</div>
+							<div class="veiculo-inline-field">
+								<label for="veiculoModeloInput">Modelo</label>
+								<input
+									type="text"
+									id="veiculoModeloInput"
+									placeholder="Ex: Honda Civic, CG 160..." />
+							</div>
+							<div class="veiculo-inline-field">
+								<label for="veiculoCorInput">Cor</label>
+								<select id="veiculoCorInput">
+									<!-- Preenchido via JS -->
+								</select>
+							</div>
+							<div class="veiculo-inline-actions">
+								<button type="button" id="btnAdicionarVeiculoCliente" class="btn btn-secondary btn-sm">
+									+ Adicionar Veículo
+								</button>
+								<button type="button" id="btnCancelarEdicaoVeiculo" class="btn btn-secondary btn-sm" style="display: none;">
+									Cancelar
+								</button>
+							</div>
+						</div>
+
+						<div class="veiculos-subtable-wrap">
+							<table id="clienteVeiculosSubtable" class="tabela tabela-compacta">
+								<thead>
+									<tr>
+										<th>Tipo</th>
+										<th>Placa</th>
+										<th>Modelo</th>
+										<th>Cor</th>
+										<th style="text-align: center;">Ações</th>
+									</tr>
+								</thead>
+								<tbody id="tbodyVeiculosCliente">
+									<!-- Preenchido via JS -->
+								</tbody>
+							</table>
+						</div>
+					</div>
+
 					<div class="form-actions">
 						<button type="submit" id="btnSalvarCliente" class="btn">💾 Salvar Cliente</button>
 					</div>
@@ -145,6 +214,7 @@
 								<th>Telefone (Código ID)</th>
 								<th>Telefone Secundário</th>
 								<th>Endereço</th>
+								<th id="thClientesVeiculos">Veículos</th>
 								<th style="text-align: center;">Histórico</th>
 								<th style="text-align: center;">Ações</th>
 							</tr>

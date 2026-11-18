@@ -164,13 +164,14 @@ const WhatsAppService = {
 		const placa = dados.placa || (dados.ultimoPedido && dados.ultimoPedido.placa) || 'Sem placa';
 
 		// 4. Data e Hora
+		const fmtData = (d) => (window.DateBR ? window.DateBR.formatarParaBR(d) : d);
 		let dataHoraFormatada = '';
 		if (dados.data && dados.hora) {
-			dataHoraFormatada = `${dados.data} às ${dados.hora}`;
+			dataHoraFormatada = `${fmtData(dados.data)} às ${dados.hora}`;
 		} else if (dados.data) {
-			dataHoraFormatada = `${dados.data}`;
+			dataHoraFormatada = `${fmtData(dados.data)}`;
 		} else if (dados.dataEncerramento) {
-			dataHoraFormatada = `${dados.dataEncerramento}${dados.horaEncerramento ? ' às ' + dados.horaEncerramento : ''}`;
+			dataHoraFormatada = `${fmtData(dados.dataEncerramento)}${dados.horaEncerramento ? ' às ' + dados.horaEncerramento : ''}`;
 		} else {
 			const agora = new Date();
 			dataHoraFormatada = agora.toLocaleDateString('pt-BR');

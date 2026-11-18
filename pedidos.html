@@ -76,8 +76,32 @@
 						<div id="sugestoesClientes" class="sugestoes"></div>
 					</div>
 
-					<!-- Bloco de Campos Exclusivo: LAVA JATO (Placa, Cor, Modelo) -->
+					<!-- Painel Contextual: Veículos Cadastrados do Cliente Selecionado -->
+					<div id="painelVeiculosClienteOS" class="os-veiculos-panel" style="display: none;">
+						<div class="os-veiculos-header">
+							<div class="os-veiculos-title-group">
+								<span class="os-veiculos-title" id="osVeiculosTitulo">Veículos do Cliente</span>
+								<span class="os-veiculos-meta" id="osVeiculosMeta">Selecione uma placa para preencher ou cadastre um novo veículo</span>
+							</div>
+							<button type="button" id="btnAbrirCadastroRapidoVeiculo" class="btn btn-secondary btn-sm">
+								+ Cadastrar Veículo
+							</button>
+						</div>
+						<div id="osVeiculosGrid" class="os-veiculos-grid"></div>
+					</div>
+
+					<!-- Bloco de Campos Exclusivo: SEGMENTO AUTOMOTIVO (Tipo, Placa, Cor, Modelo) -->
 					<div id="blocoCamposLavaJato" class="campos-segmento-wrapper" style="display: contents;">
+						<!-- Tipo do Veículo -->
+						<div class="form-group">
+							<label for="pedidoVeiculoTipo">Tipo do Veículo</label>
+							<select id="pedidoVeiculoTipo">
+								<option value="carro">🚗 Carro</option>
+								<option value="moto">🏍️ Moto</option>
+								<option value="caminhao">🚛 Caminhão</option>
+							</select>
+						</div>
+
 						<!-- Placa do Veículo -->
 						<div class="form-group">
 							<label for="pedidoPlaca">Placa do Veículo *</label>
@@ -108,7 +132,7 @@
 							<input
 								type="text"
 								id="pedidoModelo"
-								placeholder="Ex: Honda Civic, Gol G5, Hilux..." />
+								placeholder="Ex: Honda Civic, Gol G5, CG 160..." />
 						</div>
 					</div>
 
@@ -143,7 +167,7 @@
 					<!-- Data e Hora de Entrada -->
 					<div class="form-group">
 						<label for="pedidoData">Data de Chegada</label>
-						<input type="date" id="pedidoData" />
+						<input type="text" id="pedidoData" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-date-br="true" />
 					</div>
 
 					<!-- Valor Total Estimado -->
@@ -387,6 +411,63 @@
 				<div style="margin-top: 14px; display: flex; justify-content: flex-end;">
 					<button type="button" class="btn btn-secondary btn-sm" onclick="fecharVisualizadorFoto()">Fechar</button>
 				</div>
+			</div>
+		</div>
+
+		<!-- Modal: Cadastro Rápido de Veículo para Cliente na O.S. -->
+		<div id="modalCadastroRapidoVeiculo" class="modal-overlay" style="z-index: 9999;">
+			<div class="modal-card" style="max-width: 480px;">
+				<div class="modal-header">
+					<h3>Cadastrar Veículo do Cliente</h3>
+					<button type="button" class="modal-close-btn" id="btnFecharModalRapidoVeiculo">&times;</button>
+				</div>
+				<form id="formCadastroRapidoVeiculo">
+					<div class="modal-body">
+						<div style="margin-bottom: 14px; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 0.88rem; color: var(--text-muted);">
+							Cliente vinculado: <strong id="rapidoVeiculoClienteNome" style="color: var(--text-main);">-</strong>
+						</div>
+
+						<div class="form" style="gap: 12px;">
+							<div class="form-group">
+								<label for="rapidoVeiculoTipo">Tipo *</label>
+								<select id="rapidoVeiculoTipo" required>
+									<option value="carro">🚗 Carro</option>
+									<option value="moto">🏍️ Moto</option>
+									<option value="caminhao">🚛 Caminhão</option>
+								</select>
+							</div>
+
+							<div class="form-group">
+								<label for="rapidoVeiculoPlaca">Placa *</label>
+								<input
+									type="text"
+									id="rapidoVeiculoPlaca"
+									maxlength="8"
+									required
+									style="text-transform: uppercase; font-family: var(--font-mono); font-weight: 700;"
+									placeholder="ABC1D23" />
+							</div>
+
+							<div class="form-group full-width">
+								<label for="rapidoVeiculoModelo">Modelo *</label>
+								<input
+									type="text"
+									id="rapidoVeiculoModelo"
+									required
+									placeholder="Ex: Honda Civic, Gol G5, Yamaha Fazer 250..." />
+							</div>
+
+							<div class="form-group full-width">
+								<label for="rapidoVeiculoCor">Cor *</label>
+								<select id="rapidoVeiculoCor" required></select>
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" id="btnCancelarModalRapidoVeiculo">Cancelar</button>
+						<button type="submit" class="btn">💾 Salvar Veículo no Cliente</button>
+					</div>
+				</form>
 			</div>
 		</div>
 

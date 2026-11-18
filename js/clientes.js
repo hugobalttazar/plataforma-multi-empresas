@@ -16,6 +16,20 @@ const clienteFotoPreviewImg = document.querySelector('#clienteFotoPreviewImg');
 const clienteFotoPlaceholderIcon = document.querySelector('#clienteFotoPlaceholderIcon');
 
 let fotoBase64Atual = ''; // Armazena a foto compactada em base64
+let veiculosEmEdicao = []; // Lista de veículos do cliente no formulário atual
+let veiculoEditIndex = null;
+
+function isAutomotivoAtivo() {
+	if (typeof BrandService !== 'undefined' && typeof BrandService.isSegmentoAutomotivo === 'function') {
+		return BrandService.isSegmentoAutomotivo();
+	}
+	return true;
+}
+
+function normalizarPlacaCliente(placa) {
+	if (typeof normalizarPlaca === 'function') return normalizarPlaca(placa);
+	return (placa || '').toString().toUpperCase().replace(/[^A-Z0-9-]/g, '').trim();
+}
 
 // Função de compressão de imagem via HTML5 Canvas (max 260x260, JPEG 82%)
 function compactarImagemParaBase64(file) {
@@ -133,10 +147,225 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
+	// Elementos da subtabela de veículos do cliente
+	const secaoVeiculosCliente = document.getElementById('secaoVeiculosCliente');
+	const thClientesVeiculos = document.getElementById('thClientesVeiculos');
+	const contadorVeiculosForm = document.getElementById('contadorVeiculosForm');
+	const veiculoTipoInput = document.getElementById('veiculoTipoInput');
+	const veiculoPlacaInput = document.getElementById('veiculoPlacaInput');
+	const veiculoModeloInput = document.getElementById('veiculoModeloInput');
+	const veiculoCorInput = document.getElementById('veiculoCorInput');
+	const btnAdicionarVeiculoCliente = document.getElementById('btnAdicionarVeiculoCliente');
+	const btnCancelarEdicaoVeiculo = document.getElementById('btnCancelarEdicaoVeiculo');
+	const tbodyVeiculosCliente = document.getElementById('tbodyVeiculosCliente');
+
+	const segmentoAuto = isAutomotivoAtivo();
+	if (secaoVeiculosCliente) secaoVeiculosCliente.style.display = segmentoAuto ? 'block' : 'none';
+	if (thClientesVeiculos) thClientesVeiculos.style.display = segmentoAuto ? '' : 'none';
+
+	function popularCoresSubtabela() {
+		if (!veiculoCorInput || typeof CORES_VEICULOS === 'undefined') return;
+		veiculoCorInput.innerHTML = '';
+		CORES_VEICULOS.forEach((c) => {
+			const opt = document.createElement('option');
+			opt.value = c.id;
+			opt.textContent = c.nome;
+			veiculoCorInput.appendChild(opt);
+		});
+		veiculoCorInput.value = 'prata';
+	}
+
+	function resetVeiculoInputs() {
+		veiculoEditIndex = null;
+		if (veiculoTipoInput) veiculoTipoInput.value = 'carro';
+		if (veiculoPlacaInput) veiculoPlacaInput.value = '';
+		if (veiculoModeloInput) veiculoModeloInput.value = '';
+		if (veiculoCorInput) veiculoCorInput.value = 'prata';
+		if (btnAdicionarVeiculoCliente) btnAdicionarVeiculoCliente.textContent = '+ Adicionar Veículo';
+		if (btnCancelarEdicaoVeiculo) btnCancelarEdicaoVeiculo.style.display = 'none';
+	}
+
+	function renderizarSubtabelaVeiculos() {
+		if (!tbodyVeiculosCliente) return;
+		const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
+
+		if (contadorVeiculosForm) {
+			const qtd = veiculosEmEdicao.length;
+			contadorVeiculosForm.textContent = qtd === 1 ? '1 veículo' : `${qtd} veículos`;
+		}
+
+		tbodyVeiculosCliente.innerHTML = '';
+		if (veiculosEmEdicao.length === 0) {
+			tbodyVeiculosCliente.innerHTML = `
+				<tr>
+					<td colspan="5" class="empty-table-message" style="padding: 16px;">
+						Nenhum veículo vinculado ainda. Informe tipo, placa, modelo e cor acima para adicionar um carro ou moto.
+					</td>
+				</tr>
+			`;
+			return;
+		}
+
+		veiculosEmEdicao.forEach((v, idx) => {
+			const tr = document.createElement('tr');
+			const corObj = typeof obterCorVeiculo === 'function' ? obterCorVeiculo(v.cor) : { nome: v.cor || 'Prata' };
+			const iconeHtml = typeof renderizarIconeCarro === 'function' ? renderizarIconeCarro(corObj, 22, v.tipo) : '';
+			const tipoLabel = typeof obterLabelTipoVeiculo === 'function'
+				? obterLabelTipoVeiculo(v.tipo, true)
+				: (v.tipo === 'moto' ? '🏍️ Moto' : (v.tipo === 'caminhao' ? '🚛 Caminhão' : '🚗 Carro'));
+
+			tr.innerHTML = `
+				<td>${tipoLabel}</td>
+				<td><span class="veiculo-placa-mono">${esc(v.placa)}</span></td>
+				<td>${esc(v.modelo || '-')}</td>
+				<td>
+					<div style="display: inline-flex; align-items: center; gap: 6px;">
+						${iconeHtml}
+						<span>${esc(corObj.nome)}</span>
+					</div>
+				</td>
+				<td style="text-align: center;">
+					<div class="btn-action-group" style="justify-content: center;">
+						<button type="button" class="btn btn-sm btn-secondary btn-edit-veiculo" data-vidx="${idx}" title="Editar veículo">
+							✏️
+						</button>
+						<button type="button" class="btn btn-sm btn-secondary btn-del-veiculo" data-vidx="${idx}" style="color: var(--danger);" title="Remover veículo">
+							🗑️
+						</button>
+					</div>
+				</td>
+			`;
+			tbodyVeiculosCliente.appendChild(tr);
+		});
+
+		tbodyVeiculosCliente.querySelectorAll('.btn-edit-veiculo').forEach((btn) => {
+			btn.addEventListener('click', (e) => {
+				const idx = parseInt(e.currentTarget.getAttribute('data-vidx'), 10);
+				const v = veiculosEmEdicao[idx];
+				if (!v) return;
+				veiculoEditIndex = idx;
+				if (veiculoTipoInput) veiculoTipoInput.value = v.tipo || 'carro';
+				if (veiculoPlacaInput) veiculoPlacaInput.value = v.placa || '';
+				if (veiculoModeloInput) veiculoModeloInput.value = v.modelo || '';
+				if (veiculoCorInput) veiculoCorInput.value = v.cor || 'prata';
+				if (btnAdicionarVeiculoCliente) btnAdicionarVeiculoCliente.textContent = '💾 Atualizar Veículo';
+				if (btnCancelarEdicaoVeiculo) btnCancelarEdicaoVeiculo.style.display = 'inline-flex';
+				if (veiculoPlacaInput) veiculoPlacaInput.focus();
+			});
+		});
+
+		tbodyVeiculosCliente.querySelectorAll('.btn-del-veiculo').forEach((btn) => {
+			btn.addEventListener('click', (e) => {
+				const idx = parseInt(e.currentTarget.getAttribute('data-vidx'), 10);
+				veiculosEmEdicao.splice(idx, 1);
+				if (veiculoEditIndex === idx) {
+					resetVeiculoInputs();
+				} else if (veiculoEditIndex !== null && veiculoEditIndex > idx) {
+					veiculoEditIndex -= 1;
+				}
+				renderizarSubtabelaVeiculos();
+			});
+		});
+	}
+
+	function adicionarOuAtualizarVeiculoNaLista() {
+		const tipo = veiculoTipoInput ? veiculoTipoInput.value : 'carro';
+		const placa = normalizarPlacaCliente(veiculoPlacaInput ? veiculoPlacaInput.value : '');
+		const modelo = veiculoModeloInput ? veiculoModeloInput.value.trim() : '';
+		const cor = veiculoCorInput ? veiculoCorInput.value : 'prata';
+
+		if (!placa || placa.length < 3) {
+			if (window.UI) window.UI.toast('Informe uma placa válida para o veículo.', 'warning');
+			if (veiculoPlacaInput) veiculoPlacaInput.focus();
+			return false;
+		}
+
+		if (!modelo) {
+			if (window.UI) window.UI.toast('Informe o modelo do veículo (ex: Honda Civic, CG 160).', 'warning');
+			if (veiculoModeloInput) veiculoModeloInput.focus();
+			return false;
+		}
+
+		const placaLimpa = placa.replace(/-/g, '');
+		const duplicado = veiculosEmEdicao.some((v, idx) => {
+			if (veiculoEditIndex !== null && idx === veiculoEditIndex) return false;
+			return (v.placa || '').replace(/-/g, '').toUpperCase() === placaLimpa;
+		});
+
+		if (duplicado) {
+			if (window.UI) window.UI.toast(`A placa ${placa} já está na lista deste cliente.`, 'warning');
+			if (veiculoPlacaInput) veiculoPlacaInput.focus();
+			return false;
+		}
+
+		const tipoNorm = typeof normalizarTipoVeiculo === 'function'
+			? normalizarTipoVeiculo(tipo)
+			: (tipo === 'moto' ? 'moto' : (tipo === 'caminhao' ? 'caminhao' : 'carro'));
+
+		const veiculoObj = {
+			id: veiculoEditIndex !== null && veiculosEmEdicao[veiculoEditIndex]?.id
+				? veiculosEmEdicao[veiculoEditIndex].id
+				: `veh_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+			tipo: tipoNorm,
+			placa,
+			modelo,
+			cor: cor || 'prata'
+		};
+
+		if (veiculoEditIndex !== null) {
+			veiculosEmEdicao[veiculoEditIndex] = veiculoObj;
+		} else {
+			veiculosEmEdicao.push(veiculoObj);
+		}
+
+		resetVeiculoInputs();
+		renderizarSubtabelaVeiculos();
+		return true;
+	}
+
+	popularCoresSubtabela();
+	renderizarSubtabelaVeiculos();
+
+	if (veiculoPlacaInput) {
+		veiculoPlacaInput.addEventListener('input', (e) => {
+			e.target.value = normalizarPlacaCliente(e.target.value);
+		});
+		veiculoPlacaInput.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				adicionarOuAtualizarVeiculoNaLista();
+			}
+		});
+	}
+
+	if (veiculoModeloInput) {
+		veiculoModeloInput.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				adicionarOuAtualizarVeiculoNaLista();
+			}
+		});
+	}
+
+	if (btnAdicionarVeiculoCliente) {
+		btnAdicionarVeiculoCliente.addEventListener('click', () => {
+			adicionarOuAtualizarVeiculoNaLista();
+		});
+	}
+
+	if (btnCancelarEdicaoVeiculo) {
+		btnCancelarEdicaoVeiculo.addEventListener('click', () => {
+			resetVeiculoInputs();
+		});
+	}
+
 	function resetFormState() {
 		editIndex = null;
+		veiculosEmEdicao = [];
 		form.reset();
 		setFotoPreview('');
+		resetVeiculoInputs();
+		renderizarSubtabelaVeiculos();
 		if (inputWhatsApp1) inputWhatsApp1.checked = true;
 		if (formCardTitle) formCardTitle.textContent = 'Novo Cliente';
 		if (btnSalvar) btnSalvar.textContent = '💾 Salvar Cliente';
@@ -152,6 +381,12 @@ document.addEventListener('DOMContentLoaded', () => {
 	form.addEventListener('submit', (e) => {
 		e.preventDefault();
 
+		// Se o usuário preencheu um veículo nos campos mas esqueceu de clicar "+ Adicionar Veículo", incorpora automaticamente
+		if (segmentoAuto && ((veiculoPlacaInput && veiculoPlacaInput.value.trim()) || (veiculoModeloInput && veiculoModeloInput.value.trim()))) {
+			const ok = adicionarOuAtualizarVeiculoNaLista();
+			if (!ok) return;
+		}
+
 		const nome = inputNome.value.trim();
 		const tel1 = inputTelefone1.value.trim();
 		const wpp1 = inputWhatsApp1.checked ? '✅' : '❌';
@@ -159,6 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		const wpp2 = inputWhatsApp2.checked ? '✅' : '❌';
 		const endereco = inputEndereco.value.trim();
 		const foto = fotoBase64Atual;
+		const veiculos = JSON.parse(JSON.stringify(veiculosEmEdicao));
 
 		if (!tel1) {
 			if (window.UI) {
@@ -188,17 +424,17 @@ document.addEventListener('DOMContentLoaded', () => {
 							inputTelefone1.focus();
 							return;
 						}
-						salvarClienteFinal(clientes, nome, tel1, wpp1, tel2, wpp2, endereco, foto);
+						salvarClienteFinal(clientes, nome, tel1, wpp1, tel2, wpp2, endereco, foto, veiculos);
 					});
 					return;
 				}
 			}
 		}
 
-		salvarClienteFinal(clientes, nome, tel1, wpp1, tel2, wpp2, endereco, foto);
+		salvarClienteFinal(clientes, nome, tel1, wpp1, tel2, wpp2, endereco, foto, veiculos);
 	});
 
-	function salvarClienteFinal(clientes, nome, tel1, wpp1, tel2, wpp2, endereco, foto) {
+	function salvarClienteFinal(clientes, nome, tel1, wpp1, tel2, wpp2, endereco, foto, veiculos) {
 		if (editIndex !== null) {
 			// Editando cliente existente (preserva outros campos se existirem)
 			const clienteAtual = clientes[editIndex] || {};
@@ -210,13 +446,23 @@ document.addEventListener('DOMContentLoaded', () => {
 				tel2,
 				wpp2,
 				endereco,
-				foto: foto || clienteAtual.foto || ''
+				foto: foto || clienteAtual.foto || '',
+				veiculos: Array.isArray(veiculos) ? veiculos : (clienteAtual.veiculos || [])
 			};
 			editIndex = null;
 			if (window.UI) window.UI.toast('Cliente atualizado com sucesso!', 'success');
 		} else {
 			// Adicionando novo cliente
-			clientes.push({ nome, tel1, wpp1, tel2, wpp2, endereco, foto });
+			clientes.push({
+				nome,
+				tel1,
+				wpp1,
+				tel2,
+				wpp2,
+				endereco,
+				foto,
+				veiculos: Array.isArray(veiculos) ? veiculos : []
+			});
 			if (window.UI) window.UI.toast('Cliente cadastrado com sucesso!', 'success');
 		}
 
@@ -241,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (clientes.length === 0) {
 			tabela.innerHTML = `
 				<tr>
-					<td colspan="6" class="empty-table-message">
+					<td colspan="${segmentoAuto ? 7 : 6}" class="empty-table-message">
 						Nenhum cliente cadastrado ainda. Use o formulário acima para cadastrar o primeiro cliente.
 					</td>
 				</tr>
@@ -265,6 +511,26 @@ document.addEventListener('DOMContentLoaded', () => {
 				? `<div class="cliente-avatar-thumb" style="background-image: url('${c.foto}');" title="Foto de ${esc(c.nome)}"></div>`
 				: `<div class="cliente-avatar-thumb avatar-initials" title="${esc(c.nome)}">${gerarIniciais(c.nome)}</div>`;
 
+			const veiculosList = Array.isArray(c.veiculos) ? c.veiculos : [];
+			let veiculosCellHtml = '';
+			if (segmentoAuto) {
+				if (veiculosList.length > 0) {
+					const placasTexto = veiculosList.slice(0, 3).map(v => esc(v.placa)).join(', ');
+					const extras = veiculosList.length > 3 ? ` +${veiculosList.length - 3}` : '';
+					const labelQtd = veiculosList.length === 1 ? '1 veículo' : `${veiculosList.length} veículos`;
+					veiculosCellHtml = `
+						<td>
+							<div class="clientes-veiculos-summary">
+								<span class="clientes-veiculos-count">${labelQtd}</span>
+								<span class="clientes-veiculos-placas">${placasTexto}${extras}</span>
+							</div>
+						</td>
+					`;
+				} else {
+					veiculosCellHtml = `<td><span style="color:var(--text-muted); font-size:0.82rem;">Nenhum</span></td>`;
+				}
+			}
+
 			tr.innerHTML = `
 				<td id="nomeSalvo">
 					<div class="cliente-nome-avatar-cell">
@@ -277,6 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				<td id="telefonesSalvos">${tel1Html}</td>
 				<td id="telefone2Salvo">${tel2Html}</td>
 				<td id="enderecoSalvo">${c.endereco ? esc(c.endereco) : '<span style="color:var(--text-muted);">-</span>'}</td>
+				${veiculosCellHtml}
 				<td style="text-align: center;">
 					<a class="btn btn-secondary btn-sm" href="historico.html?cliente=${encodeURIComponent(c.nome || '')}">
 						📜 Histórico
@@ -300,7 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		const editButtons = document.querySelectorAll('.edit__btn');
 		editButtons.forEach((button) => {
 			button.addEventListener('click', (e) => {
-				const index = e.currentTarget.getAttribute('data-index');
+				const index = parseInt(e.currentTarget.getAttribute('data-index'), 10);
 				const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
 				const cliente = clientes[index];
 				if (!cliente) return;
@@ -312,6 +579,13 @@ document.addEventListener('DOMContentLoaded', () => {
 				inputTelefone2.value = cliente.tel2 || '';
 				inputWhatsApp2.checked = cliente.wpp2 === '✅' || cliente.wpp2 === true;
 				inputEndereco.value = cliente.endereco || '';
+
+				// Carrega veículos do cliente na subtabela
+				veiculosEmEdicao = Array.isArray(cliente.veiculos)
+					? JSON.parse(JSON.stringify(cliente.veiculos))
+					: [];
+				resetVeiculoInputs();
+				renderizarSubtabelaVeiculos();
 
 				// Carrega a foto no preview se houver
 				setFotoPreview(cliente.foto || '');
@@ -330,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		const deleteButtons = document.querySelectorAll('.delete__btn');
 		deleteButtons.forEach((button) => {
 			button.addEventListener('click', async (e) => {
-				const index = e.currentTarget.getAttribute('data-index');
+				const index = parseInt(e.currentTarget.getAttribute('data-index'), 10);
 				const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
 				const cliente = clientes[index];
 				if (!cliente) return;
@@ -353,6 +627,8 @@ document.addEventListener('DOMContentLoaded', () => {
 					localStorage.setItem('clientes', JSON.stringify(clientes));
 					if (editIndex === index) {
 						resetFormState();
+					} else if (editIndex !== null && editIndex > index) {
+						editIndex -= 1;
 					}
 					if (window.UI) window.UI.toast('Cliente excluído com sucesso.', 'info');
 					atualizarTabela();
@@ -361,5 +637,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
+	window.renderizarTabelaClientes = atualizarTabela;
 	atualizarTabela();
-}); 
+});

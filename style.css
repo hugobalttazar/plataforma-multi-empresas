@@ -3606,8 +3606,308 @@ html[data-theme="dark"] .tag-chip:hover {
 	}
 }
 
+/* ==========================================================================
+   Subtabela de Veículos do Cliente & Seletor de Placas na O.S.
+   ========================================================================== */
+.veiculos-cliente-section {
+	margin-top: 8px;
+	padding-top: 18px;
+	border-top: 1px solid var(--border-subtle);
+}
 
+.veiculos-section-header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 12px;
+}
 
+.veiculos-section-title {
+	font-size: 0.96rem;
+	font-weight: 700;
+	color: var(--text-main);
+}
 
+.veiculos-section-subtitle {
+	font-size: 0.82rem;
+	color: var(--text-muted);
+	margin-top: 2px;
+}
 
+.veiculos-count-text {
+	font-size: 0.82rem;
+	font-weight: 600;
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
 
+.veiculo-inline-grid {
+	display: grid;
+	grid-template-columns: 140px 150px 1fr 165px auto;
+	gap: 10px;
+	align-items: end;
+	background: var(--bg-surface);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	padding: 12px;
+	margin-bottom: 12px;
+}
+
+.veiculo-inline-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.veiculo-inline-field label {
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: var(--text-muted);
+	margin: 0;
+}
+
+.veiculo-inline-actions {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+}
+
+.veiculo-inline-actions .btn {
+	min-height: 40px;
+	white-space: nowrap;
+}
+
+.veiculo-placa-mono {
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	color: var(--text-main);
+}
+
+.tabela-compacta th,
+.tabela-compacta td {
+	padding: 9px 12px;
+	font-size: 0.86rem;
+}
+
+.veiculos-subtable-wrap {
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	overflow-x: auto;
+	background: var(--bg-card);
+}
+
+.clientes-veiculos-summary {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	font-size: 0.84rem;
+}
+
+.clientes-veiculos-count {
+	font-weight: 600;
+	color: var(--text-main);
+	font-variant-numeric: tabular-nums;
+}
+
+.clientes-veiculos-placas {
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	font-size: 0.78rem;
+	color: var(--text-muted);
+}
+
+/* Painel Contextual de Veículos do Cliente na Abertura da O.S. */
+.os-veiculos-panel {
+	grid-column: 1 / -1;
+	background: var(--bg-surface);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	padding: 14px 16px;
+	transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.os-veiculos-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+.os-veiculos-title-group {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.os-veiculos-title {
+	font-size: 0.9rem;
+	font-weight: 700;
+	color: var(--text-main);
+}
+
+.os-veiculos-meta {
+	font-size: 0.79rem;
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.os-veiculos-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 8px;
+}
+
+.os-veiculo-option {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: 48px;
+	padding: 8px 12px;
+	background: var(--bg-card);
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+	text-align: left;
+	color: var(--text-main);
+	transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.os-veiculo-option:hover {
+	border-color: var(--primary);
+}
+
+.os-veiculo-option.active {
+	border-color: var(--primary);
+	background: var(--primary-light);
+	box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+.os-veiculo-option-info {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	flex: 1;
+}
+
+.os-veiculo-option-placa {
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	font-weight: 700;
+	font-size: 0.9rem;
+	color: var(--text-main);
+	letter-spacing: 0.04em;
+}
+
+.os-veiculo-option-desc {
+	font-size: 0.78rem;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.os-veiculos-empty {
+	font-size: 0.84rem;
+	color: var(--text-muted);
+	padding: 8px 0 2px;
+}
+
+html[data-theme="dark"] .os-veiculo-option.active {
+	background: rgba(56, 189, 248, 0.14);
+}
+
+@media (max-width: 900px) {
+	.veiculo-inline-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+	.veiculo-inline-actions {
+		grid-column: 1 / -1;
+	}
+}
+
+@media (max-width: 560px) {
+	.veiculo-inline-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ==========================================================================
+   Campos de Data Brasileiros (dd/mm/aaaa) com Calendário Integrado
+   ========================================================================== */
+.date-br-wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+	width: 100%;
+}
+
+.date-br-wrapper.date-br-compact {
+	width: auto;
+	min-width: 152px;
+	max-width: 175px;
+}
+
+.date-br-input {
+	width: 100%;
+	padding-right: 38px !important;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.02em;
+}
+
+.date-br-wrapper.date-br-compact .date-br-input {
+	padding: 6px 34px 6px 10px !important;
+	font-size: 0.85rem;
+}
+
+.date-br-input.date-br-invalid {
+	border-color: var(--danger) !important;
+	box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.18) !important;
+}
+
+.date-br-picker-btn {
+	position: absolute;
+	right: 6px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 28px;
+	height: 28px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	padding: 0;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.date-br-picker-btn:hover {
+	background: var(--bg-surface);
+	color: var(--primary);
+}
+
+.date-br-native-picker {
+	position: absolute;
+	right: 6px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
+	border: 0;
+	padding: 0;
+}
+
+html[data-theme="dark"] .date-br-picker-btn:hover {
+	background: rgba(148, 163, 184, 0.15);
+	color: var(--primary);
+}

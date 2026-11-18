@@ -193,6 +193,13 @@ const BrandService = {
 		};
 	},
 
+	// Verifica se o segmento ativo utiliza controle de veículos/placas (Lava Jato e Oficina Mecânica)
+	isSegmentoAutomotivo: function (config) {
+		const cfg = config || this.getConfig();
+		const tipo = cfg && cfg.tipoNegocio ? cfg.tipoNegocio : '';
+		return !tipo || tipo === 'lava_jato' || tipo === 'mecanica';
+	},
+
 	// Aplica dinamicamente no cabeçalho de qualquer página
 	aplicarIdentidadeVisual: function () {
 		const visual = this.getInfoVisual();

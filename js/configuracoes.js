@@ -1158,13 +1158,20 @@ function configurarEventosEquipeConfig() {
 	const inputFim = document.getElementById('filtroComissaoFim');
 
 	// Define padrão do mês corrente nos filtros caso estejam vazios
+	const hoje = new Date();
+	const anoAtual = hoje.getFullYear();
+	const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
+	const diaAtual = String(hoje.getDate()).padStart(2, '0');
+	const primeiroDiaISO = `${anoAtual}-${mesAtual}-01`;
+	const hojeISO = `${anoAtual}-${mesAtual}-${diaAtual}`;
+
 	if (inputInicio && !inputInicio.value) {
-		const hoje = new Date();
-		const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-		inputInicio.value = primeiroDia.toISOString().split('T')[0];
+		if (window.DateBR) window.DateBR.setInputISO(inputInicio, primeiroDiaISO);
+		else inputInicio.value = primeiroDiaISO;
 	}
 	if (inputFim && !inputFim.value) {
-		inputFim.value = new Date().toISOString().split('T')[0];
+		if (window.DateBR) window.DateBR.setInputISO(inputFim, hojeISO);
+		else inputFim.value = hojeISO;
 	}
 
 	if (selectTipo) {
@@ -1390,8 +1397,19 @@ function filtrarComissoes() {
 		return;
 	}
 
-	const inicio = inicioInput ? inicioInput.value : '';
-	const fim = fimInput ? fimInput.value : '';
+	const rawInicio = inicioInput ? inicioInput.value.trim() : '';
+	const rawFim = fimInput ? fimInput.value.trim() : '';
+	let inicio = rawInicio;
+	let fim = rawFim;
+
+	if (window.DateBR) {
+		inicio = rawInicio ? window.DateBR.converterBRParaISO(rawInicio) : '';
+		fim = rawFim ? window.DateBR.converterBRParaISO(rawFim) : '';
+		if ((rawInicio && !inicio) || (rawFim && !fim)) {
+			if (window.UI) window.UI.toast('Informe as datas do período no formato dd/mm/aaaa.', 'warning');
+			return;
+		}
+	}
 
 	const relatorio = window.EquipeService.calcularComissoesPorPeriodo(inicio, fim);
 
@@ -1453,8 +1471,14 @@ function filtrarComissoes() {
 function limparFiltroComissoes() {
 	const inicioInput = document.getElementById('filtroComissaoInicio');
 	const fimInput = document.getElementById('filtroComissaoFim');
-	if (inicioInput) inicioInput.value = '';
-	if (fimInput) fimInput.value = '';
+	if (inicioInput) {
+		if (window.DateBR) window.DateBR.setInputISO(inicioInput, '');
+		else inicioInput.value = '';
+	}
+	if (fimInput) {
+		if (window.DateBR) window.DateBR.setInputISO(fimInput, '');
+		else fimInput.value = '';
+	}
 	filtrarComissoes();
 	if (window.UI) window.UI.toast('Mostrando todo o período acumulado.', 'info');
 }
