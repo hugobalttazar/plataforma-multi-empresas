@@ -690,6 +690,7 @@ const AuthService = {
         const aplicarNavegacaoReplace = () => {
             const seletores = [
                 '.navbar a',
+                '.dock-more-sheet a',
                 '.header-actions a',
                 '#btnConfiguracoes',
                 '.brand-wrapper',
@@ -862,6 +863,10 @@ const AuthService = {
                     const el = document.querySelector(selector);
                     if (el) el.style.display = 'none';
                 }
+            }
+
+            if (typeof window.refreshCockpitDock === 'function') {
+                window.refreshCockpitDock();
             }
         });
     }

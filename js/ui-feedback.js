@@ -432,10 +432,206 @@
 
     window.DateBR = DateBR;
 
+    // ======================================================================
+    // Cockpit Bottom Dock (Opção 1) — Navegação Inferior Universal + Menu "Mais"
+    // ======================================================================
+    const MODULE_BY_HREF = {
+        'agendamentos.html': 'agenda',
+        'pedidos.html': 'pedidos',
+        'caixa.html': 'caixa',
+        'estoque.html': 'estoque',
+        'fidelidade.html': 'posvenda',
+        'clientes.html': 'clientes',
+        'servicos.html': 'servicos'
+    };
+
+    const PRIMARY_HREFS = ['index.html', 'agendamentos.html', 'pedidos.html', 'caixa.html'];
+    let dockGlobalListenersBound = false;
+
+    function normalizeDockLinks(navbar) {
+        const links = Array.from(navbar.children).filter(el => el.tagName === 'A');
+        links.forEach((link) => {
+            if (link.dataset.dockNormalized === 'true') return;
+            link.dataset.dockNormalized = 'true';
+
+            if (!link.querySelector('.nav-icon')) {
+                const textSpan = link.querySelector('.nav-text');
+                let iconText = '';
+                const nodesToRemove = [];
+                link.childNodes.forEach((node) => {
+                    if (node !== textSpan && node.nodeType === Node.TEXT_NODE) {
+                        const trimmed = node.textContent.trim();
+                        if (trimmed) iconText += (iconText ? ' ' : '') + trimmed;
+                        nodesToRemove.push(node);
+                    }
+                });
+                if (iconText) {
+                    nodesToRemove.forEach((n) => n.remove());
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'nav-icon';
+                    iconSpan.setAttribute('aria-hidden', 'true');
+                    iconSpan.textContent = iconText;
+                    link.insertBefore(iconSpan, textSpan || link.firstChild);
+                }
+            }
+        });
+        return links;
+    }
+
+    function isDockLinkPermitted(link) {
+        if (!link) return false;
+        if (link.style.display === 'none') return false;
+        const href = (link.getAttribute('href') || '').split('?')[0].split('#')[0];
+        const mod = MODULE_BY_HREF[href];
+        if (mod && window.AuthService && typeof window.AuthService.hasPermission === 'function') {
+            return window.AuthService.hasPermission(mod);
+        }
+        return true;
+    }
+
+    function closeDockMoreSheet() {
+        const sheet = document.querySelector('.dock-more-sheet.open');
+        const btn = document.querySelector('.dock-more-btn');
+        if (sheet) sheet.classList.remove('open');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+
+    function refreshCockpitDock() {
+        const navbar = document.querySelector('nav.navbar');
+        if (!navbar || !document.body) {
+            if (document.body) document.body.classList.remove('has-bottom-dock');
+            return;
+        }
+
+        document.body.classList.add('has-bottom-dock');
+
+        // Garante que a navbar seja filha direta do body para position: fixed nunca ficar presa no header
+        if (navbar.parentElement !== document.body) {
+            document.body.appendChild(navbar);
+        }
+
+        const links = normalizeDockLinks(navbar);
+
+        // Limpa controles dinâmicos anteriores para permitir reexecução idempotente
+        navbar.querySelectorAll('.dock-more-btn, .dock-more-sheet').forEach((el) => el.remove());
+
+        const permittedLinks = links.filter((link) => {
+            link.removeAttribute('data-dock-overflow');
+            return isDockLinkPermitted(link);
+        });
+
+        // Em telas pequenas (<= 768px), exibe até 4 principais + botão "Mais" se houver mais de 5 itens
+        if (permittedLinks.length > 5) {
+            const primarySet = new Set();
+
+            PRIMARY_HREFS.forEach((href) => {
+                if (primarySet.size >= 4) return;
+                const match = permittedLinks.find(
+                    (l) => (l.getAttribute('href') || '').split('?')[0] === href
+                );
+                if (match) primarySet.add(match);
+            });
+
+            permittedLinks.forEach((l) => {
+                if (primarySet.size >= 4) return;
+                if (!primarySet.has(l)) primarySet.add(l);
+            });
+
+            const overflowLinks = permittedLinks.filter((l) => !primarySet.has(l));
+            if (overflowLinks.length > 0) {
+                let anyOverflowActive = false;
+
+                const sheet = document.createElement('div');
+                sheet.className = 'dock-more-sheet';
+                sheet.setAttribute('role', 'menu');
+                sheet.setAttribute('aria-label', 'Mais módulos');
+
+                overflowLinks.forEach((link) => {
+                    link.setAttribute('data-dock-overflow', 'true');
+                    const isActive = link.classList.contains('active');
+                    if (isActive) anyOverflowActive = true;
+
+                    const clone = document.createElement('a');
+                    clone.href = link.getAttribute('href') || '#';
+                    if (isActive) clone.className = 'active';
+                    clone.setAttribute('role', 'menuitem');
+
+                    const icon = link.querySelector('.nav-icon');
+                    const text = link.querySelector('.nav-text');
+                    if (icon) {
+                        const ic = document.createElement('span');
+                        ic.className = 'nav-icon';
+                        ic.setAttribute('aria-hidden', 'true');
+                        ic.textContent = icon.textContent;
+                        clone.appendChild(ic);
+                    }
+                    if (text) {
+                        const tx = document.createElement('span');
+                        tx.className = 'nav-text';
+                        tx.textContent = text.textContent;
+                        clone.appendChild(tx);
+                    } else {
+                        clone.textContent = link.textContent;
+                    }
+
+                    clone.addEventListener('click', (e) => {
+                        const href = clone.getAttribute('href');
+                        closeDockMoreSheet();
+                        if (href && (href.endsWith('.html') || href.includes('.html?'))) {
+                            e.preventDefault();
+                            window.location.replace(href);
+                        }
+                    });
+
+                    sheet.appendChild(clone);
+                });
+
+                const moreBtn = document.createElement('button');
+                moreBtn.type = 'button';
+                moreBtn.className = 'dock-more-btn' + (anyOverflowActive ? ' active' : '');
+                moreBtn.setAttribute('aria-haspopup', 'true');
+                moreBtn.setAttribute('aria-expanded', 'false');
+                moreBtn.setAttribute('aria-label', 'Abrir mais módulos');
+                moreBtn.innerHTML = '<span class="nav-icon" aria-hidden="true">☰</span><span class="nav-text">Mais</span>';
+
+                moreBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = sheet.classList.toggle('open');
+                    moreBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                });
+
+                navbar.appendChild(sheet);
+                navbar.appendChild(moreBtn);
+            }
+        }
+
+        if (!dockGlobalListenersBound) {
+            dockGlobalListenersBound = true;
+            document.addEventListener('click', (e) => {
+                const nav = document.querySelector('nav.navbar');
+                if (nav && !nav.contains(e.target)) {
+                    closeDockMoreSheet();
+                }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeDockMoreSheet();
+                }
+            });
+        }
+    }
+
+    window.refreshCockpitDock = refreshCockpitDock;
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => DateBR.inicializarTodos());
+        document.addEventListener('DOMContentLoaded', () => {
+            DateBR.inicializarTodos();
+            refreshCockpitDock();
+        });
     } else {
         DateBR.inicializarTodos();
+        refreshCockpitDock();
     }
 })();
+
 
