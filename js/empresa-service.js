@@ -3,6 +3,7 @@
 // ==========================================================================
 import { db, doc, setDoc, getDoc, getDocs, collection, deleteDoc } from './firebase-init.js';
 import AuthService from './auth-service.js';
+import { PLANOS_SAAS, somarDiasISO } from './saas-guard.js';
 
 const EMPRESA_PADRAO = {
     id: 'danilodetailer',
@@ -14,6 +15,11 @@ const EMPRESA_PADRAO = {
     adminNome: 'Danilo Master',
     telefone: '',
     status: 'ativo',
+    planoId: 'profissional',
+    limiteUsuarios: 5,
+    vencimentoMensalidade: '',
+    diasTolerancia: 5,
+    statusAssinatura: 'ativo',
     criadoEm: '2026-09-01T12:00:00.000Z'
 };
 
@@ -278,7 +284,7 @@ const EmpresaService = {
         }
     },
 
-    async criarEmpresa({ nome, codigo: codigoInformado, tipoNegocio, adminNome, adminUsername, adminPassword, telefone }) {
+    async criarEmpresa({ nome, codigo: codigoInformado, tipoNegocio, adminNome, adminUsername, adminPassword, telefone, planoId, limiteUsuarios, vencimentoMensalidade, diasTolerancia, statusAssinatura }) {
         const user = AuthService.getCurrentUser();
         if (!user || !user.isMaster) {
             throw new Error('Apenas o Administrador Master tem permissão para cadastrar novas empresas.');
@@ -309,6 +315,16 @@ const EmpresaService = {
         const empresaId = codigo; // Chave primária definida como o próprio código único da empresa
         const icone = ICONS_MAP[tipoNegocio] || '🛠️';
 
+        const planoKey = PLANOS_SAAS[planoId] ? planoId : 'profissional';
+        const limiteFinal = parseInt(limiteUsuarios, 10) > 0
+            ? parseInt(limiteUsuarios, 10)
+            : PLANOS_SAAS[planoKey].limiteUsuariosPadrao;
+        const toleranciaFinal = Number.isFinite(parseInt(diasTolerancia, 10)) && parseInt(diasTolerancia, 10) >= 0
+            ? parseInt(diasTolerancia, 10)
+            : 5;
+        const statusAssinaturaFinal = statusAssinatura === 'suspenso' ? 'suspenso' : 'ativo';
+        const vencFinal = (vencimentoMensalidade || '').trim() || somarDiasISO(new Date().toISOString().slice(0, 10), 30);
+
         const novaEmpresa = {
             id: empresaId,
             codigo: codigo,
@@ -318,7 +334,12 @@ const EmpresaService = {
             adminUsername: cleanUsername,
             adminNome: adminNome.trim() || 'Administrador',
             telefone: telefone || '',
-            status: 'ativo',
+            status: statusAssinaturaFinal,
+            planoId: planoKey,
+            limiteUsuarios: limiteFinal,
+            vencimentoMensalidade: vencFinal,
+            diasTolerancia: toleranciaFinal,
+            statusAssinatura: statusAssinaturaFinal,
             criadoEm: new Date().toISOString()
         };
 
@@ -407,7 +428,7 @@ const EmpresaService = {
      * Atualiza dados de uma empresa existente (nome, código, proprietário, telefone, etc.)
      * e migra os dados do tenant caso o código da empresa tenha sido alterado.
      */
-    async atualizarEmpresa(empresaIdOriginal, { nome, codigo, tipoNegocio, adminNome, adminUsername, adminPassword, telefone }) {
+    async atualizarEmpresa(empresaIdOriginal, { nome, codigo, tipoNegocio, adminNome, adminUsername, adminPassword, telefone, planoId, limiteUsuarios, vencimentoMensalidade, diasTolerancia, statusAssinatura }) {
         const user = AuthService.getCurrentUser();
         if (!user || !user.isMaster) {
             throw new Error('Apenas o Administrador Master pode editar empresas.');
@@ -437,6 +458,16 @@ const EmpresaService = {
         const icone = ICONS_MAP[tipoNegocio] || empresaAntiga.icone || '🛠️';
         const novoId = novoCodigo;
 
+        const planoKey = PLANOS_SAAS[planoId] ? planoId : (empresaAntiga.planoId || 'profissional');
+        const limiteFinal = parseInt(limiteUsuarios, 10) > 0
+            ? parseInt(limiteUsuarios, 10)
+            : (empresaAntiga.limiteUsuarios || PLANOS_SAAS[planoKey].limiteUsuariosPadrao);
+        const toleranciaFinal = (diasTolerancia !== undefined && diasTolerancia !== '' && parseInt(diasTolerancia, 10) >= 0)
+            ? parseInt(diasTolerancia, 10)
+            : (empresaAntiga.diasTolerancia ?? 5);
+        const statusAssinaturaFinal = statusAssinatura || empresaAntiga.statusAssinatura || 'ativo';
+        const vencFinal = vencimentoMensalidade !== undefined ? String(vencimentoMensalidade).trim() : (empresaAntiga.vencimentoMensalidade || '');
+
         const empresaAtualizada = {
             ...empresaAntiga,
             id: novoId,
@@ -447,6 +478,12 @@ const EmpresaService = {
             adminNome: (adminNome || empresaAntiga.adminNome || '').trim(),
             adminUsername: (adminUsername || empresaAntiga.adminUsername || '').trim().toLowerCase(),
             telefone: (telefone || '').trim(),
+            planoId: planoKey,
+            limiteUsuarios: limiteFinal,
+            vencimentoMensalidade: vencFinal,
+            diasTolerancia: toleranciaFinal,
+            statusAssinatura: statusAssinaturaFinal,
+            status: statusAssinaturaFinal,
             atualizadoEm: new Date().toISOString()
         };
 
@@ -610,6 +647,35 @@ const EmpresaService = {
         }
 
         return empresaAtualizada;
+    },
+
+    async atualizarAssinaturaEmpresa(empresaId, dadosAssinatura = {}) {
+        const user = AuthService.getCurrentUser();
+        if (!user || !user.isMaster) {
+            throw new Error('Apenas o Administrador Master pode alterar planos e mensalidades.');
+        }
+
+        const list = this.getEmpresas();
+        const idx = list.findIndex(e => e.id === empresaId || e.codigo === empresaId);
+        if (idx === -1) {
+            throw new Error('Empresa não encontrada.');
+        }
+
+        const atual = list[idx];
+        const updated = {
+            ...atual,
+            ...dadosAssinatura,
+            status: dadosAssinatura.statusAssinatura || atual.statusAssinatura || atual.status || 'ativo',
+            atualizadoEm: new Date().toISOString()
+        };
+
+        if (db) {
+            await setDoc(doc(db, 'empresas_lista', updated.id), updated);
+        }
+
+        list[idx] = updated;
+        this.saveEmpresasLocais(list);
+        return updated;
     },
 
     async excluirEmpresa(empresaId) {

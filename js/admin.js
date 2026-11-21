@@ -5,6 +5,7 @@
 
 import AuthService from './auth-service.js';
 import EmpresaService from './empresa-service.js';
+import SaasGuard, { PLANOS_SAAS } from './saas-guard.js';
 import { db, collection, getDocs, doc, deleteDoc, setDoc } from './firebase-init.js';
 
 let todasEmpresas = [];
@@ -160,10 +161,28 @@ function renderizarTabelaEmpresas(filtro = '') {
     }
 
     filtradas.forEach(emp => {
-        const qtdUsers = todosUsuarios.filter(u => u.empresaId === emp.id).length;
+        const usersEmpresa = todosUsuarios.filter(u => u.empresaId === emp.id && !u.isMaster && u.username !== 'admin');
+        const qtdUsers = usersEmpresa.length;
+        const aval = SaasGuard.avaliarAssinatura(emp);
         const tr = document.createElement('tr');
 
         const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
+        const vencBR = aval.vencimentoMensalidade ? SaasGuard.formatarDataBRSaas(aval.vencimentoMensalidade) : 'Sem venc.';
+
+        let statusStyle = 'background: var(--success-light); color: var(--success); border: 1px solid var(--success-border);';
+        let statusIcon = '✅';
+        if (aval.situacao === 'suspenso') {
+            statusStyle = 'background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;';
+            statusIcon = '⛔';
+        } else if (aval.situacao === 'tolerancia') {
+            statusStyle = 'background: #fffbeb; color: #b45309; border: 1px solid #fde68a;';
+            statusIcon = '⚠️';
+        } else if (aval.situacao === 'vencendo') {
+            statusStyle = 'background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;';
+            statusIcon = '📅';
+        }
+
+        const isSuspensa = aval.statusAssinatura === 'suspenso';
 
         tr.innerHTML = `
             <td>
@@ -171,7 +190,7 @@ function renderizarTabelaEmpresas(filtro = '') {
                     <span style="font-size: 1.5rem;">${emp.icone || '🏢'}</span>
                     <div>
                         <strong style="font-size: 0.95rem; color: var(--text-main); display: block;">${esc(emp.nome)}</strong>
-                        <small style="color: var(--text-muted); text-transform: capitalize;">${esc(emp.tipoNegocio ? emp.tipoNegocio.replace('_', ' ') : 'Geral')}</small>
+                        <small style="color: var(--text-muted); text-transform: capitalize;">${esc(emp.tipoNegocio ? emp.tipoNegocio.replace('_', ' ') : 'Geral')} • ${esc(emp.adminNome || emp.adminUsername || '-')}</small>
                     </div>
                 </div>
             </td>
@@ -181,17 +200,20 @@ function renderizarTabelaEmpresas(filtro = '') {
                 </span>
             </td>
             <td>
-                <div><strong>${esc(emp.adminNome || emp.adminUsername || '-')}</strong></div>
-                <small style="color: var(--text-muted);">${esc(emp.telefone || 'Sem telefone')}</small>
+                <strong style="display:block; font-size:0.88rem; color:var(--text-main);">${esc(aval.planoNome)}</strong>
+                <small style="color:var(--text-muted);">Máx. ${aval.limiteUsuarios} usuário(s) • Tol. ${aval.diasTolerancia}d</small>
             </td>
             <td>
-                <span class="badge" style="background: var(--success-light); color: var(--success); border: 1px solid var(--success-border);">
-                    ✅ ${esc(emp.status || 'Ativo')}
-                </span>
+                <div style="margin-bottom:4px;">
+                    <span class="badge" style="${statusStyle}">
+                        ${statusIcon} ${esc(aval.labelSituacao)}
+                    </span>
+                </div>
+                <small style="color:var(--text-muted); font-variant-numeric: tabular-nums;">Venc: ${esc(vencBR)}</small>
             </td>
             <td>
-                <span class="badge" style="background: var(--primary-light); color: var(--primary);">
-                    👤 ${qtdUsers} operador(es)
+                <span class="badge" style="background: ${qtdUsers >= aval.limiteUsuarios ? '#fef3c7' : 'var(--primary-light)'}; color: ${qtdUsers >= aval.limiteUsuarios ? '#92400e' : 'var(--primary)'}; font-variant-numeric: tabular-nums;">
+                    👤 ${qtdUsers}/${aval.limiteUsuarios}
                 </span>
             </td>
             <td style="text-align: center;">
@@ -200,11 +222,17 @@ function renderizarTabelaEmpresas(filtro = '') {
                         🧪 Acessar (Modo Teste)
                     </button>
                     <div style="display: flex; gap: 4px; justify-content: center; width: 100%; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-sm btn-secondary btn-editar-empresa" data-id="${emp.id}" title="Editar Dados da Empresa e Código de Acesso">
+                        <button type="button" class="btn btn-sm btn-secondary btn-renovar-empresa" data-id="${emp.id}" style="color:#15803d;" title="Renovar mensalidade por +30 dias e manter ativo">
+                            🔄 +30d
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary btn-toggle-suspensao" data-id="${emp.id}" style="color:${isSuspensa ? '#15803d' : '#b45309'};" title="${isSuspensa ? 'Reativar assinatura' : 'Suspender novos cadastros'}">
+                            ${isSuspensa ? '▶️ Ativar' : '⏸️ Suspender'}
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary btn-editar-empresa" data-id="${emp.id}" title="Editar Dados da Empresa, Plano e Código">
                             ✏️ Editar
                         </button>
                         <button type="button" class="btn btn-sm btn-secondary btn-filtrar-usuarios" data-id="${emp.id}" title="Ver usuários desta empresa">
-                            👥 Usuários
+                            👥
                         </button>
                         <button type="button" class="btn btn-sm btn-secondary btn-excluir-empresa" data-id="${emp.id}" style="color: var(--danger);" title="Excluir Empresa">
                             🗑️
@@ -222,6 +250,22 @@ function renderizarTabelaEmpresas(filtro = '') {
         btn.addEventListener('click', (e) => {
             const id = e.currentTarget.getAttribute('data-id');
             acessarEmpresaModoTeste(id);
+        });
+    });
+
+    // Vincular botões de Renovação Rápida +30 dias
+    document.querySelectorAll('.btn-renovar-empresa').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            await renovarEmpresa30Dias(id);
+        });
+    });
+
+    // Vincular botões de Suspender / Reativar
+    document.querySelectorAll('.btn-toggle-suspensao').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            await alternarSuspensaoEmpresa(id);
         });
     });
 
@@ -252,6 +296,51 @@ function renderizarTabelaEmpresas(filtro = '') {
             await confirmarExclusaoEmpresa(id);
         });
     });
+}
+
+async function renovarEmpresa30Dias(empresaId) {
+    const emp = todasEmpresas.find(e => e.id === empresaId || e.codigo === empresaId);
+    if (!emp) return;
+    const hojeISO = new Date().toISOString().slice(0, 10);
+    const baseData = (emp.vencimentoMensalidade && emp.vencimentoMensalidade > hojeISO)
+        ? emp.vencimentoMensalidade
+        : hojeISO;
+    const novoVenc = SaasGuard.somarDiasISO(baseData, 30);
+
+    try {
+        await EmpresaService.atualizarAssinaturaEmpresa(emp.id, {
+            vencimentoMensalidade: novoVenc,
+            statusAssinatura: 'ativo'
+        });
+        if (window.UI) window.UI.toast(`Mensalidade de "${emp.nome}" renovada até ${SaasGuard.formatarDataBRSaas(novoVenc)}!`, 'success');
+        await carregarDadosPlataforma();
+    } catch (err) {
+        if (window.UI) window.UI.toast(err.message || 'Erro ao renovar mensalidade.', 'error');
+    }
+}
+
+async function alternarSuspensaoEmpresa(empresaId) {
+    const emp = todasEmpresas.find(e => e.id === empresaId || e.codigo === empresaId);
+    if (!emp) return;
+    const atualSuspenso = emp.statusAssinatura === 'suspenso' || emp.status === 'suspenso';
+    const novoStatus = atualSuspenso ? 'ativo' : 'suspenso';
+
+    try {
+        await EmpresaService.atualizarAssinaturaEmpresa(emp.id, {
+            statusAssinatura: novoStatus
+        });
+        if (window.UI) {
+            window.UI.toast(
+                novoStatus === 'ativo'
+                    ? `Assinatura de "${emp.nome}" reativada!`
+                    : `Assinatura de "${emp.nome}" suspensa (novos cadastros bloqueados).`,
+                novoStatus === 'ativo' ? 'success' : 'warning'
+            );
+        }
+        await carregarDadosPlataforma();
+    } catch (err) {
+        if (window.UI) window.UI.toast(err.message || 'Erro ao atualizar status da assinatura.', 'error');
+    }
 }
 
 // 5. Renderização da Tabela de Usuários
@@ -384,6 +473,10 @@ async function cadastrarNovaEmpresa(e) {
     const codigo = (document.getElementById('empresaCodigo')?.value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
     const tipoNegocio = document.getElementById('empresaSegmento').value;
     const telefone = document.getElementById('empresaTelefone').value.trim();
+    const planoId = document.getElementById('empresaPlano')?.value || 'profissional';
+    const limiteUsuarios = parseInt(document.getElementById('empresaLimiteUsuarios')?.value || '5', 10);
+    const vencimentoMensalidade = document.getElementById('empresaVencimento')?.value || '';
+    const diasTolerancia = parseInt(document.getElementById('empresaTolerancia')?.value || '5', 10);
     const adminNome = document.getElementById('empresaAdminNome').value.trim();
     const adminUsername = document.getElementById('empresaAdminUser').value.trim();
     const adminPassword = document.getElementById('empresaAdminPass').value;
@@ -415,6 +508,11 @@ async function cadastrarNovaEmpresa(e) {
             codigo,
             tipoNegocio,
             telefone,
+            planoId,
+            limiteUsuarios,
+            vencimentoMensalidade,
+            diasTolerancia,
+            statusAssinatura: 'ativo',
             adminNome,
             adminUsername,
             adminPassword
@@ -450,6 +548,11 @@ async function salvarEdicaoEmpresa(e) {
     const codigo = (document.getElementById('editEmpresaCodigo')?.value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
     const tipoNegocio = document.getElementById('editEmpresaSegmento').value;
     const telefone = document.getElementById('editEmpresaTelefone').value.trim();
+    const planoId = document.getElementById('editEmpresaPlano')?.value || 'profissional';
+    const limiteUsuarios = parseInt(document.getElementById('editEmpresaLimiteUsuarios')?.value || '5', 10);
+    const vencimentoMensalidade = document.getElementById('editEmpresaVencimento')?.value || '';
+    const diasTolerancia = parseInt(document.getElementById('editEmpresaTolerancia')?.value || '5', 10);
+    const statusAssinatura = document.getElementById('editEmpresaStatusAssinatura')?.value || 'ativo';
     const adminNome = document.getElementById('editEmpresaAdminNome').value.trim();
     const adminUsername = document.getElementById('editEmpresaAdminUser').value.trim();
     const adminPassword = document.getElementById('editEmpresaAdminPass').value;
@@ -481,6 +584,11 @@ async function salvarEdicaoEmpresa(e) {
             codigo,
             tipoNegocio,
             telefone,
+            planoId,
+            limiteUsuarios,
+            vencimentoMensalidade,
+            diasTolerancia,
+            statusAssinatura,
             adminNome,
             adminUsername,
             adminPassword
@@ -530,6 +638,16 @@ async function cadastrarNovoUsuario(e) {
     btn.textContent = 'Salvando usuário...';
 
     try {
+        const empDestino = todasEmpresas.find(emp => emp.id === empresaId || emp.codigo === empresaId);
+        const checkLimite = SaasGuard.verificarLimiteUsuarios({
+            empresa: empDestino || { id: empresaId },
+            usuariosDaEmpresa: todosUsuarios,
+            editando: false
+        });
+        if (!checkLimite.permitido) {
+            throw new Error(checkLimite.motivo);
+        }
+
         // Validação de senha
         const check = AuthService.validarForcaSenha(password);
         if (!check.valido) throw new Error(check.mensagem);
@@ -676,6 +794,10 @@ window.abrirModalEmpresa = function() {
     if (elStatus) elStatus.style.display = 'none';
     const form = document.getElementById('formNovaEmpresa');
     if (form) form.reset();
+    const elVenc = document.getElementById('empresaVencimento');
+    if (elVenc) elVenc.value = SaasGuard.somarDiasISO(new Date().toISOString().slice(0, 10), 30);
+    const elLim = document.getElementById('empresaLimiteUsuarios');
+    if (elLim) elLim.value = String(PLANOS_SAAS.profissional.limiteUsuariosPadrao);
 };
 
 window.fecharModalEmpresa = function() {
@@ -695,12 +817,18 @@ function abrirModalEditarEmpresa(empresaId) {
     const modal = document.getElementById('modalEditarEmpresa');
     if (!modal) return;
 
+    const dadosAssin = SaasGuard.normalizarDadosAssinatura(emp);
     document.getElementById('editEmpresaIdOriginal').value = emp.id;
     document.getElementById('editEmpresaCodigoOriginal').value = emp.codigo || emp.id;
     document.getElementById('editEmpresaNome').value = emp.nome || '';
     document.getElementById('editEmpresaCodigo').value = emp.codigo || emp.id || '';
     document.getElementById('editEmpresaSegmento').value = emp.tipoNegocio || 'geral';
     document.getElementById('editEmpresaTelefone').value = emp.telefone || '';
+    document.getElementById('editEmpresaPlano').value = dadosAssin.planoId;
+    document.getElementById('editEmpresaLimiteUsuarios').value = String(dadosAssin.limiteUsuarios);
+    document.getElementById('editEmpresaVencimento').value = dadosAssin.vencimentoMensalidade || '';
+    document.getElementById('editEmpresaTolerancia').value = String(dadosAssin.diasTolerancia);
+    document.getElementById('editEmpresaStatusAssinatura').value = dadosAssin.statusAssinatura;
     document.getElementById('editEmpresaAdminNome').value = emp.adminNome || '';
     document.getElementById('editEmpresaAdminUser').value = emp.adminUsername || '';
     document.getElementById('editEmpresaAdminPass').value = '';
@@ -819,6 +947,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 elStatus.style.color = '#10b981';
                 elStatus.textContent = `✅ Código "${clean}" disponível!`;
             }
+        });
+    }
+
+    // Auto-preenche sugestão de limite ao trocar o plano nos modais
+    const selPlanoNovo = document.getElementById('empresaPlano');
+    const inpLimNovo = document.getElementById('empresaLimiteUsuarios');
+    if (selPlanoNovo && inpLimNovo) {
+        selPlanoNovo.addEventListener('change', () => {
+            const p = PLANOS_SAAS[selPlanoNovo.value];
+            if (p) inpLimNovo.value = String(p.limiteUsuariosPadrao);
+        });
+    }
+
+    const selPlanoEdit = document.getElementById('editEmpresaPlano');
+    const inpLimEdit = document.getElementById('editEmpresaLimiteUsuarios');
+    if (selPlanoEdit && inpLimEdit) {
+        selPlanoEdit.addEventListener('change', () => {
+            const p = PLANOS_SAAS[selPlanoEdit.value];
+            if (p) inpLimEdit.value = String(p.limiteUsuariosPadrao);
         });
     }
 });

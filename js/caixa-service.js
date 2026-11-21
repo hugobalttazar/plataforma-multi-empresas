@@ -158,16 +158,20 @@ class CaixaService {
 	static calcularResumoDia(dataAlvo) {
 		const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
 		const saidas = JSON.parse(localStorage.getItem('caixa_saidas')) || [];
+		const entradasAvulsas = JSON.parse(localStorage.getItem('caixa_entradas')) || [];
 		
 		let totalValor = 0;
 		let totalServicos = 0;
 		let totalSaidas = 0;
+		let totalEntradasAvulsas = 0;
+		let totalFaturadoDia = 0;
 		const breakdown = {
 			'Pix': 0,
 			'Dinheiro': 0,
 			'Cartão de Crédito': 0,
 			'Cartão de Débito': 0,
 			'A Prazo / Fiado': 0,
+			'Pacote / Crédito': 0,
 			'Outro': 0
 		};
 
@@ -178,10 +182,29 @@ class CaixaService {
 
 			if (dataReferencia === dataAlvo && estaEncerrado) {
 				const v = parseFloat(p.valor || 0);
-				totalValor += v;
 				totalServicos++;
 
 				const forma = p.formaPagamento || 'Outro';
+				if (forma === 'Faturado / A Receber') {
+					totalFaturadoDia += v;
+					return;
+				}
+
+				totalValor += v;
+				if (breakdown[forma] !== undefined) {
+					breakdown[forma] += v;
+				} else {
+					breakdown['Outro'] += v;
+				}
+			}
+		});
+
+		entradasAvulsas.forEach(e => {
+			if (e.data === dataAlvo) {
+				const v = parseFloat(e.valor || 0);
+				totalValor += v;
+				totalEntradasAvulsas += v;
+				const forma = e.formaPagamento || 'Outro';
 				if (breakdown[forma] !== undefined) {
 					breakdown[forma] += v;
 				} else {
@@ -196,7 +219,39 @@ class CaixaService {
 			}
 		});
 
-		return { totalValor, totalServicos, breakdown, totalSaidas };
+		return { totalValor, totalServicos, breakdown, totalSaidas, totalEntradasAvulsas, totalFaturadoDia };
+	}
+
+	static registrarEntrada({ valor, formaPagamento = 'Pix', categoria = 'Entrada Avulsa', origem = 'avulso', referenciaId = '', cliente = '', descricao = '' }) {
+		const entradas = JSON.parse(localStorage.getItem('caixa_entradas')) || [];
+		const novaEntrada = {
+			id: 'ent_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+			data: obterDataHojeISO(),
+			hora: obterHoraAtual(),
+			timestamp: new Date().toISOString(),
+			valor: parseFloat(valor || 0),
+			formaPagamento: formaPagamento || 'Pix',
+			categoria: categoria || 'Entrada Avulsa',
+			origem: origem || 'avulso',
+			referenciaId: referenciaId ? String(referenciaId) : '',
+			cliente: cliente || '',
+			descricao: descricao || '',
+			tipo: 'entrada_avulsa'
+		};
+		entradas.push(novaEntrada);
+		localStorage.setItem('caixa_entradas', JSON.stringify(entradas));
+		return novaEntrada;
+	}
+
+	static getEntradasDia(dataAlvo) {
+		const entradas = JSON.parse(localStorage.getItem('caixa_entradas')) || [];
+		return entradas.filter(e => e.data === dataAlvo);
+	}
+
+	static removerEntrada(id) {
+		let entradas = JSON.parse(localStorage.getItem('caixa_entradas')) || [];
+		entradas = entradas.filter(e => String(e.id) !== String(id));
+		localStorage.setItem('caixa_entradas', JSON.stringify(entradas));
 	}
 
 	static registrarSaida(valor, categoria, descricao) {
@@ -225,6 +280,185 @@ class CaixaService {
 		let saidas = JSON.parse(localStorage.getItem('caixa_saidas')) || [];
 		saidas = saidas.filter(s => s.id !== id.toString());
 		localStorage.setItem('caixa_saidas', JSON.stringify(saidas));
+	}
+
+	// ----------------------------------------------------------------------
+	// Contas a Pagar e a Receber (contas_financeiras)
+	// ----------------------------------------------------------------------
+	static getContas() {
+		try {
+			const lista = JSON.parse(localStorage.getItem('contas_financeiras')) || [];
+			return Array.isArray(lista) ? lista : [];
+		} catch (e) {
+			return [];
+		}
+	}
+
+	static salvarContas(lista) {
+		localStorage.setItem('contas_financeiras', JSON.stringify(lista || []));
+	}
+
+	static salvarConta(dados) {
+		const tipo = dados.tipo === 'receber' ? 'receber' : 'pagar';
+		const descricao = (dados.descricao || '').trim();
+		const valor = Math.max(0, parseFloat(dados.valor || 0) || 0);
+		const vencimento = (dados.vencimento || '').trim();
+
+		if (!descricao || valor <= 0 || !vencimento) {
+			return { sucesso: false, erro: 'Preencha descrição, valor maior que zero e data de vencimento.' };
+		}
+
+		const lista = this.getContas();
+		if (dados.id) {
+			const idx = lista.findIndex(c => String(c.id) === String(dados.id));
+			if (idx !== -1) {
+				lista[idx] = {
+					...lista[idx],
+					tipo,
+					descricao,
+					categoria: (dados.categoria || (tipo === 'pagar' ? 'Despesa Fixa' : 'Recebimento Futuro')).trim(),
+					pessoa: (dados.pessoa || '').trim(),
+					valor: Number(valor.toFixed(2)),
+					vencimento,
+					observacao: (dados.observacao || '').trim(),
+					atualizadoEm: new Date().toISOString()
+				};
+				this.salvarContas(lista);
+				return { sucesso: true, conta: lista[idx] };
+			}
+		}
+
+		const nova = {
+			id: 'cnt_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+			tipo,
+			descricao,
+			categoria: (dados.categoria || (tipo === 'pagar' ? 'Despesa Fixa' : 'Recebimento Futuro')).trim(),
+			pessoa: (dados.pessoa || '').trim(),
+			valor: Number(valor.toFixed(2)),
+			vencimento,
+			observacao: (dados.observacao || '').trim(),
+			status: 'pendente',
+			dataPagamento: null,
+			formaPagamento: null,
+			caixaRefId: null,
+			criadoEm: new Date().toISOString()
+		};
+		lista.push(nova);
+		this.salvarContas(lista);
+		return { sucesso: true, conta: nova };
+	}
+
+	static removerConta(id) {
+		const lista = this.getContas().filter(c => String(c.id) !== String(id));
+		this.salvarContas(lista);
+	}
+
+	static calcularStatusEfetivoConta(conta, hojeISO = null) {
+		if (!conta) return 'pendente';
+		if (conta.status === 'pago') return 'pago';
+		const hoje = hojeISO || obterDataHojeISO();
+		if (conta.vencimento && conta.vencimento < hoje) return 'vencido';
+		if (conta.vencimento && conta.vencimento === hoje) return 'vence_hoje';
+		return 'pendente';
+	}
+
+	static getContasComStatus({ tipo = 'todos', status = 'todos' } = {}) {
+		const hoje = obterDataHojeISO();
+		return this.getContas()
+			.map(c => ({
+				...c,
+				statusEfetivo: this.calcularStatusEfetivoConta(c, hoje)
+			}))
+			.filter(c => {
+				if (tipo !== 'todos' && c.tipo !== tipo) return false;
+				if (status !== 'todos') {
+					if (status === 'aberto') {
+						if (c.statusEfetivo === 'pago') return false;
+					} else if (c.statusEfetivo !== status) {
+						return false;
+					}
+				}
+				return true;
+			})
+			.sort((a, b) => {
+				if (a.statusEfetivo === 'pago' && b.statusEfetivo !== 'pago') return 1;
+				if (a.statusEfetivo !== 'pago' && b.statusEfetivo === 'pago') return -1;
+				return (a.vencimento || '').localeCompare(b.vencimento || '');
+			});
+	}
+
+	static getAlertasVencimento(diasAntecedencia = 3) {
+		const hoje = obterDataHojeISO();
+		const partes = hoje.split('-').map(Number);
+		const dtLimite = new Date(partes[0], (partes[1] || 1) - 1, partes[2] || 1);
+		dtLimite.setDate(dtLimite.getDate() + Math.max(0, parseInt(diasAntecedencia, 10) || 0));
+		const limiteISO = `${dtLimite.getFullYear()}-${String(dtLimite.getMonth() + 1).padStart(2, '0')}-${String(dtLimite.getDate()).padStart(2, '0')}`;
+
+		const abertas = this.getContasComStatus({ status: 'aberto' });
+		const vencidas = abertas.filter(c => c.statusEfetivo === 'vencido');
+		const vencendoHoje = abertas.filter(c => c.statusEfetivo === 'vence_hoje');
+		const proximosDias = abertas.filter(c => c.vencimento > hoje && c.vencimento <= limiteISO);
+
+		const alertas = [...vencidas, ...vencendoHoje, ...proximosDias];
+		const totalPagarAlerta = alertas.filter(c => c.tipo === 'pagar').reduce((acc, c) => acc + (parseFloat(c.valor || 0) || 0), 0);
+		const totalReceberAlerta = alertas.filter(c => c.tipo === 'receber').reduce((acc, c) => acc + (parseFloat(c.valor || 0) || 0), 0);
+
+		return {
+			vencidas,
+			vencendoHoje,
+			proximosDias,
+			alertas,
+			qtdAlerta: alertas.length,
+			totalPagarAlerta: Number(totalPagarAlerta.toFixed(2)),
+			totalReceberAlerta: Number(totalReceberAlerta.toFixed(2))
+		};
+	}
+
+	static darBaixaConta(id, formaPagamento = 'Pix') {
+		const lista = this.getContas();
+		const idx = lista.findIndex(c => String(c.id) === String(id));
+		if (idx === -1) {
+			return { sucesso: false, erro: 'Conta não encontrada.' };
+		}
+
+		const conta = lista[idx];
+		if (conta.status === 'pago') {
+			return { sucesso: false, erro: 'Esta conta já foi baixada anteriormente.' };
+		}
+
+		const valorNum = parseFloat(conta.valor || 0) || 0;
+		const hoje = obterDataHojeISO();
+		let movCaixa = null;
+
+		if (conta.tipo === 'pagar') {
+			movCaixa = this.registrarSaida(
+				valorNum,
+				conta.categoria || 'Despesa / Conta Paga',
+				`Baixa Conta: ${conta.descricao}${conta.pessoa ? ' (' + conta.pessoa + ')' : ''}`
+			);
+		} else {
+			movCaixa = this.registrarEntrada({
+				valor: valorNum,
+				formaPagamento: formaPagamento || 'Pix',
+				categoria: conta.categoria || 'Conta Recebida',
+				origem: 'conta_receber',
+				referenciaId: conta.id,
+				cliente: conta.pessoa || '',
+				descricao: `Recebimento Conta: ${conta.descricao}${conta.pessoa ? ' (' + conta.pessoa + ')' : ''}`
+			});
+		}
+
+		lista[idx] = {
+			...conta,
+			status: 'pago',
+			dataPagamento: hoje,
+			formaPagamento: formaPagamento || 'Pix',
+			caixaRefId: movCaixa ? movCaixa.id : null,
+			atualizadoEm: new Date().toISOString()
+		};
+		this.salvarContas(lista);
+
+		return { sucesso: true, conta: lista[idx], movCaixa };
 	}
 
 	static getStatusHoje() {

@@ -372,7 +372,8 @@ app.use('/js', express.static(path.join(__dirname, 'js')));
 // Clean URL page list
 const pages = [
 	'clientes', 'historico', 'pedidos', 'servicos', 'caixa', 
-	'configuracoes', 'agendamentos', 'estoque', 'fidelidade', 'login', 'index', 'admin'
+	'configuracoes', 'agendamentos', 'estoque', 'fidelidade', 'login', 'index', 'admin',
+	'orcamento', 'agenda-publica', 'painel-tv'
 ];
 
 // Middleware Anti-Cache para páginas HTML (evita bfcache do celular expondo dados após logout)

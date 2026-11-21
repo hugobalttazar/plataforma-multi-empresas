@@ -3,6 +3,8 @@ import './ui-feedback.js';
 import { initFirebase, db, auth, signInWithEmailAndPassword, signOut as fbSignOut, doc, getDoc, setDoc, deleteDoc } from './firebase-init.js';
 import './firebase-sync.js';
 import './empresa-service.js';
+import SaasGuard from './saas-guard.js';
+import './publico-service.js';
 import './pwa-install.js';
 
 // Higienização de sessão persistente legada:
@@ -192,8 +194,28 @@ const AuthService = {
         const currentUser = this.getCurrentUser();
         const empresaId = currentUser?.empresaId || localStorage.getItem('master_active_empresaId') || '';
 
-        // 1. Verifica se já existe localmente nesta empresa
+        // 0. Valida assinatura ativa e limite de usuários do plano contratado
+        const empresaAtiva = window.EmpresaService?.getEmpresaAtiva?.() || { id: empresaId };
+        const permAssinatura = SaasGuard.verificarPermissaoNovoCadastro({
+            empresa: empresaAtiva,
+            user: currentUser,
+            tipoOperacao: 'cadastrar usuário'
+        });
+        if (!permAssinatura.permitido) {
+            throw new Error(permAssinatura.motivo);
+        }
+
         const users = this.getUsers();
+        const checkLimite = SaasGuard.verificarLimiteUsuarios({
+            empresa: empresaAtiva,
+            usuariosDaEmpresa: users,
+            editando: false
+        });
+        if (!checkLimite.permitido) {
+            throw new Error(checkLimite.motivo);
+        }
+
+        // 1. Verifica se já existe localmente nesta empresa
         if (users.find(u => u.username && u.username.toLowerCase() === cleanUsername && (u.empresaId || '') === empresaId)) {
             throw new Error(`O usuário "${cleanUsername}" já existe nesta empresa.`);
         }
@@ -814,6 +836,13 @@ const AuthService = {
             if (window.FirebaseSync) window.FirebaseSync.start();
             this.iniciarMonitorInatividade();
             this.configurarNavegacaoMobile();
+            if (!isAdminPage) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', () => SaasGuard.renderizarBannerAssinatura());
+                } else {
+                    SaasGuard.renderizarBannerAssinatura();
+                }
+            }
         }
 
         if (user && !user.isMaster && !isLoginPage) {

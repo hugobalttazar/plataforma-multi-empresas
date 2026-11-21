@@ -119,9 +119,9 @@
 						<thead>
 							<tr>
 								<th>Empresa & Segmento</th>
-								<th>Código da Empresa (Login)</th>
-								<th>Responsável</th>
-								<th>Status</th>
+								<th>Código (Login)</th>
+								<th>Plano & Limite</th>
+								<th>Vencimento & Status</th>
 								<th>Usuários</th>
 								<th style="text-align: center;">Ações</th>
 							</tr>
@@ -217,6 +217,34 @@
 						</div>
 
 						<div class="form-group full-width" style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 6px;">
+							<strong style="display: block; font-size: 0.95rem; color: var(--text-main); margin-bottom: 8px;">
+								💼 Plano Comercial & Assinatura SaaS
+							</strong>
+							<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+								<div>
+									<label for="empresaPlano">Plano</label>
+									<select id="empresaPlano">
+										<option value="basico">Básico (até 2 usuários)</option>
+										<option value="profissional" selected>Profissional (até 5 usuários)</option>
+										<option value="multi_loja">Multi-Loja (até 20 usuários)</option>
+									</select>
+								</div>
+								<div>
+									<label for="empresaLimiteUsuarios">Limite de Usuários</label>
+									<input type="number" id="empresaLimiteUsuarios" min="1" max="200" value="5" required />
+								</div>
+								<div>
+									<label for="empresaVencimento">Vencimento Mensalidade</label>
+									<input type="date" id="empresaVencimento" />
+								</div>
+								<div>
+									<label for="empresaTolerancia">Tolerância (dias)</label>
+									<input type="number" id="empresaTolerancia" min="0" max="60" value="5" />
+								</div>
+							</div>
+						</div>
+
+						<div class="form-group full-width" style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 6px;">
 							<strong style="display: block; font-size: 0.95rem; color: var(--text-main); margin-bottom: 2px;">
 								👤 Primeiro Acesso do Administrador desta Empresa
 							</strong>
@@ -302,6 +330,41 @@
 						<div class="form-group">
 							<label for="editEmpresaTelefone">Telefone / WhatsApp</label>
 							<input type="text" id="editEmpresaTelefone" placeholder="(00) 00000-0000" />
+						</div>
+
+						<div class="form-group full-width" style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 6px;">
+							<strong style="display: block; font-size: 0.95rem; color: var(--text-main); margin-bottom: 8px;">
+								💼 Plano Comercial & Assinatura SaaS
+							</strong>
+							<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px;">
+								<div>
+									<label for="editEmpresaPlano">Plano</label>
+									<select id="editEmpresaPlano">
+										<option value="basico">Básico (2 usuários)</option>
+										<option value="profissional">Profissional (5 usuários)</option>
+										<option value="multi_loja">Multi-Loja (20 usuários)</option>
+									</select>
+								</div>
+								<div>
+									<label for="editEmpresaLimiteUsuarios">Limite de Usuários</label>
+									<input type="number" id="editEmpresaLimiteUsuarios" min="1" max="200" required />
+								</div>
+								<div>
+									<label for="editEmpresaVencimento">Vencimento</label>
+									<input type="date" id="editEmpresaVencimento" />
+								</div>
+								<div>
+									<label for="editEmpresaTolerancia">Tolerância (dias)</label>
+									<input type="number" id="editEmpresaTolerancia" min="0" max="60" value="5" />
+								</div>
+								<div>
+									<label for="editEmpresaStatusAssinatura">Status Assinatura</label>
+									<select id="editEmpresaStatusAssinatura">
+										<option value="ativo">✅ Ativo</option>
+										<option value="suspenso">⛔ Suspenso</option>
+									</select>
+								</div>
+							</div>
 						</div>
 
 						<div class="form-group full-width" style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 6px;">

@@ -65,24 +65,29 @@ if (historico.length === 0) {
 		const tr = document.createElement('tr');
 		const valorFormatado = parseFloat(p.valor || 0).toFixed(2);
 		const estaAberto = p.status === 'aberto';
+		const ehOrcamento = p.status === 'orcamento';
 
-		const statusBadge = estaAberto
-			? '<span class="badge badge-status badge-status-aberto">No Pátio</span>'
-			: '<span class="badge badge-status badge-status-encerrado">Encerrado</span>';
+		const statusBadge = ehOrcamento
+			? '<span class="badge" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">Orçamento</span>'
+			: (estaAberto
+				? '<span class="badge badge-status badge-status-aberto">No Pátio</span>'
+				: '<span class="badge badge-status badge-status-encerrado">Encerrado</span>');
 
 		const dataAbertaFmt = window.DateBR ? (window.DateBR.formatarParaBR(p.data) || '-') : (p.data || '-');
 		const dataFechadaBruta = p.dataEncerramento || p.data || '';
 		const dataFechadaFmt = window.DateBR ? (window.DateBR.formatarParaBR(dataFechadaBruta) || '-') : (dataFechadaBruta || '-');
 
-		const dataTexto = estaAberto
+		const dataTexto = (estaAberto || ehOrcamento)
 			? `${esc(dataAbertaFmt)} <small style="color:var(--text-muted);">${p.horaEntrada ? 'às ' + esc(p.horaEntrada) : ''}</small>`
 			: `${esc(dataFechadaFmt)} <small style="color:var(--text-muted);">${p.horaEncerramento ? 'às ' + esc(p.horaEncerramento) : ''}</small>`;
 
-		const pagamentoTexto = estaAberto
-			? '<span style="color:var(--text-muted); font-size:0.85rem;">Aguardando saída</span>'
-			: `<span class="badge badge-payment">${esc(p.formaPagamento || 'Outro')}</span>`;
+		const pagamentoTexto = ehOrcamento
+			? '<span style="color:var(--text-muted); font-size:0.85rem;">Orçamento pendente</span>'
+			: (estaAberto
+				? '<span style="color:var(--text-muted); font-size:0.85rem;">Aguardando saída</span>'
+				: `<span class="badge badge-payment">${esc(p.formaPagamento || 'Outro')}</span>`);
 
-		const acaoRecibo = estaAberto
+		const acaoRecibo = (estaAberto || ehOrcamento)
 			? '<span style="color:var(--text-muted); font-size:0.8rem;">-</span>'
 			: `<button type="button" class="btn btn-sm btn-recibo-os" data-id="${p.id}" title="Ver e Imprimir Recibo Estilo Cupom Fiscal">🧾 Recibo</button>`;
 

@@ -58,9 +58,14 @@
 						<h1 class="page-title">Agendamentos & Grade de Horários</h1>
 						<p class="page-subtitle">Organize horários com antecedência, envie lembretes via WhatsApp e sincronize com o Google Calendar</p>
 					</div>
-					<div id="googleCalendarStatusBadge" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:var(--radius-sm); font-size:0.85rem; color:#1e40af;">
-						<span>📅 Google Calendar:</span>
-						<strong>Ativo & Conectável</strong>
+					<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+						<button type="button" id="btnCopiarLinkAgendaPublica" class="btn btn-secondary btn-sm" style="white-space:nowrap; font-weight:700;">
+							🔗 Copiar Link de Autoagendamento
+						</button>
+						<div id="googleCalendarStatusBadge" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:var(--radius-sm); font-size:0.85rem; color:#1e40af;">
+							<span>📅 Google Calendar:</span>
+							<strong>Ativo & Conectável</strong>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -350,6 +355,7 @@
 		<script src="js/brand-service.js"></script>
 		<script src="js/caixa-service.js"></script>
 		<script src="js/google-calendar-service.js"></script>
+		<script src="js/pix-service.js"></script>
 		<script src="js/whatsapp-service.js"></script>
 		<script src="js/agendamentos.js"></script>
 	</body>

@@ -14,6 +14,7 @@
 		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 		<meta name="apple-mobile-web-app-title" content="Gestão SaaS" />
 		<script src="js/theme-service.js"></script>
+		<script src="js/ui-feedback.js"></script>
 		<script type="module" src="js/auth-service.js"></script>
 	</head>
 	<body>
@@ -51,10 +52,30 @@
 		<!-- Main Container -->
 		<main class="container">
 			<div class="page-header">
-				<h1 class="page-title">Livro Caixa & Controle Diário</h1>
-				<p class="page-subtitle">Acompanhe as entradas em tempo real, feche o caixa e consulte o histórico consolidado</p>
+				<h1 class="page-title">Livro Caixa & Gestão Financeira</h1>
+				<p class="page-subtitle">Acompanhe entradas, contas futuras, faturamento de frotas e venda de pacotes em um único lugar</p>
 			</div>
 
+			<!-- Abas do Módulo Financeiro -->
+			<div class="tabs-container" id="caixaTabsContainer" style="margin-bottom: 18px;">
+				<button type="button" class="tab-button active" id="tabCaixaDiaBtn" data-tab="caixa">
+					💰 Caixa do Dia
+				</button>
+				<button type="button" class="tab-button" id="tabContasBtn" data-tab="contas">
+					📅 Contas Pagar/Receber
+					<span class="tab-count" id="badgeQtdContasAlerta" style="display:none; background:#fee2e2; color:#b91c1c;">0</span>
+				</button>
+				<button type="button" class="tab-button" id="tabFaturamentoBtn" data-tab="faturamento">
+					🏢 Faturamento Frotas
+					<span class="tab-count" id="badgeQtdFaturasPendentes" style="display:none; background:#fef3c7; color:#b45309;">0</span>
+				</button>
+				<button type="button" class="tab-button" id="tabPacotesBtn" data-tab="pacotes">
+					🎟️ Pacotes & Planos
+					<span class="tab-count" id="badgeQtdPacotesAtivos">0</span>
+				</button>
+			</div>
+
+			<div id="viewCaixaDia">
 			<!-- Card de Status do Caixa de Hoje -->
 			<div class="content-card">
 				<div class="content-card-title">
@@ -123,12 +144,21 @@
 						<span class="payment-breakdown-name">⏳ A Prazo / Fiado</span>
 						<span class="payment-breakdown-value" id="caixaValorPrazo">R$ 0,00</span>
 					</div>
+					<div class="payment-breakdown-item">
+						<span class="payment-breakdown-name">🏢 Faturado (A Receber)</span>
+						<span class="payment-breakdown-value" id="caixaValorFaturadoDia" style="color: #b45309;">R$ 0,00</span>
+					</div>
 				</div>
 
 				<!-- Aviso de Contingência Automática -->
 				<div style="margin-top: 18px; padding: 12px 16px; background-color: var(--primary-light); border: 1px solid #bfdbfe; border-radius: var(--radius-sm); font-size: 0.88rem; color: var(--primary-dark); display: flex; align-items: center; gap: 8px;">
 					<span>🛡️</span>
 					<span><strong>Fechamento Inteligente Ativo:</strong> Caso você esqueça de fechar o caixa ao fim do dia, o sistema fecha e consolida o dia anterior automaticamente ao abrir na manhã seguinte, mantendo seu livro caixa 100% íntegro.</span>
+				</div>
+
+				<!-- Resumo Rápido de Comissões Pendentes -->
+				<div id="bannerComissoesPendentes" class="banner-comissoes-pendentes" style="display: none;">
+					<!-- Preenchido via JS -->
 				</div>
 			</div>
 
@@ -188,6 +218,339 @@
 					</table>
 				</div>
 			</div>
+			</div><!-- /viewCaixaDia -->
+
+			<!-- ABA 2: CONTAS A PAGAR E A RECEBER -->
+			<div id="viewContas" style="display: none;">
+				<div class="dashboard-grid" style="margin-bottom: 18px;">
+					<div class="stat-card">
+						<div class="stat-icon" style="color:#dc2626; background:rgba(220,38,38,0.1);">📤</div>
+						<div class="stat-info">
+							<span class="stat-label">A Pagar (Em Aberto)</span>
+							<span class="stat-value" id="contasTotalPagar" style="color:#dc2626;">R$ 0,00</span>
+						</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-icon green">📥</div>
+						<div class="stat-info">
+							<span class="stat-label">A Receber (Em Aberto)</span>
+							<span class="stat-value" id="contasTotalReceber" style="color:#16a34a;">R$ 0,00</span>
+						</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-icon amber">⏰</div>
+						<div class="stat-info">
+							<span class="stat-label">Vencidas / Vencendo Hoje</span>
+							<span class="stat-value" id="contasQtdVencidas">0</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="content-card">
+					<div class="content-card-title">
+						<span id="tituloFormConta">➕ Novo Lançamento (Conta a Pagar ou Receber)</span>
+					</div>
+					<form id="formNovaConta" class="form">
+						<input type="hidden" id="contaEditId" />
+						<div class="form-group">
+							<label for="contaTipo">Tipo *</label>
+							<select id="contaTipo" required>
+								<option value="pagar">📤 Conta a Pagar (Despesa)</option>
+								<option value="receber">📥 Conta a Receber (Entrada Futura)</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="contaDescricao">Descrição *</label>
+							<input type="text" id="contaDescricao" placeholder="Ex: Aluguel, Fornecedor Shampoos, Mensalidade..." required />
+						</div>
+						<div class="form-group">
+							<label for="contaPessoa">Fornecedor / Cliente</label>
+							<input type="text" id="contaPessoa" placeholder="Nome (opcional)" />
+						</div>
+						<div class="form-group">
+							<label for="contaCategoria">Categoria</label>
+							<input type="text" id="contaCategoria" placeholder="Ex: Aluguel, Energia, Insumos, Contrato" />
+						</div>
+						<div class="form-group">
+							<label for="contaVencimento">Vencimento *</label>
+							<input type="date" id="contaVencimento" required />
+						</div>
+						<div class="form-group">
+							<label for="contaValor">Valor (R$) *</label>
+							<input type="number" id="contaValor" step="0.01" min="0.01" placeholder="0.00" required />
+						</div>
+						<div class="form-group full-width">
+							<label for="contaObservacao">Observação</label>
+							<input type="text" id="contaObservacao" placeholder="Detalhes opcionais (nota, parcela, referência)..." />
+						</div>
+						<div class="form-actions">
+							<button type="submit" class="btn" id="btnSalvarConta">💾 Salvar Conta</button>
+							<button type="button" class="btn btn-secondary" id="btnCancelarEditConta" style="display:none;">Cancelar Edição</button>
+						</div>
+					</form>
+				</div>
+
+				<div class="content-card">
+					<div class="content-card-title" style="flex-wrap: wrap; gap: 10px;">
+						<span>📋 Títulos Cadastrados</span>
+						<div style="display: flex; gap: 8px; flex-wrap: wrap;">
+							<select id="filtroContasTipo" style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text-main); font-size: 0.85rem;">
+								<option value="todos">Todos os Tipos</option>
+								<option value="pagar">📤 Somente a Pagar</option>
+								<option value="receber">📥 Somente a Receber</option>
+							</select>
+							<select id="filtroContasStatus" style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text-main); font-size: 0.85rem;">
+								<option value="aberto">Em Aberto (Pendente/Vencido)</option>
+								<option value="vencido">⏰ Somente Vencidos</option>
+								<option value="pago">✅ Somente Pagos</option>
+								<option value="todos">Todos os Status</option>
+							</select>
+						</div>
+					</div>
+					<div class="table-responsive">
+						<table class="tabela" id="tabelaContasFinanceiras">
+							<thead>
+								<tr>
+									<th>Vencimento</th>
+									<th>Tipo</th>
+									<th>Descrição / Pessoa</th>
+									<th>Status</th>
+									<th>Valor</th>
+									<th style="text-align: center;">Ações</th>
+								</tr>
+							</thead>
+							<tbody id="corpoContasFinanceiras"></tbody>
+						</table>
+					</div>
+				</div>
+			</div><!-- /viewContas -->
+
+			<!-- ABA 3: FATURAMENTO AGRUPADO PARA FROTAS / EMPRESAS -->
+			<div id="viewFaturamento" style="display: none;">
+				<div class="content-card">
+					<div class="content-card-title">
+						<span>🏢 Resumo por Cliente / Frota Corporativa</span>
+					</div>
+					<div id="gridClientesFaturamento" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px;">
+						<!-- Preenchido via JS -->
+					</div>
+				</div>
+
+				<div class="content-card">
+					<div class="content-card-title">
+						<span>🔎 Consolidação de Ordens Faturadas (A Receber)</span>
+					</div>
+					<div class="form" style="margin-bottom: 14px;">
+						<div class="form-group">
+							<label for="fatFiltroCliente">Cliente / Empresa</label>
+							<select id="fatFiltroCliente">
+								<option value="">Todos os clientes faturados</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="fatFiltroStatus">Situação da Fatura</label>
+							<select id="fatFiltroStatus">
+								<option value="pendente">⏳ A Receber (Em Aberto)</option>
+								<option value="pago">✅ Já Quitadas</option>
+								<option value="todos">Todas</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="fatFiltroDataInicio">Data Início</label>
+							<input type="date" id="fatFiltroDataInicio" />
+						</div>
+						<div class="form-group">
+							<label for="fatFiltroDataFim">Data Fim</label>
+							<input type="date" id="fatFiltroDataFim" />
+						</div>
+						<div class="form-group">
+							<label for="fatFiltroPlaca">Filtrar por Placa</label>
+							<input type="text" id="fatFiltroPlaca" placeholder="Ex: ABC1D23" style="text-transform: uppercase;" />
+						</div>
+					</div>
+
+					<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 14px;">
+						<div>
+							<span style="font-size: 0.85rem; color: var(--text-muted);">Selecionado(s): <strong id="fatQtdSelecionada">0</strong> O.S.</span>
+							<div style="font-size: 1.15rem; font-weight: 800; color: var(--primary);" id="fatValorSelecionado">R$ 0,00</div>
+						</div>
+						<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+							<select id="fatFormaRecebimento" style="padding: 8px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text-main); font-size: 0.85rem;">
+								<option value="Pix">📱 Pix</option>
+								<option value="Dinheiro">💵 Dinheiro</option>
+								<option value="Cartão de Crédito">💳 Cartão de Crédito</option>
+								<option value="Cartão de Débito">💳 Cartão de Débito</option>
+							</select>
+							<button type="button" class="btn btn-sm" id="btnDarBaixaFatura" style="background: var(--success); color: #fff;">
+								💰 Baixa Unificada no Caixa
+							</button>
+							<button type="button" class="btn btn-sm btn-secondary" id="btnImprimirExtratoFatura">
+								🖨️ Imprimir Extrato
+							</button>
+							<button type="button" class="btn btn-sm" id="btnEnviarExtratoWpp" style="background: #16a34a; color: #fff;">
+								💬 Cobrar WhatsApp
+							</button>
+						</div>
+					</div>
+
+					<div class="table-responsive">
+						<table class="tabela" id="tabelaFaturamentoFrotas">
+							<thead>
+								<tr>
+									<th style="width: 36px; text-align:center;">
+										<input type="checkbox" id="chkSelecionarTodasFaturas" title="Selecionar todas pendentes" />
+									</th>
+									<th>Data / O.S.</th>
+									<th>Cliente</th>
+									<th>Placa / Veículo</th>
+									<th>Serviços</th>
+									<th>Status</th>
+									<th>Valor</th>
+								</tr>
+							</thead>
+							<tbody id="corpoFaturamentoFrotas"></tbody>
+						</table>
+					</div>
+				</div>
+			</div><!-- /viewFaturamento -->
+
+			<!-- ABA 4: PACOTES E PLANOS DE SERVIÇOS -->
+			<div id="viewPacotes" style="display: none;">
+				<div class="content-card">
+					<div class="content-card-title">
+						<span id="tituloFormPlanoPacote">🎟️ Cadastrar Plano / Pacote de Serviços</span>
+					</div>
+					<form id="formNovoPlanoPacote" class="form">
+						<input type="hidden" id="planoPacoteEditId" />
+						<div class="form-group">
+							<label for="planoPacoteNome">Nome do Plano / Pacote *</label>
+							<input type="text" id="planoPacoteNome" placeholder="Ex: Clube 4 Lavagens / Mês" required />
+						</div>
+						<div class="form-group">
+							<label for="planoPacoteCreditos">Quantidade de Créditos *</label>
+							<input type="number" id="planoPacoteCreditos" min="1" step="1" value="4" required />
+						</div>
+						<div class="form-group">
+							<label for="planoPacoteValidade">Validade (dias) *</label>
+							<input type="number" id="planoPacoteValidade" min="1" step="1" value="30" required />
+						</div>
+						<div class="form-group">
+							<label for="planoPacoteValor">Valor do Pacote (R$) *</label>
+							<input type="number" id="planoPacoteValor" min="0" step="0.01" placeholder="180.00" required />
+						</div>
+						<div class="form-group full-width" id="blocoServicosPlanoPacote" style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px;">
+							<div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+								<div>
+									<label style="margin: 0; font-weight: 700; color: var(--text-main);">Serviços Vinculados ao Pacote</label>
+									<small style="display: block; color: var(--text-muted); font-size: 0.78rem;">
+										Selecione o(s) serviço(s) que este pacote cobre. Na O.S., apenas esses serviços serão zerados; extras e produtos continuam sendo somados.
+									</small>
+								</div>
+								<button type="button" id="btnLimparServicosPlano" class="btn btn-secondary btn-sm" style="display: none;">Limpar seleção</button>
+							</div>
+							<div id="planoPacoteServicosGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px;">
+								<!-- Preenchido via JS com os serviços cadastrados -->
+							</div>
+						</div>
+						<div class="form-group full-width">
+							<label for="planoPacoteDescricao">Observações / Regras do Pacote</label>
+							<input type="text" id="planoPacoteDescricao" placeholder="Ex: Válido de segunda a sexta; não inclui extras fora do pacote" />
+						</div>
+						<div class="form-actions">
+							<button type="submit" class="btn" id="btnSalvarPlanoPacote">💾 Salvar Plano</button>
+							<button type="button" class="btn btn-secondary" id="btnCancelarEditPlano" style="display:none;">Cancelar Edição</button>
+						</div>
+					</form>
+
+					<div class="table-responsive" style="margin-top: 16px;">
+						<table class="tabela" id="tabelaPlanosPacotes">
+							<thead>
+								<tr>
+									<th>Plano / Descrição</th>
+									<th>Créditos</th>
+									<th>Validade</th>
+									<th>Valor</th>
+									<th>Status</th>
+									<th style="text-align: center;">Ações</th>
+								</tr>
+							</thead>
+							<tbody id="corpoPlanosPacotes"></tbody>
+						</table>
+					</div>
+				</div>
+
+				<div class="content-card">
+					<div class="content-card-title">
+						<span>🛒 Vender Pacote para Cliente (Entrada Imediata no Caixa)</span>
+					</div>
+					<form id="formVenderPacote" class="form">
+						<div class="form-group">
+							<label for="vendaPacotePlanoId">Plano / Pacote *</label>
+							<select id="vendaPacotePlanoId" required>
+								<option value="">Selecione um plano...</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="vendaPacoteClienteNome">Cliente *</label>
+							<input type="text" id="vendaPacoteClienteNome" list="datalistClientesPacote" placeholder="Digite ou selecione o cliente..." autocomplete="off" required />
+							<datalist id="datalistClientesPacote"></datalist>
+						</div>
+						<div class="form-group">
+							<label for="vendaPacoteFormaPgto">Forma de Pagamento *</label>
+							<select id="vendaPacoteFormaPgto" required>
+								<option value="Pix">📱 Pix</option>
+								<option value="Dinheiro">💵 Dinheiro</option>
+								<option value="Cartão de Crédito">💳 Cartão de Crédito</option>
+								<option value="Cartão de Débito">💳 Cartão de Débito</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="vendaPacoteValor">Valor Cobrado (R$) *</label>
+							<input type="number" id="vendaPacoteValor" min="0" step="0.01" required />
+						</div>
+						<div id="painelPlacasClientePacote" class="os-veiculos-panel" style="display: none; grid-column: 1 / -1;">
+							<div class="os-veiculos-header">
+								<div class="os-veiculos-title-group">
+									<span class="os-veiculos-title" id="pacotePlacasTitulo">Veículos / Placas Cadastradas do Cliente</span>
+									<span class="os-veiculos-meta" id="pacotePlacasMeta">Selecione quais placas estarão autorizadas a usar este pacote</span>
+								</div>
+								<button type="button" id="btnMarcarTodasPlacasPacote" class="btn btn-secondary btn-sm">
+									Marcar todas
+								</button>
+							</div>
+							<div id="pacotePlacasGrid" class="os-veiculos-grid"></div>
+						</div>
+						<div class="form-group full-width">
+							<label for="vendaPacoteObs" id="labelVendaPacoteObs">Observação / Placas autorizadas</label>
+							<input type="text" id="vendaPacoteObs" placeholder="Opcional (ex: válido para placa ABC1D23)" />
+						</div>
+						<div class="form-actions">
+							<button type="submit" class="btn" style="background: var(--success); color:#fff;">✅ Confirmar Venda & Lançar no Caixa</button>
+						</div>
+					</form>
+				</div>
+
+				<div class="content-card">
+					<div class="content-card-title">
+						<span>📋 Pacotes dos Clientes & Saldos de Créditos</span>
+					</div>
+					<div class="table-responsive">
+						<table class="tabela" id="tabelaPacotesClientes">
+							<thead>
+								<tr>
+									<th>Cliente</th>
+									<th>Plano</th>
+									<th>Créditos</th>
+									<th>Validade</th>
+									<th>Status</th>
+									<th style="text-align: center;">Ações</th>
+								</tr>
+							</thead>
+							<tbody id="corpoPacotesClientes"></tbody>
+						</table>
+					</div>
+				</div>
+			</div><!-- /viewPacotes -->
 		</main>
 
 		<!-- Modal: Fechar Caixa do Dia -->
@@ -253,6 +616,7 @@
 								<option value="Sangria / Retirada">Sangria / Retirada (Depósito)</option>
 								<option value="Despesa Operacional">Despesa Operacional (Materiais, Limpeza)</option>
 								<option value="Adiantamento">Adiantamento / Pagamento de Funcionário</option>
+								<option value="Comissões / Equipe">Comissões / Equipe</option>
 								<option value="Outro">Outro</option>
 							</select>
 						</div>
@@ -314,8 +678,68 @@
 			</div>
 		</div>
 
+		<!-- Modal: Baixa de Conta a Receber (seleção forma de pagamento) -->
+		<div id="modalBaixaConta" class="modal-overlay">
+			<div class="modal-card" style="max-width: 420px;">
+				<div class="modal-header">
+					<h3>💰 Confirmar Baixa no Caixa</h3>
+					<button type="button" class="modal-close-btn" id="modalBaixaContaX">&times;</button>
+				</div>
+				<form id="formConfirmarBaixaConta">
+					<div class="modal-body">
+						<p id="modalBaixaContaResumo" style="font-size: 0.92rem; margin-bottom: 12px; color: var(--text-main);"></p>
+						<div class="form-group" id="grupoFormaBaixaConta">
+							<label for="modalBaixaContaFormaPgto">Forma de Pagamento / Recebimento *</label>
+							<select id="modalBaixaContaFormaPgto">
+								<option value="Pix">📱 Pix</option>
+								<option value="Dinheiro">💵 Dinheiro</option>
+								<option value="Cartão de Crédito">💳 Cartão de Crédito</option>
+								<option value="Cartão de Débito">💳 Cartão de Débito</option>
+							</select>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" id="modalCancelarBaixaContaBtn">Cancelar</button>
+						<button type="submit" class="btn" style="background: var(--success); color: #fff;">✅ Confirmar Baixa no Caixa</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<!-- Modal: Histórico de Uso do Pacote -->
+		<div id="modalHistoricoPacote" class="modal-overlay">
+			<div class="modal-card" style="max-width: 560px;">
+				<div class="modal-header">
+					<h3>📜 Histórico de Créditos do Pacote</h3>
+					<button type="button" class="modal-close-btn" id="modalHistoricoPacoteX">&times;</button>
+				</div>
+				<div class="modal-body">
+					<div id="modalHistoricoPacoteCabecalho" style="margin-bottom: 12px; font-size: 0.9rem; color: var(--text-muted);"></div>
+					<div class="table-responsive">
+						<table class="tabela">
+							<thead>
+								<tr>
+									<th>Data/Hora</th>
+									<th id="thHistoricoPacoteItem">Veículo / Placa</th>
+									<th>Serviços</th>
+								</tr>
+							</thead>
+							<tbody id="corpoHistoricoUsoPacote"></tbody>
+						</table>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" id="modalFecharHistoricoPacoteBtn">Fechar</button>
+				</div>
+			</div>
+		</div>
+
 		<script src="js/brand-service.js"></script>
 		<script src="js/caixa-service.js"></script>
+		<script src="js/equipe-service.js"></script>
+		<script src="js/pacotes-service.js"></script>
+		<script src="js/faturamento-service.js"></script>
+		<script src="js/whatsapp-service.js"></script>
 		<script src="js/caixa.js"></script>
 	</body>
 </html>

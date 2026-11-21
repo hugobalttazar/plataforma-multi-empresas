@@ -11,12 +11,20 @@ class BackupService {
 		'pedidos',
 		'caixas_fechados',
 		'caixa_atual',
+		'caixa_saidas',
+		'caixa_entradas',
 		'config_negocio',
 		'agendamentos',
 		'estoque_produtos',
 		'equipe_membros',
+		'comissoes_pagamentos',
 		'fidelidade_config',
+		'fidelidade_lembretes',
 		'vistorias_pedidos',
+		'pacotes_planos',
+		'pacotes_clientes',
+		'contas_financeiras',
+		'faturamentos_lotes',
 		'usuarios'
 	];
 

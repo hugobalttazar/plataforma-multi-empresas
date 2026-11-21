@@ -91,6 +91,123 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
+	// Alerta de Contas a Pagar / Receber vencidas ou vencendo em breve
+	const alertaContasEl = document.getElementById('alertaContasDashboard');
+	const podeVerFinanceiro = !userAtual || userAtual.isMaster || userAtual.username === 'admin' ||
+		(userAtual.permissoes && (userAtual.permissoes.includes('caixa') || userAtual.permissoes.includes('metas') || userAtual.permissoes.includes('configuracoes')));
+	if (alertaContasEl && podeVerFinanceiro && typeof CaixaService !== 'undefined' && typeof CaixaService.getAlertasVencimento === 'function') {
+		const infoAlertas = CaixaService.getAlertasVencimento(3);
+		if (infoAlertas.qtdAlerta > 0) {
+			const qtdVencidas = infoAlertas.vencidas.length;
+			const qtdHoje = infoAlertas.vencendoHoje.length;
+			const qtdProx = infoAlertas.proximosDias.length;
+			const partesTexto = [];
+			if (qtdVencidas > 0) partesTexto.push(`${qtdVencidas} vencida(s)`);
+			if (qtdHoje > 0) partesTexto.push(`${qtdHoje} vence(m) hoje`);
+			if (qtdProx > 0) partesTexto.push(`${qtdProx} nos próximos 3 dias`);
+
+			const temVencida = qtdVencidas > 0;
+			alertaContasEl.style.display = 'block';
+			alertaContasEl.innerHTML = `
+				<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; border-radius:var(--radius-sm); border:1px solid ${temVencida ? '#fecaca' : '#fde68a'}; background:${temVencida ? '#fef2f2' : '#fffbeb'}; color:${temVencida ? '#991b1b' : '#92400e'};">
+					<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+						<span style="font-size:1.25rem;">${temVencida ? '🚨' : '⏰'}</span>
+						<div>
+							<strong style="display:block; font-size:0.92rem;">Alertas de Contas (${partesTexto.join(' • ')})</strong>
+							<span style="font-size:0.84rem;">
+								${infoAlertas.totalPagarAlerta > 0 ? `A pagar: <strong>R$ ${infoAlertas.totalPagarAlerta.toFixed(2)}</strong>` : ''}
+								${infoAlertas.totalPagarAlerta > 0 && infoAlertas.totalReceberAlerta > 0 ? ' | ' : ''}
+								${infoAlertas.totalReceberAlerta > 0 ? `A receber: <strong>R$ ${infoAlertas.totalReceberAlerta.toFixed(2)}</strong>` : ''}
+							</span>
+						</div>
+					</div>
+					<a href="caixa.html?aba=contas" class="btn btn-sm" style="background:${temVencida ? '#dc2626' : '#d97706'}; color:#ffffff; text-decoration:none; white-space:nowrap;">
+						📅 Gerenciar Contas
+					</a>
+				</div>
+			`;
+		} else {
+			alertaContasEl.style.display = 'none';
+		}
+	}
+
+	// Onboarding Checklist (Primeiros Passos da Empresa)
+	function renderOnboardingDashboard() {
+		const containerOnboarding = document.getElementById('onboardingChecklistDashboard');
+		if (!containerOnboarding || !window.SaasGuard) return;
+
+		const empAtiva = window.EmpresaService?.getEmpresaAtiva?.();
+		const empId = empAtiva?.id || userAtual?.empresaId || 'default';
+		if (window.SaasGuard.isOnboardingDispensado(empId)) {
+			containerOnboarding.style.display = 'none';
+			return;
+		}
+
+		const configAtual = typeof BrandService !== 'undefined' ? BrandService.getConfig() : (JSON.parse(localStorage.getItem('config_negocio') || '{}'));
+		const servicosAtuais = JSON.parse(localStorage.getItem('servicos')) || [];
+		const clientesAtuais = JSON.parse(localStorage.getItem('clientes')) || [];
+		const pedidosAtuais = JSON.parse(localStorage.getItem('pedidos')) || [];
+		const agendamentosAtuais = JSON.parse(localStorage.getItem('agendamentos')) || [];
+
+		const prog = window.SaasGuard.calcularProgressoOnboarding({
+			config: configAtual,
+			servicos: servicosAtuais,
+			clientes: clientesAtuais,
+			pedidos: pedidosAtuais,
+			agendamentos: agendamentosAtuais
+		});
+
+		if (prog.completo) {
+			containerOnboarding.style.display = 'none';
+			return;
+		}
+
+		const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
+		containerOnboarding.style.display = 'block';
+		containerOnboarding.innerHTML = `
+			<div class="content-card" style="margin-bottom: 0; border-left: 4px solid var(--primary);">
+				<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+					<div>
+						<strong style="font-size:1rem; color:var(--text-main);">🚀 Primeiros Passos no Sistema (${prog.concluidas}/${prog.total} concluídos)</strong>
+						<p style="margin:2px 0 0; font-size:0.84rem; color:var(--text-muted);">Complete os itens abaixo para deixar seu estabelecimento pronto para operar.</p>
+					</div>
+					<button type="button" id="btnDispensarOnboarding" class="btn btn-secondary btn-sm" style="white-space:nowrap;">Ocultar guia</button>
+				</div>
+				<div style="height:8px; background:var(--border-color); border-radius:999px; overflow:hidden; margin-bottom:14px;">
+					<div style="height:100%; width:${prog.percentual}%; background:var(--primary); transition:width 0.3s ease;"></div>
+				</div>
+				<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
+					${prog.etapas.map((et) => `
+						<div style="padding:10px 12px; border-radius:var(--radius-sm); border:1px solid ${et.concluida ? '#bbf7d0' : 'var(--border-color)'}; background:${et.concluida ? '#f0fdf4' : 'var(--bg-surface)'}; display:flex; flex-direction:column; justify-content:space-between; gap:8px;">
+							<div>
+								<div style="font-weight:700; font-size:0.88rem; color:${et.concluida ? '#166534' : 'var(--text-main)'};">
+									${et.concluida ? '✅' : '⬜'} ${esc(et.titulo)}
+								</div>
+								<small style="display:block; margin-top:3px; color:var(--text-muted); font-size:0.78rem;">${esc(et.descricao)}</small>
+							</div>
+							${et.concluida ? '' : `<a href="${esc(et.href)}" class="btn btn-secondary btn-sm" style="align-self:flex-start; text-decoration:none;">${esc(et.acaoTexto)} →</a>`}
+						</div>
+					`).join('')}
+				</div>
+			</div>
+		`;
+
+		const btnDisp = document.getElementById('btnDispensarOnboarding');
+		if (btnDisp) {
+			btnDisp.addEventListener('click', () => {
+				window.SaasGuard.dispensarOnboarding(empId);
+				containerOnboarding.style.display = 'none';
+			});
+		}
+	}
+
+	renderOnboardingDashboard();
+	window.addEventListener('cloudDataChanged', (e) => {
+		if (['config_negocio', 'servicos', 'clientes', 'pedidos', 'agendamentos'].includes(e?.detail)) {
+			renderOnboardingDashboard();
+		}
+	});
+
 	// Adapta rótulos e subtítulos do Dashboard ao segmento configurado
 	if (typeof BrandService !== 'undefined') {
 		const visual = BrandService.getInfoVisual();

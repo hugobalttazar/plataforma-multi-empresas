@@ -52,9 +52,19 @@
 
 		<!-- Main -->
 		<main class="container">
-			<div class="page-header">
-				<h1 class="page-title">Ordens de Serviço & Pátio</h1>
-				<p class="page-subtitle">Dê entrada no veículo ao chegar e realize o pagamento e fechamento na entrega</p>
+			<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+				<div>
+					<h1 class="page-title">Ordens de Serviço & Pátio</h1>
+					<p class="page-subtitle">Dê entrada no veículo ao chegar e realize o pagamento e fechamento na entrega</p>
+				</div>
+				<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+					<a id="linkAbrirPainelTV" href="painel-tv.html" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background: #0f172a; color: #ffffff;">
+						📺 Abrir Painel TV
+					</a>
+					<button type="button" id="btnCopiarLinkPainelTV" class="btn btn-secondary btn-sm">
+						🔗 Copiar Link Painel TV
+					</button>
+				</div>
 			</div>
 
 			<!-- Formulário de Entrada da O.S. -->
@@ -203,6 +213,19 @@
 						</select>
 					</div>
 
+					<!-- Pacote / Plano Ativo do Cliente na Abertura da O.S. -->
+					<div id="blocoPacoteAtivoEntrada" class="form-group full-width" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 12px;">
+						<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; color: #1e40af; font-size: 0.92rem; margin-bottom: 8px;">
+							<input type="checkbox" id="chkUsarPacoteEntrada" style="width: 18px; height: 18px; accent-color: #2563eb; cursor: pointer;" />
+							<span>🎟️ Usar 1 crédito de Pacote Ativo do cliente nesta O.S.</span>
+						</label>
+						<select id="entradaSelectPacoteAtivo" style="width: 100%; padding: 8px 10px; border: 1px solid #93c5fd; border-radius: var(--radius-sm); font-size: 0.86rem; background: #ffffff; color: var(--text-main);">
+						</select>
+						<small id="infoPacoteEntrada" style="display: block; margin-top: 6px; font-size: 0.78rem; color: #1d4ed8;">
+							Ao marcar, 1 crédito será reservado/abatido na abertura da O.S. e os serviços vinculados ao pacote serão zerados (mantendo serviços extras e produtos).
+						</small>
+					</div>
+
 					<!-- Produtos Comerciais / Venda Balcão na Entrada da O.S. -->
 					<div class="form-group full-width" id="blocoProdutosVendaEntrada" style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:var(--radius-sm); padding:12px;">
 						<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
@@ -234,6 +257,20 @@
 						</div>
 					</div>
 
+					<!-- Estágio Inicial: Pátio vs Orçamento Digital -->
+					<div class="form-group full-width" style="background:#f8fafc; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px;">
+						<label for="pedidoEstagioInicial" style="font-weight:700; color:var(--text-main); margin-bottom:6px; display:block;">
+							Modo de Abertura (Pátio ou Orçamento Digital)
+						</label>
+						<select id="pedidoEstagioInicial">
+							<option value="aberto">🚗 Abrir direto no Pátio (Em Serviço)</option>
+							<option value="orcamento">📝 Salvar como Orçamento (Enviar Link Aprovável ao Cliente)</option>
+						</select>
+						<small style="display:block; margin-top:6px; color:var(--text-muted); font-size:0.78rem;">
+							No modo Orçamento, o cliente visualiza os detalhes e aprova ou pede ajustes pelo link público sem login; ao aprovar, a O.S. entra no Pátio automaticamente.
+						</small>
+					</div>
+
 					<div class="form-actions">
 						<button type="submit" id="btnDarEntradaOS" class="btn">🚗 Dar Entrada do Carro (Abrir O.S.)</button>
 					</div>
@@ -247,6 +284,10 @@
 					<button type="button" class="tab-button active" id="tabPatioBtn">
 						🚗 Carros no Pátio / Em Andamento
 						<span class="tab-count" id="countPatio">0</span>
+					</button>
+					<button type="button" class="tab-button" id="tabOrcamentosBtn">
+						📝 Orçamentos
+						<span class="tab-count" id="countOrcamentos">0</span>
 					</button>
 					<button type="button" class="tab-button" id="tabEncerradosBtn">
 						✅ Ordens Encerradas / Pagas
@@ -269,6 +310,28 @@
 								</tr>
 							</thead>
 							<tbody id="corpoTabelaPatio">
+								<!-- Preenchido via JS -->
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<!-- Tabela: Orçamentos Digitais -->
+				<div id="viewOrcamentos" style="display: none;">
+					<div class="table-responsive">
+						<table id="tabelaOrcamentos" class="tabela">
+							<thead>
+								<tr>
+									<th id="thVeiculoOrcamentos">Veículo & Placa</th>
+									<th>Cliente</th>
+									<th>Data</th>
+									<th>Serviços</th>
+									<th>Valor Previsto</th>
+									<th>Status Orçamento</th>
+									<th style="text-align: center;">Ações</th>
+								</tr>
+							</thead>
+							<tbody id="corpoTabelaOrcamentos">
 								<!-- Preenchido via JS -->
 							</tbody>
 						</table>
@@ -333,6 +396,20 @@
 							</div>
 						</div>
 
+						<!-- Abatimento via Pacote / Plano Ativo do Cliente -->
+						<div id="blocoPacoteAtivoEncerramento" style="display: none; margin-bottom: 14px; padding: 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm);">
+							<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; color: #1e40af; font-size: 0.9rem; margin-bottom: 8px;">
+								<input type="checkbox" id="chkAbaterPacoteOS" style="width: 18px; height: 18px; accent-color: #2563eb; cursor: pointer;" />
+								<span>🎟️ Abater 1 crédito do Pacote Ativo do Cliente</span>
+							</label>
+							<select id="modalSelectPacoteAtivo" style="width: 100%; padding: 8px 10px; border: 1px solid #93c5fd; border-radius: var(--radius-sm); font-size: 0.85rem; background: #ffffff; color: var(--text-main);">
+								<!-- Preenchido via JS -->
+							</select>
+							<small id="infoPacoteAtivoEncerramento" style="display: block; margin-top: 6px; font-size: 0.78rem; color: #1d4ed8;">
+								Ao marcar, o valor dos serviços desta O.S. é zerado e 1 crédito é descontado do pacote.
+							</small>
+						</div>
+
 						<div class="form-group" style="margin-bottom: 14px;">
 							<label for="modalValorFinal">Valor Final Cobrado (R$) *</label>
 							<input type="number" id="modalValorFinal" step="0.01" min="0" required />
@@ -346,7 +423,14 @@
 								<option value="Cartão de Crédito">💳 Cartão de Crédito</option>
 								<option value="Cartão de Débito">💳 Cartão de Débito</option>
 								<option value="A Prazo / Fiado">⏳ A Prazo / Fiado</option>
+								<option value="Faturado / A Receber">🏢 Faturado / A Receber (Frota / Empresa)</option>
+								<option value="Pacote / Crédito">🎟️ Pacote / Crédito</option>
 							</select>
+						</div>
+
+						<!-- QR Code PIX Dinâmico da O.S. -->
+						<div id="blocoPixEncerramento" style="display: none; margin-top: 14px; padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); text-align: center;">
+							<!-- Renderizado via JS (PixService) -->
 						</div>
 
 						<div style="margin-top: 14px; padding: 10px 12px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px;">
@@ -476,6 +560,8 @@
 		<script src="js/equipe-service.js"></script>
 		<script src="js/estoque-service.js"></script>
 		<script src="js/vistoria-service.js"></script>
+		<script src="js/pacotes-service.js"></script>
+		<script src="js/pix-service.js"></script>
 		<script src="js/whatsapp-service.js"></script>
 		<script src="js/recibo-service.js"></script>
 		<script src="js/pedidos.js"></script>

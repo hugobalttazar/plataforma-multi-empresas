@@ -20,24 +20,124 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
+        "codigo": { "type": "string" },
         "nome": { "type": "string" },
         "tipoNegocio": { "type": "string" },
         "icone": { "type": "string" },
         "adminUsername": { "type": "string" },
         "adminNome": { "type": "string" },
+        "telefone": { "type": "string" },
         "status": { "type": "string" },
-        "criadoEm": { "type": "string" }
+        "planoId": { "type": "string" },
+        "limiteUsuarios": { "type": "number" },
+        "vencimentoMensalidade": { "type": "string" },
+        "diasTolerancia": { "type": "number" },
+        "statusAssinatura": { "type": "string" },
+        "criadoEm": { "type": "string" },
+        "atualizadoEm": { "type": "string" }
       },
       "required": ["id", "nome", "tipoNegocio"]
     },
     "EmpresaDocument": {
       "title": "EmpresaDocument",
-      "description": "Tenant synchronized document store for collections",
+      "description": "Tenant synchronized document store for collections (clientes, servicos, pedidos, caixas_fechados, caixa_atual, caixa_saidas, caixa_entradas, config_negocio, agendamentos, estoque_produtos, equipe_membros, comissoes_pagamentos, fidelidade_config, fidelidade_lembretes, vistorias_pedidos, pacotes_planos, pacotes_clientes, contas_financeiras, faturamentos_lotes, usuarios)",
       "type": "object",
       "properties": {
         "data": { "type": "string", "description": "Serialized JSON data of collection items" }
       },
       "required": ["data"]
+    },
+    "OrcamentoPublico": {
+      "title": "OrcamentoPublico",
+      "description": "Sanitized public digital quote awaiting customer approval or adjustment request (zero sensitive PII)",
+      "type": "object",
+      "properties": {
+        "token": { "type": "string" },
+        "empresaId": { "type": "string" },
+        "empresaNome": { "type": "string" },
+        "empresaTelefone": { "type": "string" },
+        "icone": { "type": "string" },
+        "tipoNegocio": { "type": "string" },
+        "pedidoId": { "type": "string" },
+        "clientePrimeiroNome": { "type": "string" },
+        "identificador": { "type": "string" },
+        "placaMask": { "type": "string" },
+        "modelo": { "type": "string" },
+        "dataEntrada": { "type": "string" },
+        "servicos": { "type": "array" },
+        "produtos": { "type": "array" },
+        "valorTotal": { "type": "number" },
+        "vistoriaResumo": { "type": "string" },
+        "fotoUrl": { "type": "string" },
+        "status": { "type": "string" },
+        "comentarioCliente": { "type": "string" },
+        "criadoEm": { "type": "string" },
+        "respondidoEm": { "type": "string" },
+        "atualizadoEm": { "type": "string" }
+      },
+      "required": ["token", "empresaId", "empresaNome", "tipoNegocio", "pedidoId", "clientePrimeiroNome", "identificador", "servicos", "produtos", "valorTotal", "vistoriaResumo", "fotoUrl", "status", "comentarioCliente", "criadoEm", "atualizadoEm"]
+    },
+    "AgendaPublicaConfig": {
+      "title": "AgendaPublicaConfig",
+      "description": "Sanitized public scheduling configuration per tenant (no client PII)",
+      "type": "object",
+      "properties": {
+        "empresaId": { "type": "string" },
+        "empresaNome": { "type": "string" },
+        "icone": { "type": "string" },
+        "telefone": { "type": "string" },
+        "tipoNegocio": { "type": "string" },
+        "segmentoAutomotivo": { "type": "boolean" },
+        "diasTrabalhoSemana": { "type": "array", "items": { "type": "number" } },
+        "horarioInicio": { "type": "string" },
+        "horarioFim": { "type": "string" },
+        "intervaloMinutos": { "type": "number" },
+        "servicos": { "type": "array" },
+        "horariosOcupados": { "type": "array", "items": { "type": "string" } },
+        "atualizadoEm": { "type": "string" }
+      },
+      "required": ["empresaId", "empresaNome", "tipoNegocio", "segmentoAutomotivo", "diasTrabalhoSemana", "servicos", "horariosOcupados", "atualizadoEm"]
+    },
+    "AgendamentoPublico": {
+      "title": "AgendamentoPublico",
+      "description": "Public self-booking submission queue imported by tenant scheduling module",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "empresaId": { "type": "string" },
+        "clienteNome": { "type": "string" },
+        "clienteTelefone": { "type": "string" },
+        "veiculoTipo": { "type": "string" },
+        "placa": { "type": "string" },
+        "modelo": { "type": "string" },
+        "cor": { "type": "string" },
+        "itemDescricao": { "type": "string" },
+        "data": { "type": "string" },
+        "hora": { "type": "string" },
+        "duracaoMinutos": { "type": "number" },
+        "servicos": { "type": "string" },
+        "valor": { "type": "number" },
+        "observacoes": { "type": "string" },
+        "status": { "type": "string" },
+        "criadoEm": { "type": "string" },
+        "atualizadoEm": { "type": "string" }
+      },
+      "required": ["id", "empresaId", "clienteNome", "clienteTelefone", "data", "hora", "servicos", "valor", "status", "criadoEm"]
+    },
+    "PainelTvPublico": {
+      "title": "PainelTvPublico",
+      "description": "Sanitized public waiting-room TV board per tenant (plates or first names only)",
+      "type": "object",
+      "properties": {
+        "empresaId": { "type": "string" },
+        "empresaNome": { "type": "string" },
+        "icone": { "type": "string" },
+        "tipoNegocio": { "type": "string" },
+        "segmentoAutomotivo": { "type": "boolean" },
+        "itens": { "type": "array" },
+        "atualizadoEm": { "type": "string" }
+      },
+      "required": ["empresaId", "empresaNome", "tipoNegocio", "segmentoAutomotivo", "itens", "atualizadoEm"]
     }
   },
   "firestore": {
@@ -56,6 +156,22 @@
     "/empresas/{empresaId}/dados/{docId}": {
       "schema": "EmpresaDocument",
       "description": "Multi-tenant data storage per company"
+    },
+    "/orcamentos_publicos/{token}": {
+      "schema": "OrcamentoPublico",
+      "description": "Orçamentos digitais públicos acessados por token aleatório"
+    },
+    "/agenda_publica_config/{empresaId}": {
+      "schema": "AgendaPublicaConfig",
+      "description": "Configuração pública sanitizada de autoagendamento por empresa"
+    },
+    "/agendamentos_publicos/{agId}": {
+      "schema": "AgendamentoPublico",
+      "description": "Fila de pré-agendamentos enviados por clientes via link público"
+    },
+    "/painel_tv_publico/{empresaId}": {
+      "schema": "PainelTvPublico",
+      "description": "Status sanitizado em tempo real da sala de espera / Painel TV"
     }
   }
 }

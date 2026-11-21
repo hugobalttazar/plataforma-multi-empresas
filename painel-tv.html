@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+		<title>Painel da Sala de Espera | TV</title>
+		<meta name="description" content="Acompanhamento em tempo real dos atendimentos em serviço e prontos para retirada." />
+		<link rel="icon" type="image/svg+xml" href="icon.svg" />
+		<meta name="theme-color" content="#090d16" />
+		<style>
+			:root {
+				--tv-bg: #090d16;
+				--tv-surface: #111827;
+				--tv-card: #1e293b;
+				--tv-border: #334155;
+				--tv-text: #f8fafc;
+				--tv-muted: #94a3b8;
+				--tv-amber: #f59e0b;
+				--tv-amber-bg: rgba(245, 158, 11, 0.14);
+				--tv-green: #22c55e;
+				--tv-green-bg: rgba(34, 197, 94, 0.16);
+			}
+			* { box-sizing: border-box; }
+			body {
+				margin: 0;
+				min-height: 100vh;
+				background: var(--tv-bg);
+				color: var(--tv-text);
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+				display: flex;
+				flex-direction: column;
+			}
+			.tv-topbar {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				flex-wrap: wrap;
+				gap: 12px;
+				padding: 16px 24px;
+				background: var(--tv-surface);
+				border-bottom: 1px solid var(--tv-border);
+			}
+			.tv-brand {
+				display: flex;
+				align-items: center;
+				gap: 14px;
+			}
+			.tv-logo {
+				width: 52px;
+				height: 52px;
+				border-radius: 12px;
+				background: rgba(56, 189, 248, 0.16);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 1.8rem;
+			}
+			.tv-title {
+				font-size: clamp(1.2rem, 2.5vw, 1.85rem);
+				font-weight: 900;
+				letter-spacing: 0.02em;
+				margin: 0;
+			}
+			.tv-sub {
+				font-size: 0.9rem;
+				color: var(--tv-muted);
+			}
+			.tv-controls {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+			}
+			.tv-clock {
+				font-size: clamp(1.3rem, 2.5vw, 2rem);
+				font-weight: 800;
+				font-variant-numeric: tabular-nums;
+				color: #38bdf8;
+				padding: 6px 14px;
+				border-radius: 10px;
+				background: rgba(56, 189, 248, 0.1);
+				border: 1px solid rgba(56, 189, 248, 0.25);
+			}
+			.tv-btn {
+				min-height: 44px;
+				padding: 8px 14px;
+				border-radius: 10px;
+				border: 1px solid var(--tv-border);
+				background: var(--tv-card);
+				color: var(--tv-text);
+				font-weight: 700;
+				font-size: 0.9rem;
+				cursor: pointer;
+				white-space: nowrap;
+			}
+			.tv-board {
+				flex: 1;
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+				gap: 20px;
+				padding: 20px 24px;
+			}
+			.tv-col {
+				background: var(--tv-surface);
+				border: 1px solid var(--tv-border);
+				border-radius: 18px;
+				padding: 18px;
+				display: flex;
+				flex-direction: column;
+				gap: 14px;
+			}
+			.tv-col-header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding-bottom: 12px;
+				border-bottom: 2px solid var(--tv-border);
+			}
+			.tv-col-title {
+				font-size: clamp(1.15rem, 2vw, 1.55rem);
+				font-weight: 900;
+				text-transform: uppercase;
+				letter-spacing: 0.04em;
+				margin: 0;
+			}
+			.tv-count {
+				font-size: 1.25rem;
+				font-weight: 900;
+				font-variant-numeric: tabular-nums;
+				padding: 4px 14px;
+				border-radius: 10px;
+			}
+			.col-servico .tv-col-title { color: var(--tv-amber); }
+			.col-servico .tv-count { background: var(--tv-amber-bg); color: var(--tv-amber); }
+			.col-pronto .tv-col-title { color: var(--tv-green); }
+			.col-pronto .tv-count { background: var(--tv-green-bg); color: var(--tv-green); }
+			.tv-list {
+				display: flex;
+				flex-direction: column;
+				gap: 12px;
+			}
+			.tv-item {
+				background: var(--tv-card);
+				border-radius: 14px;
+				padding: 16px 18px;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 14px;
+				border-left: 6px solid var(--tv-amber);
+			}
+			.col-pronto .tv-item {
+				border-left-color: var(--tv-green);
+				background: rgba(34, 197, 94, 0.12);
+				border-top: 1px solid rgba(34, 197, 94, 0.35);
+				border-right: 1px solid rgba(34, 197, 94, 0.35);
+				border-bottom: 1px solid rgba(34, 197, 94, 0.35);
+			}
+			.tv-ident {
+				font-size: clamp(1.35rem, 2.8vw, 2.15rem);
+				font-weight: 900;
+				letter-spacing: 0.03em;
+				color: #ffffff;
+				font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+			}
+			.tv-subitem {
+				font-size: 1rem;
+				color: var(--tv-muted);
+				margin-top: 2px;
+			}
+			.tv-hora {
+				font-size: 0.95rem;
+				font-weight: 700;
+				font-variant-numeric: tabular-nums;
+				color: var(--tv-muted);
+				white-space: nowrap;
+			}
+			.tv-empty {
+				text-align: center;
+				padding: 40px 16px;
+				color: var(--tv-muted);
+				font-size: 1.05rem;
+			}
+		</style>
+	</head>
+	<body>
+		<header class="tv-topbar">
+			<div class="tv-brand">
+				<div class="tv-logo" id="tvLogo">📺</div>
+				<div>
+					<h1 class="tv-title" id="tvEmpresaNome">PAINEL DE ATENDIMENTO</h1>
+					<div class="tv-sub">Acompanhamento em tempo real</div>
+				</div>
+			</div>
+			<div class="tv-controls">
+				<button type="button" class="tv-btn" id="btnTvAudio" title="Ativar ou silenciar aviso sonoro quando um atendimento ficar pronto">
+					🔇 Som Desligado
+				</button>
+				<button type="button" class="tv-btn" id="btnTvFullscreen">
+					⛶ Tela Cheia
+				</button>
+				<div class="tv-clock" id="tvClock">--:--</div>
+			</div>
+		</header>
+
+		<main class="tv-board">
+			<section class="tv-col col-servico">
+				<div class="tv-col-header">
+					<h2 class="tv-col-title">🔧 Em Serviço</h2>
+					<span class="tv-count" id="tvCountServico">0</span>
+				</div>
+				<div class="tv-list" id="tvListaServico">
+					<div class="tv-empty">Carregando atendimentos...</div>
+				</div>
+			</section>
+
+			<section class="tv-col col-pronto">
+				<div class="tv-col-header">
+					<h2 class="tv-col-title">✅ Prontos para Retirada</h2>
+					<span class="tv-count" id="tvCountPronto">0</span>
+				</div>
+				<div class="tv-list" id="tvListaPronto">
+					<div class="tv-empty">Nenhum item pronto ainda.</div>
+				</div>
+			</section>
+		</main>
+
+		<script type="module" src="js/painel-tv.js"></script>
+	</body>
+</html>

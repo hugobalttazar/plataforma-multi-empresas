@@ -82,6 +82,16 @@
 							placeholder="Ex: 80.00" />
 					</div>
 
+					<div class="form-group">
+						<label for="servicoDiasRetorno">Prazo de Retorno / Revisão (dias)</label>
+						<input
+							type="number"
+							id="servicoDiasRetorno"
+							min="0"
+							step="1"
+							placeholder="Ex: 30, 90, 180 (0 = padrão)" />
+					</div>
+
 					<div class="form-group full-width">
 						<label for="servicoDescricao">Descrição / Detalhes</label>
 						<textarea
@@ -106,6 +116,7 @@
 							<tr>
 								<th>Nome</th>
 								<th>Preço</th>
+								<th>Retorno / Revisão</th>
 								<th>Descrição / Detalhes</th>
 								<th style="text-align: center;">Ações</th>
 							</tr>

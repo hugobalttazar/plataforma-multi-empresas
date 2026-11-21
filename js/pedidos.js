@@ -164,12 +164,16 @@ const vistoriaObs = document.getElementById('vistoriaObs');
 
 // Abas e visualizações
 const tabPatioBtn = document.getElementById('tabPatioBtn');
+const tabOrcamentosBtn = document.getElementById('tabOrcamentosBtn');
 const tabEncerradosBtn = document.getElementById('tabEncerradosBtn');
 const viewPatio = document.getElementById('viewPatio');
+const viewOrcamentos = document.getElementById('viewOrcamentos');
 const viewEncerrados = document.getElementById('viewEncerrados');
 const countPatio = document.getElementById('countPatio');
+const countOrcamentos = document.getElementById('countOrcamentos');
 const countEncerrados = document.getElementById('countEncerrados');
 const corpoTabelaPatio = document.getElementById('corpoTabelaPatio');
+const corpoTabelaOrcamentos = document.getElementById('corpoTabelaOrcamentos');
 const corpoTabelaEncerrados = document.getElementById('corpoTabelaEncerrados');
 
 // Modal de Encerramento
@@ -184,6 +188,7 @@ const modalFormaPagamento = document.getElementById('modalFormaPagamento');
 const modalFecharBtn = document.getElementById('modalFecharBtn');
 const modalCancelarBtn = document.getElementById('modalCancelarBtn');
 const modalCheckImprimirRecibo = document.getElementById('modalCheckImprimirRecibo');
+const blocoPixEncerramento = document.getElementById('blocoPixEncerramento');
 
 // Produtos Comerciais / Venda Balcão na O.S.
 const blocoProdutosVendaEntrada = document.getElementById('blocoProdutosVendaEntrada');
@@ -296,6 +301,7 @@ if (pedidoPlaca) {
 	pedidoPlaca.addEventListener('input', (e) => {
 		let v = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
 		e.target.value = v;
+		atualizarAvisoCompatibilidadePacoteEntrada();
 	});
 }
 
@@ -329,14 +335,158 @@ function carregarSelectServicos() {
 	}
 }
 
-// Cálculo automático de preço ao selecionar serviços ou produtos
-function calcularValorTotalEntrada() {
-	let totalServicos = 0;
-	if (pedidoServico) {
-		Array.from(pedidoServico.selectedOptions).forEach((opt) => {
-			totalServicos += parseFloat(opt.dataset.preco) || 0;
-		});
+let pacotesAtivosEntradaCache = [];
+
+function obterPacoteSelecionadoEntrada() {
+	const selectPacote = document.getElementById('entradaSelectPacoteAtivo');
+	if (!selectPacote || pacotesAtivosEntradaCache.length === 0) return null;
+	return pacotesAtivosEntradaCache.find(a => String(a.id) === String(selectPacote.value)) || pacotesAtivosEntradaCache[0] || null;
+}
+
+function obterServicosInclusosPacoteEntrada(pacoteSel) {
+	if (!pacoteSel) return [];
+	if (typeof PacotesService !== 'undefined' && typeof PacotesService.getServicosInclusosAssinatura === 'function') {
+		return PacotesService.getServicosInclusosAssinatura(pacoteSel);
 	}
+	return Array.isArray(pacoteSel.servicosInclusos) ? pacoteSel.servicosInclusos : [];
+}
+
+function obterDetalheServicosSelecionadosEntrada() {
+	if (!pedidoServico) return [];
+	return Array.from(pedidoServico.selectedOptions)
+		.filter((opt) => !opt.disabled)
+		.map((opt) => ({
+			nome: opt.value,
+			preco: parseFloat(opt.dataset.preco) || 0
+		}));
+}
+
+function aplicarServicosDoPacoteNaEntrada() {
+	const chkUsarPacote = document.getElementById('chkUsarPacoteEntrada');
+	if (!chkUsarPacote || !chkUsarPacote.checked || !pedidoServico) return { naoEncontrados: [] };
+
+	const pacoteSel = obterPacoteSelecionadoEntrada();
+	const inclusos = obterServicosInclusosPacoteEntrada(pacoteSel);
+	if (inclusos.length === 0) return { naoEncontrados: [] };
+
+	const opcoes = Array.from(pedidoServico.options).filter((o) => !o.disabled);
+	const naoEncontrados = [];
+
+	inclusos.forEach((nomeIncluso) => {
+		const alvo = String(nomeIncluso || '').trim().toLowerCase();
+		if (!alvo) return;
+		const match = opcoes.find((opt) => String(opt.value || '').trim().toLowerCase() === alvo);
+		if (match) {
+			match.selected = true;
+		} else {
+			naoEncontrados.push(nomeIncluso);
+		}
+	});
+
+	return { naoEncontrados };
+}
+
+function atualizarAvisoCompatibilidadePacoteEntrada(servicosNaoEncontrados = []) {
+	const selectPacote = document.getElementById('entradaSelectPacoteAtivo');
+	const infoPacote = document.getElementById('infoPacoteEntrada');
+	if (!selectPacote || !infoPacote || pacotesAtivosEntradaCache.length === 0) return;
+
+	const isLavaJato = isSegmentoLavaJato();
+	const pacoteSel = obterPacoteSelecionadoEntrada();
+	const inclusos = obterServicosInclusosPacoteEntrada(pacoteSel);
+	const placaAtual = isLavaJato && pedidoPlaca ? pedidoPlaca.value.toUpperCase().replace(/[^A-Z0-9-]/g, '').trim() : '';
+	const placasRestritas = isLavaJato && Array.isArray(pacoteSel?.placasAutorizadas) ? pacoteSel.placasAutorizadas : [];
+
+	const partes = [];
+	let corTexto = '#1d4ed8';
+
+	if (placasRestritas.length > 0 && placaAtual && !placasRestritas.includes(placaAtual)) {
+		corTexto = '#b45309';
+		partes.push(`Atenção: pacote vinculado às placas ${placasRestritas.join(', ')} (placa atual: ${placaAtual}).`);
+	}
+
+	if (inclusos.length > 0) {
+		partes.push(`Serviço(s) coberto(s) zerado(s): ${inclusos.join(', ')}. Serviços extras e produtos serão somados.`);
+	} else {
+		partes.push('Pacote sem serviço vinculado: ao marcar, os serviços selecionados serão zerados (mantendo produtos extras).');
+	}
+
+	if (Array.isArray(servicosNaoEncontrados) && servicosNaoEncontrados.length > 0) {
+		corTexto = '#b45309';
+		partes.push(`Não encontrado na lista atual de serviços: ${servicosNaoEncontrados.join(', ')}.`);
+	}
+
+	infoPacote.style.color = corTexto;
+	infoPacote.textContent = partes.join(' ');
+}
+
+function atualizarPainelPacotesEntrada(clienteObj = null) {
+	const bloco = document.getElementById('blocoPacoteAtivoEntrada');
+	const chk = document.getElementById('chkUsarPacoteEntrada');
+	const selectPacote = document.getElementById('entradaSelectPacoteAtivo');
+	if (!bloco || !chk || !selectPacote) return;
+
+	if (typeof PacotesService === 'undefined') {
+		pacotesAtivosEntradaCache = [];
+		bloco.style.display = 'none';
+		return;
+	}
+
+	const cli = clienteObj || clienteSelecionadoOS || encontrarClientePorNome(pedidoCliente ? pedidoCliente.value : '');
+	const nomeDigitado = pedidoCliente ? pedidoCliente.value.trim() : '';
+	let pacotesAtivos = [];
+
+	if (cli) {
+		const chave = cli.id || cli.nome || '';
+		pacotesAtivos = PacotesService.getAssinaturasAtivasCliente(chave);
+		if (pacotesAtivos.length === 0 && cli.nome) {
+			pacotesAtivos = PacotesService.getAssinaturasAtivasCliente(cli.nome);
+		}
+	} else if (nomeDigitado) {
+		pacotesAtivos = PacotesService.getAssinaturasAtivasCliente(nomeDigitado);
+	}
+
+	pacotesAtivosEntradaCache = pacotesAtivos;
+
+	if (pacotesAtivos.length === 0) {
+		chk.checked = false;
+		selectPacote.innerHTML = '';
+		bloco.style.display = 'none';
+		return;
+	}
+
+	const prevVal = selectPacote.value;
+	const isLavaJato = isSegmentoLavaJato();
+	const escPkg = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
+	const placaAtual = isLavaJato && pedidoPlaca ? pedidoPlaca.value.toUpperCase().replace(/[^A-Z0-9-]/g, '').trim() : '';
+
+	bloco.style.display = 'block';
+	selectPacote.innerHTML = pacotesAtivos.map(a => {
+		const validadeFmt = window.DateBR ? window.DateBR.formatarParaBR(a.dataValidade) : a.dataValidade;
+		const inclusos = obterServicosInclusosPacoteEntrada(a);
+		const sufixoServs = inclusos.length > 0 ? ` • Cobre: ${inclusos.join(', ')}` : '';
+		const placasAut = isLavaJato && Array.isArray(a.placasAutorizadas) ? a.placasAutorizadas : [];
+		let sufixoPlaca = '';
+		if (placasAut.length > 0) {
+			const compativel = placaAtual && placasAut.includes(placaAtual);
+			sufixoPlaca = compativel
+				? ` • Placa ${placaAtual} OK`
+				: ` • Placas: ${placasAut.join(', ')}`;
+		}
+		return `<option value="${escPkg(a.id)}">${escPkg(a.planoNome)} (${a.creditosRestantes}/${a.creditosTotais} créditos • Válido até ${escPkg(validadeFmt)}${escPkg(sufixoServs)}${escPkg(sufixoPlaca)})</option>`;
+	}).join('');
+
+	if (prevVal && pacotesAtivos.some(a => String(a.id) === String(prevVal))) {
+		selectPacote.value = prevVal;
+	}
+
+	atualizarAvisoCompatibilidadePacoteEntrada();
+}
+
+// Cálculo automático de preço ao selecionar serviços ou produtos
+function calcularValorTotalEntrada(forcarZeroQuandoSemItem = false) {
+	const servicosSelecionados = obterDetalheServicosSelecionadosEntrada();
+	let totalServicos = servicosSelecionados.reduce((acc, s) => acc + (parseFloat(s.preco) || 0), 0);
 
 	let totalProdutos = 0;
 	const checks = document.querySelectorAll('.check-produto-venda:checked');
@@ -344,14 +494,55 @@ function calcularValorTotalEntrada() {
 		totalProdutos += parseFloat(chk.dataset.preco || 0);
 	});
 
-	const total = totalServicos + totalProdutos;
-	if (total > 0 && pedidoValor) {
+	const chkUsarPacote = document.getElementById('chkUsarPacoteEntrada');
+	const selectPacote = document.getElementById('entradaSelectPacoteAtivo');
+	const usandoPacote = Boolean(chkUsarPacote && chkUsarPacote.checked && selectPacote && selectPacote.value);
+
+	let total = totalServicos + totalProdutos;
+	if (usandoPacote) {
+		const pacoteSel = obterPacoteSelecionadoEntrada();
+		const inclusos = obterServicosInclusosPacoteEntrada(pacoteSel);
+		if (typeof PacotesService !== 'undefined' && typeof PacotesService.calcularAbatimentoServicos === 'function') {
+			const abat = PacotesService.calcularAbatimentoServicos(servicosSelecionados, inclusos);
+			total = Math.max(0, abat.valorServicosRestantes + totalProdutos);
+		} else {
+			total = totalProdutos;
+		}
+	}
+
+	if (pedidoValor && (usandoPacote || total > 0 || forcarZeroQuandoSemItem)) {
 		pedidoValor.value = total.toFixed(2);
 	}
 }
 
 if (pedidoServico) {
-	pedidoServico.addEventListener('change', calcularValorTotalEntrada);
+	pedidoServico.addEventListener('change', () => calcularValorTotalEntrada(false));
+}
+
+const chkUsarPacoteEntradaEl = document.getElementById('chkUsarPacoteEntrada');
+if (chkUsarPacoteEntradaEl) {
+	chkUsarPacoteEntradaEl.addEventListener('change', () => {
+		let naoEncontrados = [];
+		if (chkUsarPacoteEntradaEl.checked) {
+			const res = aplicarServicosDoPacoteNaEntrada();
+			naoEncontrados = res.naoEncontrados || [];
+		}
+		atualizarAvisoCompatibilidadePacoteEntrada(naoEncontrados);
+		calcularValorTotalEntrada(true);
+	});
+}
+
+const selectPacoteEntradaEl = document.getElementById('entradaSelectPacoteAtivo');
+if (selectPacoteEntradaEl) {
+	selectPacoteEntradaEl.addEventListener('change', () => {
+		let naoEncontrados = [];
+		if (chkUsarPacoteEntradaEl && chkUsarPacoteEntradaEl.checked) {
+			const res = aplicarServicosDoPacoteNaEntrada();
+			naoEncontrados = res.naoEncontrados || [];
+		}
+		atualizarAvisoCompatibilidadePacoteEntrada(naoEncontrados);
+		calcularValorTotalEntrada(true);
+	});
 }
 
 // Carregar produtos comerciais disponíveis para seleção na entrada da O.S.
@@ -446,6 +637,7 @@ function aplicarVeiculoNoFormularioOS(veiculo) {
 		pedidoCor.value = veiculo.cor;
 	}
 	atualizarPreviewCor();
+	atualizarPainelPacotesEntrada();
 
 	if (osVeiculosGrid) {
 		osVeiculosGrid.querySelectorAll('.os-veiculo-option').forEach((btn) => {
@@ -677,14 +869,17 @@ if (pedidoCliente && sugestoesDiv) {
 
 		if (termo === '') {
 			atualizarPainelVeiculosClienteOS(null);
+			atualizarPainelPacotesEntrada(null);
 			return;
 		}
 
 		const clienteExato = clientes.find((c) => c.nome && c.nome.trim().toLowerCase() === termo);
 		if (clienteExato) {
 			atualizarPainelVeiculosClienteOS(clienteExato, false);
+			atualizarPainelPacotesEntrada(clienteExato);
 		} else {
 			atualizarPainelVeiculosClienteOS(null);
+			atualizarPainelPacotesEntrada(null);
 		}
 
 		const resultados = clientes.filter((c) => {
@@ -723,6 +918,7 @@ if (pedidoCliente && sugestoesDiv) {
 				if (pedidoPlaca) pedidoPlaca.value = '';
 				if (pedidoModelo) pedidoModelo.value = '';
 				atualizarPainelVeiculosClienteOS(c, true);
+				atualizarPainelPacotesEntrada(c);
 			});
 			sugestoesDiv.appendChild(div);
 		});
@@ -732,6 +928,9 @@ if (pedidoCliente && sugestoesDiv) {
 		const clienteExato = encontrarClientePorNome(pedidoCliente.value);
 		if (clienteExato) {
 			atualizarPainelVeiculosClienteOS(clienteExato, true);
+			atualizarPainelPacotesEntrada(clienteExato);
+		} else {
+			atualizarPainelPacotesEntrada(null);
 		}
 	});
 
@@ -742,22 +941,23 @@ if (pedidoCliente && sugestoesDiv) {
 	});
 }
 
-// Alternar abas Pátio x Encerrados
-if (tabPatioBtn && tabEncerradosBtn) {
-	tabPatioBtn.addEventListener('click', () => {
-		tabPatioBtn.classList.add('active');
-		tabEncerradosBtn.classList.remove('active');
-		viewPatio.style.display = 'block';
-		viewEncerrados.style.display = 'none';
-	});
-
-	tabEncerradosBtn.addEventListener('click', () => {
-		tabEncerradosBtn.classList.add('active');
-		tabPatioBtn.classList.remove('active');
-		viewPatio.style.display = 'none';
-		viewEncerrados.style.display = 'block';
+// Alternar abas Pátio x Orçamentos x Encerrados
+function ativarAbaPedidos(aba = 'patio') {
+	const botoes = [
+		{ id: 'patio', btn: tabPatioBtn, view: viewPatio },
+		{ id: 'orcamentos', btn: tabOrcamentosBtn, view: viewOrcamentos },
+		{ id: 'encerrados', btn: tabEncerradosBtn, view: viewEncerrados }
+	];
+	botoes.forEach((item) => {
+		const ativo = item.id === aba;
+		if (item.btn) item.btn.classList.toggle('active', ativo);
+		if (item.view) item.view.style.display = ativo ? 'block' : 'none';
 	});
 }
+
+if (tabPatioBtn) tabPatioBtn.addEventListener('click', () => ativarAbaPedidos('patio'));
+if (tabOrcamentosBtn) tabOrcamentosBtn.addEventListener('click', () => ativarAbaPedidos('orcamentos'));
+if (tabEncerradosBtn) tabEncerradosBtn.addEventListener('click', () => ativarAbaPedidos('encerrados'));
 
 // Função auxiliar para renderizar identificação da O.S. (Placa para Lava Jato/Mecânica OU Foto/Miniatura para outros segmentos)
 function renderizarIdentificacaoOS(p, isLavaJato, tamanhoIcone = 32) {
@@ -817,19 +1017,28 @@ function renderizarTabelas() {
 
 	// Ajusta títulos dos cabeçalhos da tabela conforme o segmento
 	const thVeiculoPatio = document.getElementById('thVeiculoPatio');
+	const thVeiculoOrcamentos = document.getElementById('thVeiculoOrcamentos');
 	const thVeiculoEncerrados = document.getElementById('thVeiculoEncerrados');
 	if (thVeiculoPatio) {
 		thVeiculoPatio.textContent = isLavaJato ? 'Veículo & Placa' : 'Identificação & Foto';
 	}
+	if (thVeiculoOrcamentos) {
+		thVeiculoOrcamentos.textContent = isLavaJato ? 'Veículo & Placa' : 'Identificação & Foto';
+	}
 	if (thVeiculoEncerrados) {
 		thVeiculoEncerrados.textContent = isLavaJato ? 'Veículo & Placa' : 'Identificação & Foto';
 	}
-	
+
 	const pedidosPatio = pedidos.filter((p) => p.status === 'aberto');
+	const pedidosOrcamento = pedidos.filter((p) => p.status === 'orcamento');
 	const pedidosEncerrados = pedidos.filter((p) => p.status === 'encerrado');
 
-	if (countPatio) countPatio.textContent = pedidosPatio.length;
-	if (countEncerrados) countEncerrados.textContent = pedidosEncerrados.length;
+	const countPatioAtual = document.getElementById('countPatio');
+	const countOrcAtual = document.getElementById('countOrcamentos');
+	const countEncAtual = document.getElementById('countEncerrados');
+	if (countPatioAtual) countPatioAtual.textContent = pedidosPatio.length;
+	if (countOrcAtual) countOrcAtual.textContent = pedidosOrcamento.length;
+	if (countEncAtual) countEncAtual.textContent = pedidosEncerrados.length;
 
 	// Renderizar Pátio (Em Aberto)
 	corpoTabelaPatio.innerHTML = '';
@@ -850,6 +1059,7 @@ function renderizarTabelas() {
 		[...pedidosPatio].reverse().forEach((p) => {
 			const tr = document.createElement('tr');
 			const valorFormatado = parseFloat(p.valor || 0).toFixed(2);
+			const prontoNaTV = p.statusTV === 'pronto';
 
 			const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
 			const cliObj = clientes.find(c => c.nome && c.nome.toLowerCase() === (p.cliente || '').toLowerCase());
@@ -880,9 +1090,24 @@ function renderizarTabelas() {
 				<td>
 					<span class="badge-price">R$ ${valorFormatado}</span>
 					<div><span class="badge badge-status badge-status-aberto">Em Andamento</span></div>
+					<div style="margin-top:4px;">
+						<span class="badge" style="font-size:0.72rem; ${prontoNaTV ? 'background:#dcfce7; color:#15803d; border-color:#bbf7d0;' : 'background:#e0f2fe; color:#0369a1; border-color:#bae6fd;'}">
+							${prontoNaTV ? '📺 Pronto na TV' : '📺 Em Serviço na TV'}
+						</span>
+					</div>
+					${p.pacoteAbatido ? `
+						<div style="margin-top:4px;">
+							<span class="badge" style="font-size:0.72rem; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">
+								🎟️ ${esc(p.pacoteNome || 'Pacote')}
+							</span>
+						</div>
+					` : ''}
 				</td>
 				<td style="text-align: center;">
 					<div class="btn-action-group" style="flex-wrap:wrap; justify-content:center;">
+						<button type="button" class="btn btn-sm" onclick="window.alternarStatusTVPedido('${p.id}')" style="background:${prontoNaTV ? '#f59e0b' : '#0284c7'}; color:#fff; font-weight:600;" title="Alternar status no Painel TV da sala de espera">
+							${prontoNaTV ? '🔧 Voltar Serviço' : '📺 Pronto TV'}
+						</button>
 						${temTelefone ? `
 							<button type="button" class="btn btn-sm" onclick="abrirDisparoWhatsAppCarroPronto('${p.id}')" style="background:#16a34a; color:#fff; display:inline-flex; align-items:center; gap:4px;" title="Avisar cliente no WhatsApp que o serviço está pronto">
 								💬 ${isLavaJato ? 'Carro Pronto' : 'Avisar Pronto'}
@@ -899,6 +1124,82 @@ function renderizarTabelas() {
 			`;
 			corpoTabelaPatio.appendChild(tr);
 		});
+	}
+
+	// Renderizar Orçamentos Digitais
+	if (corpoTabelaOrcamentos) {
+		corpoTabelaOrcamentos.innerHTML = '';
+		if (pedidosOrcamento.length === 0) {
+			corpoTabelaOrcamentos.innerHTML = `
+				<tr>
+					<td colspan="7" class="empty-table-message">
+						📝 Nenhum orçamento pendente. No formulário acima, selecione "Salvar como Orçamento" para gerar um link aprovável ao cliente.
+					</td>
+				</tr>
+			`;
+		} else {
+			const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
+			[...pedidosOrcamento].reverse().forEach((p) => {
+				const tr = document.createElement('tr');
+				const valorFormatado = parseFloat(p.valor || 0).toFixed(2);
+				const dataFmt = window.DateBR ? (window.DateBR.formatarParaBR(p.data) || '-') : (p.data || '-');
+
+				let statusBadgeHtml = '<span class="badge" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">⏳ Aguardando Cliente</span>';
+				if (p.orcamentoStatus === 'aprovado') {
+					statusBadgeHtml = '<span class="badge" style="background:#dcfce7; color:#15803d; border-color:#bbf7d0;">✅ Aprovado</span>';
+				} else if (p.orcamentoStatus === 'ajuste_solicitado') {
+					statusBadgeHtml = '<span class="badge" style="background:#fef3c7; color:#b45309; border-color:#fde68a;">✏️ Ajuste Solicitado</span>';
+				}
+
+				const comentarioHtml = p.orcamentoComentarioCliente
+					? `<div style="margin-top:6px; font-size:0.78rem; color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:6px 8px; max-width:240px; text-align:left;">"${esc(p.orcamentoComentarioCliente)}"</div>`
+					: '';
+
+				tr.innerHTML = `
+					<td>${renderizarIdentificacaoOS(p, isLavaJato, 30)}</td>
+					<td>
+						<strong>${esc(p.cliente || 'Não identificado')}</strong>
+						${p.operadorNome ? `<small style="display:block; color:var(--text-muted);">👤 Resp: ${esc(p.operadorNome)}</small>` : ''}
+					</td>
+					<td>
+						<div>${esc(dataFmt)}</div>
+						<small style="color:var(--text-muted);">${p.horaEntrada ? esc(p.horaEntrada) : ''}</small>
+					</td>
+					<td>
+						<div>${esc(p.servicos || '-')}</div>
+						${p.produtosVendidos && p.produtosVendidos.length > 0 ? `
+							<div style="margin-top:4px;">
+								<span class="badge" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-size:0.75rem;">
+									🛍️ ${p.produtosVendidos.map(pv => `${pv.quantidade || 1}x ${esc(pv.nome)}`).join(', ')}
+								</span>
+							</div>
+						` : ''}
+					</td>
+					<td><span class="badge-price">R$ ${valorFormatado}</span></td>
+					<td>
+						${statusBadgeHtml}
+						${comentarioHtml}
+					</td>
+					<td style="text-align: center;">
+						<div class="btn-action-group" style="flex-wrap:wrap; justify-content:center;">
+							<button type="button" class="btn btn-sm" onclick="window.gerarECopiarLinkOrcamento('${p.id}')" style="background:#2563eb; color:#fff; font-weight:600;" title="Gerar ou renovar link público e copiar para enviar ao cliente">
+								🔗 ${p.orcamentoPublicoUrl ? 'Copiar Link' : 'Gerar Link'}
+							</button>
+							<button type="button" class="btn btn-sm" onclick="window.enviarOrcamentoWhatsApp('${p.id}')" style="background:#16a34a; color:#fff; font-weight:600;" title="Enviar link de aprovação no WhatsApp">
+								💬 WhatsApp
+							</button>
+							<button type="button" class="btn btn-sm" onclick="window.aprovarManualOrcamento('${p.id}')" style="background:#0f766e; color:#fff; font-weight:600;" title="Aprovar orçamento manualmente e mover para o Pátio">
+								✅ Abrir Pátio
+							</button>
+							<button type="button" class="btn btn-sm btn-secondary btn-cancelar-os" data-id="${p.id}" style="color: var(--danger);" title="Excluir Orçamento">
+								🗑️
+							</button>
+						</div>
+					</td>
+				`;
+				corpoTabelaOrcamentos.appendChild(tr);
+			});
+		}
 	}
 
 	// Renderizar Encerrados
@@ -942,6 +1243,20 @@ function renderizarTabelas() {
 				<td><span class="badge-price">R$ ${valorFormatado}</span></td>
 				<td>
 					<span class="badge badge-payment">${esc(p.formaPagamento || 'Outro')}</span>
+					${p.formaPagamento === 'Faturado / A Receber' ? `
+						<div style="margin-top:4px;">
+							<span class="badge" style="font-size:0.72rem; ${p.statusFaturamento === 'pago' ? 'background:#dcfce7; color:#15803d; border-color:#bbf7d0;' : 'background:#fef3c7; color:#b45309; border-color:#fde68a;'}">
+								${p.statusFaturamento === 'pago' ? '✅ Fatura Quitada' : '⏳ A Receber'}
+							</span>
+						</div>
+					` : ''}
+					${p.pacoteAbatido ? `
+						<div style="margin-top:4px;">
+							<span class="badge" style="font-size:0.72rem; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">
+								🎟️ ${esc(p.pacoteNome || 'Pacote')}
+							</span>
+						</div>
+					` : ''}
 				</td>
 				<td style="text-align: center;">
 					<div style="display: inline-flex; align-items: center; gap: 6px;">
@@ -997,10 +1312,26 @@ function renderizarTabelas() {
 			}
 
 			if (confirmado) {
+				let creditoEstornado = false;
+				if (p.status !== 'encerrado' && p.pacoteAbatido && p.pacoteAssinaturaId && typeof PacotesService !== 'undefined' && typeof PacotesService.estornarCredito === 'function') {
+					const estRes = PacotesService.estornarCredito({
+						assinaturaId: p.pacoteAssinaturaId,
+						pedidoId: p.id
+					});
+					creditoEstornado = Boolean(estRes && estRes.estornado);
+				}
 				const atualizados = todosPedidos.filter((item) => String(item.id) !== String(osId));
 				localStorage.setItem('pedidos', JSON.stringify(atualizados));
-				if (window.UI) window.UI.toast('Ordem de serviço removida.', 'info');
+				if (window.UI) {
+					window.UI.toast(
+						creditoEstornado
+							? 'Ordem de serviço removida e 1 crédito estornado para o pacote do cliente.'
+							: 'Ordem de serviço removida.',
+						'info'
+					);
+				}
 				renderizarTabelas();
+				sincronizarPainelTvSeguro(atualizados);
 			}
 		});
 	});
@@ -1069,13 +1400,307 @@ function abrirModalEncerramento(osId) {
 	}
 
 	if (modalFormaPagamento) {
-		modalFormaPagamento.value = 'Pix';
+		modalFormaPagamento.value = (p.pacoteAbatido && parseFloat(p.valor || 0) <= 0) ? 'Pacote / Crédito' : 'Pix';
 	}
+
+	// Pacotes ativos do cliente (ou pacote já utilizado na entrada da O.S.)
+	const blocoPacote = document.getElementById('blocoPacoteAtivoEncerramento');
+	const chkPacote = document.getElementById('chkAbaterPacoteOS');
+	const selectPacote = document.getElementById('modalSelectPacoteAtivo');
+	const infoPacote = document.getElementById('infoPacoteAtivoEncerramento');
+	if (blocoPacote && chkPacote && selectPacote) {
+		const escPkg = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
+		if (p.pacoteAbatido) {
+			blocoPacote.style.display = 'block';
+			chkPacote.checked = true;
+			chkPacote.disabled = true;
+			selectPacote.disabled = true;
+			selectPacote.onchange = null;
+			selectPacote.innerHTML = `<option value="${escPkg(p.pacoteAssinaturaId || '')}">${escPkg(p.pacoteNome || 'Pacote')} — 1 crédito já utilizado na abertura</option>`;
+			if (infoPacote) {
+				infoPacote.textContent = 'Crédito já abatido na abertura desta O.S. (não será descontado novamente). Cobre apenas extras ou produtos adicionados.';
+			}
+		} else {
+			chkPacote.disabled = false;
+			selectPacote.disabled = false;
+			chkPacote.checked = false;
+			let pacotesAtivos = [];
+			if (typeof PacotesService !== 'undefined') {
+				const chaveBusca = p.clienteId || p.cliente || '';
+				pacotesAtivos = PacotesService.getAssinaturasAtivasCliente(chaveBusca);
+				if (pacotesAtivos.length === 0 && p.cliente) {
+					pacotesAtivos = PacotesService.getAssinaturasAtivasCliente(p.cliente);
+				}
+			}
+
+			if (pacotesAtivos.length > 0) {
+				blocoPacote.style.display = 'block';
+				const placaAtual = (p.placa || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').trim();
+				selectPacote.innerHTML = pacotesAtivos.map(a => {
+					const validadeFmt = window.DateBR ? window.DateBR.formatarParaBR(a.dataValidade) : a.dataValidade;
+					const placasAut = isLavaJato && Array.isArray(a.placasAutorizadas) ? a.placasAutorizadas : [];
+					let sufixoPlaca = '';
+					if (placasAut.length > 0) {
+						const compativel = placaAtual && placasAut.includes(placaAtual);
+						sufixoPlaca = compativel
+							? ` • Placa ${placaAtual} OK`
+							: ` • Placas: ${placasAut.join(', ')}`;
+					}
+					return `<option value="${escPkg(a.id)}">${escPkg(a.planoNome)} (${a.creditosRestantes}/${a.creditosTotais} créditos • Válido até ${escPkg(validadeFmt)}${escPkg(sufixoPlaca)})</option>`;
+				}).join('');
+
+				const atualizarAvisoPacote = () => {
+					if (!infoPacote) return;
+					const pacoteSel = pacotesAtivos.find(a => String(a.id) === String(selectPacote.value)) || pacotesAtivos[0];
+					const inclusos = obterServicosInclusosPacoteEntrada(pacoteSel);
+					const placasRestritas = isLavaJato && Array.isArray(pacoteSel?.placasAutorizadas) ? pacoteSel.placasAutorizadas : [];
+					const partes = [];
+					if (placasRestritas.length > 0 && placaAtual && !placasRestritas.includes(placaAtual)) {
+						partes.push(`Atenção: pacote vinculado às placas ${placasRestritas.join(', ')} (O.S. atual: ${placaAtual}).`);
+					}
+					if (inclusos.length > 0) {
+						partes.push(`Serviço(s) coberto(s) zerado(s): ${inclusos.join(', ')} (extras e produtos permanecem somados).`);
+					} else {
+						partes.push('Ao marcar, o valor dos serviços desta O.S. será zerado e 1 crédito será descontado do pacote selecionado.');
+					}
+					infoPacote.textContent = partes.join(' ');
+				};
+				selectPacote.onchange = () => {
+					atualizarAvisoPacote();
+					const chkP = document.getElementById('chkAbaterPacoteOS');
+					if (chkP && chkP.checked) {
+						chkP.dispatchEvent(new Event('change'));
+					}
+				};
+				atualizarAvisoPacote();
+			} else {
+				blocoPacote.style.display = 'none';
+				selectPacote.innerHTML = '';
+				selectPacote.onchange = null;
+			}
+		}
+	}
+
+	atualizarPreviewPixEncerramento();
 
 	if (modalEncerramento) {
 		modalEncerramento.classList.add('open');
 		modalEncerramento.style.display = 'flex';
 	}
+}
+
+function atualizarPreviewPixEncerramento() {
+	if (!blocoPixEncerramento) return;
+
+	const forma = modalFormaPagamento ? modalFormaPagamento.value : '';
+	const valorNum = modalValorFinal ? (parseFloat(modalValorFinal.value) || 0) : 0;
+
+	if (forma !== 'Pix') {
+		blocoPixEncerramento.style.display = 'none';
+		blocoPixEncerramento.innerHTML = '';
+		return;
+	}
+
+	blocoPixEncerramento.style.display = 'block';
+
+	if (typeof PixService === 'undefined') {
+		blocoPixEncerramento.innerHTML = '<small style="color:var(--text-muted);">Serviço PIX indisponível.</small>';
+		return;
+	}
+
+	const resPix = PixService.gerarCobrancaPixOS(pedidoSelecionadoParaEncerrar || {}, valorNum);
+	if (!resPix.valido) {
+		blocoPixEncerramento.innerHTML = `
+			<div style="font-size:0.84rem; color:var(--text-muted);">
+				🔑 Nenhuma Chave PIX cadastrada ainda.
+				<a href="configuracoes.html?aba=negocio" style="color:var(--primary); font-weight:700; text-decoration:underline; margin-left:4px;">Configurar Chave PIX</a>
+			</div>
+		`;
+		return;
+	}
+
+	if (valorNum <= 0) {
+		blocoPixEncerramento.innerHTML = '<small style="color:var(--text-muted);">Informe um valor maior que R$ 0,00 para gerar o QR Code PIX.</small>';
+		return;
+	}
+
+	const qrSvg = PixService.gerarSVG(resPix.payload, { size: 148, margin: 2 });
+	const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
+
+	blocoPixEncerramento.innerHTML = `
+		<div style="font-size:0.86rem; font-weight:700; color:var(--text-main); margin-bottom:8px;">
+			📱 QR Code PIX para Pagamento (R$ ${valorNum.toFixed(2)})
+		</div>
+		<div style="display:inline-block; background:#fff; padding:6px; border:1px solid var(--border-color); border-radius:8px; box-shadow:var(--shadow-sm);">
+			${qrSvg}
+		</div>
+		<div style="font-size:0.78rem; color:var(--text-muted); margin-top:6px;">
+			Chave: <strong>${esc(resPix.chaveNormalizada)}</strong> &bull; ${esc(resPix.nomeRecebedor)}
+		</div>
+		<div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-top:10px;">
+			<button type="button" id="btnEnviarPixWppEncerramento" class="btn btn-sm" style="background:#0d9488; color:#ffffff; font-weight:700;">
+				📲 Enviar QR Code no WhatsApp
+			</button>
+			<button type="button" id="btnBaixarPixEncerramento" class="btn btn-sm btn-secondary">
+				📥 Baixar QR (PNG)
+			</button>
+			<button type="button" id="btnCopiarPixEncerramento" class="btn btn-sm btn-secondary">
+				📋 Copiar Copia e Cola
+			</button>
+		</div>
+	`;
+
+	const btnEnviarWppPix = document.getElementById('btnEnviarPixWppEncerramento');
+	if (btnEnviarWppPix) {
+		btnEnviarWppPix.addEventListener('click', async () => {
+			const ped = pedidoSelecionadoParaEncerrar || {};
+			const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+			const cliObj = clientes.find(c => c.nome && ped.cliente && c.nome.trim().toLowerCase() === ped.cliente.trim().toLowerCase());
+			const telLimpo = cliObj && cliObj.tel1 ? cliObj.tel1 : '';
+			const valorFmt = valorNum.toFixed(2).replace('.', ',');
+			const msg = `Olá ${ped.cliente || 'Cliente'}! Segue o QR Code PIX no valor de R$ ${valorFmt} referente ao atendimento (${ped.modelo || ped.itemDescricao || 'Serviço'}${ped.placa ? ' - ' + ped.placa : ''}).`;
+
+			try {
+				const shareRes = await PixService.compartilharCartaoPix(ped, {
+					valor: valorNum,
+					title: `QR Code PIX - R$ ${valorFmt}`,
+					text: msg
+				});
+				if (shareRes && shareRes.sucesso) {
+					if (window.UI) window.UI.toast('QR Code PIX compartilhado!', 'success');
+					return;
+				}
+			} catch (errShare) {
+				if (errShare && errShare.name === 'AbortError') return;
+			}
+
+			let copiou = false;
+			try {
+				const clipRes = await PixService.copiarCartaoPixClipboard(ped, { valor: valorNum });
+				copiou = Boolean(clipRes && clipRes.sucesso);
+			} catch (e) {
+				copiou = false;
+			}
+			if (!copiou) {
+				try { await PixService.baixarCartaoPix(ped, { valor: valorNum }); } catch (e) {}
+			}
+			if (typeof WhatsAppService !== 'undefined') {
+				WhatsAppService.abrirWhatsApp(telLimpo, msg, { preservarClipboard: copiou });
+			} else {
+				const telDigits = (telLimpo || '').replace(/\D/g, '').replace(/^0+/, '');
+				const telWpp = telDigits.length >= 10 && telDigits.length <= 11 && !telDigits.startsWith('55') ? '55' + telDigits : telDigits;
+				const isDesktop = !/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent || '');
+				const canalSalvo = localStorage.getItem('whatsapp_canal_preferido');
+				const baseUrl = (isDesktop && canalSalvo === 'web') ? 'https://web.whatsapp.com/send' : 'https://api.whatsapp.com/send';
+				window.open(telWpp ? `${baseUrl}?phone=${telWpp}&text=${encodeURIComponent(msg)}` : `${baseUrl}?text=${encodeURIComponent(msg)}`, '_blank');
+			}
+			if (window.UI) {
+				window.UI.toast(
+					copiou
+						? 'QR Code copiado! Cole (Ctrl+V) na conversa do WhatsApp.'
+						: 'QR Code baixado em PNG! Anexe a imagem no WhatsApp.',
+					'info'
+				);
+			}
+		});
+	}
+
+	const btnBaixarPix = document.getElementById('btnBaixarPixEncerramento');
+	if (btnBaixarPix) {
+		btnBaixarPix.addEventListener('click', async () => {
+			try {
+				await PixService.baixarCartaoPix(pedidoSelecionadoParaEncerrar || {}, { valor: valorNum });
+				if (window.UI) window.UI.toast('Cartão QR Code PIX baixado em PNG!', 'success');
+			} catch (e) {
+				if (window.UI) window.UI.toast('Erro ao gerar imagem do QR Code.', 'warning');
+			}
+		});
+	}
+
+	const btnCopiar = document.getElementById('btnCopiarPixEncerramento');
+	if (btnCopiar) {
+		btnCopiar.addEventListener('click', () => {
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(resPix.payload).then(() => {
+					if (window.UI) window.UI.toast('Código PIX Copia e Cola copiado!', 'success');
+					btnCopiar.textContent = '✅ Código Copiado!';
+					setTimeout(() => { btnCopiar.textContent = '📋 Copiar Copia e Cola'; }, 2000);
+				}).catch(() => {});
+			}
+		});
+	}
+}
+
+if (modalFormaPagamento) {
+	modalFormaPagamento.addEventListener('change', atualizarPreviewPixEncerramento);
+}
+if (modalValorFinal) {
+	modalValorFinal.addEventListener('input', atualizarPreviewPixEncerramento);
+}
+
+function obterDetalheServicosPedido(pedido) {
+	if (!pedido) return [];
+	if (Array.isArray(pedido.servicosDetalhe) && pedido.servicosDetalhe.length > 0) {
+		return pedido.servicosDetalhe.map((s) => ({
+			nome: String(s?.nome || '').trim(),
+			preco: Math.max(0, parseFloat(s?.preco || 0) || 0)
+		})).filter((s) => s.nome);
+	}
+	const catalogo = JSON.parse(localStorage.getItem('servicos')) || [];
+	const nomes = String(pedido.servicos || '').split(',').map((x) => x.trim()).filter(Boolean);
+	return nomes.map((nome) => {
+		const match = catalogo.find((s) => s && s.nome && s.nome.trim().toLowerCase() === nome.toLowerCase());
+		return {
+			nome,
+			preco: match ? Math.max(0, parseFloat(match.preco || 0) || 0) : 0
+		};
+	});
+}
+
+const chkAbaterPacoteOSEl = document.getElementById('chkAbaterPacoteOS');
+if (chkAbaterPacoteOSEl) {
+	chkAbaterPacoteOSEl.addEventListener('change', () => {
+		if (!pedidoSelecionadoParaEncerrar || pedidoSelecionadoParaEncerrar.pacoteAbatido) return;
+		const subtotalProdutos = (produtosFechamentoAtuais || []).reduce(
+			(acc, item) => acc + ((parseFloat(item.quantidade || 1) || 1) * (parseFloat(item.precoUnitario || item.preco || 0) || 0)),
+			0
+		);
+
+		if (chkAbaterPacoteOSEl.checked) {
+			const selectPacote = document.getElementById('modalSelectPacoteAtivo');
+			const assinaturaId = selectPacote ? selectPacote.value : '';
+			const assinatura = typeof PacotesService !== 'undefined'
+				? PacotesService.getAssinaturas().find((a) => String(a.id) === String(assinaturaId))
+				: null;
+			const inclusos = obterServicosInclusosPacoteEntrada(assinatura);
+			let valorServicosRestantes = 0;
+
+			if (typeof PacotesService !== 'undefined' && typeof PacotesService.calcularAbatimentoServicos === 'function') {
+				const detalheServicos = obterDetalheServicosPedido(pedidoSelecionadoParaEncerrar);
+				if (detalheServicos.length > 0) {
+					const abat = PacotesService.calcularAbatimentoServicos(detalheServicos, inclusos);
+					valorServicosRestantes = abat.valorServicosRestantes;
+				}
+			}
+
+			const valorComDesconto = Math.max(0, valorServicosRestantes + subtotalProdutos);
+			if (modalValorFinal) modalValorFinal.value = valorComDesconto.toFixed(2);
+			if (modalFormaPagamento) {
+				modalFormaPagamento.value = valorComDesconto > 0 ? 'Pix' : 'Pacote / Crédito';
+			}
+		} else {
+			const valorOriginalOS = parseFloat(pedidoSelecionadoParaEncerrar.valor || 0) || 0;
+			const produtosIniciais = Array.isArray(pedidoSelecionadoParaEncerrar.produtosVendidos)
+				? pedidoSelecionadoParaEncerrar.produtosVendidos.reduce((acc, item) => acc + ((parseFloat(item.quantidade || 1) || 1) * (parseFloat(item.precoUnitario || item.preco || 0) || 0)), 0)
+				: 0;
+			const deltaProdutos = subtotalProdutos - produtosIniciais;
+			if (modalValorFinal) modalValorFinal.value = Math.max(0, valorOriginalOS + deltaProdutos).toFixed(2);
+			if (modalFormaPagamento && modalFormaPagamento.value === 'Pacote / Crédito') {
+				modalFormaPagamento.value = 'Pix';
+			}
+		}
+		atualizarPreviewPixEncerramento();
+	});
 }
 
 window.abrirModalEncerramento = abrirModalEncerramento;
@@ -1158,6 +1783,7 @@ window.removerProdutoFechamento = function(index) {
 			modalValorFinal.value = Math.max(0, valorAtual - valorReduzir).toFixed(2);
 		}
 		renderizarProdutosFechamento();
+		atualizarPreviewPixEncerramento();
 	}
 };
 
@@ -1194,6 +1820,7 @@ if (modalBtnAddProdutoBalcao && modalSelectProdutoBalcao) {
 
 		modalSelectProdutoBalcao.value = '';
 		renderizarProdutosFechamento();
+		atualizarPreviewPixEncerramento();
 	});
 }
 
@@ -1217,6 +1844,28 @@ if (formEncerramento) {
 		const hoje = obterDataHojeISO();
 		const horaAtual = obterHoraAtual();
 
+		const chkPacote = document.getElementById('chkAbaterPacoteOS');
+		const selectPacote = document.getElementById('modalSelectPacoteAtivo');
+		const usarPacote = Boolean(!pedidoSelecionadoParaEncerrar.pacoteAbatido && chkPacote && chkPacote.checked && selectPacote && selectPacote.value);
+
+		let resPacote = null;
+		if (usarPacote && typeof PacotesService !== 'undefined') {
+			resPacote = PacotesService.consumirCredito({
+				assinaturaId: selectPacote.value,
+				pedidoId: pedidoSelecionadoParaEncerrar.id,
+				cliente: pedidoSelecionadoParaEncerrar.cliente,
+				placa: pedidoSelecionadoParaEncerrar.placa,
+				modelo: pedidoSelecionadoParaEncerrar.modelo,
+				itemDescricao: pedidoSelecionadoParaEncerrar.itemDescricao || '',
+				servicos: pedidoSelecionadoParaEncerrar.servicos,
+				operador: pedidoSelecionadoParaEncerrar.operadorNome || ''
+			});
+			if (!resPacote || !resPacote.sucesso) {
+				if (window.UI) window.UI.toast((resPacote && resPacote.erro) || 'Não foi possível abater do pacote.', 'warning');
+				return;
+			}
+		}
+
 		const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
 		const index = pedidos.findIndex((item) => item.id === pedidoSelecionadoParaEncerrar.id);
 
@@ -1230,6 +1879,19 @@ if (formEncerramento) {
 			pedidos[index].horaEncerramento = horaAtual;
 			pedidos[index].produtosVendidos = produtosFechamentoAtuais;
 
+			if (formaPagamento === 'Faturado / A Receber') {
+				pedidos[index].statusFaturamento = 'pendente';
+			} else {
+				delete pedidos[index].statusFaturamento;
+			}
+
+			if (usarPacote && resPacote && resPacote.assinatura) {
+				pedidos[index].pacoteAbatido = true;
+				pedidos[index].pacoteAssinaturaId = resPacote.assinatura.id;
+				pedidos[index].pacoteNome = resPacote.assinatura.planoNome;
+				pedidos[index].pacoteCreditosRestantes = resPacote.creditosRestantes;
+			}
+
 			// Dá baixa automática no estoque para os produtos vendidos
 			if (typeof EstoqueService !== 'undefined' && produtosFechamentoAtuais.length > 0) {
 				EstoqueService.darBaixaEstoqueVenda(produtosFechamentoAtuais);
@@ -1237,12 +1899,17 @@ if (formEncerramento) {
 
 			pedidoEncerradoFinal = pedidos[index];
 			localStorage.setItem('pedidos', JSON.stringify(pedidos));
+
+			if (usarPacote && resPacote && resPacote.assinatura && window.UI) {
+				window.UI.toast(`Crédito abatido! Restam ${resPacote.creditosRestantes} crédito(s) no pacote.`, 'success');
+			}
 		}
 
 		const deveImprimirRecibo = !modalCheckImprimirRecibo || modalCheckImprimirRecibo.checked;
 
 		fecharModalEncerramento();
 		renderizarTabelas();
+		sincronizarPainelTvSeguro();
 
 		// Alterna para a aba de encerrados para feedback imediato
 		if (tabEncerradosBtn) tabEncerradosBtn.click();
@@ -1322,12 +1989,20 @@ function popularSelectOperadores() {
 	});
 }
 
-// Formulário de Entrada do Veículo (Abrir O.S.)
+// Formulário de Entrada do Veículo (Abrir O.S. ou Orçamento Digital)
 if (pedidoForm) {
 	pedidoForm.addEventListener('submit', (e) => {
 		e.preventDefault();
 
+		if (window.SaasGuard && typeof window.SaasGuard.bloquearSeSuspenso === 'function') {
+			if (!window.SaasGuard.bloquearSeSuspenso('abrir nova O.S. ou orçamento')) {
+				return;
+			}
+		}
+
 		const isLavaJato = isSegmentoLavaJato();
+		const estagioSelectEl = document.getElementById('pedidoEstagioInicial');
+		const estagioInicial = estagioSelectEl && estagioSelectEl.value === 'orcamento' ? 'orcamento' : 'aberto';
 		const clienteNome = pedidoCliente.value.trim();
 		const tipoRaw = isLavaJato && pedidoVeiculoTipo ? pedidoVeiculoTipo.value : 'carro';
 		const veiculoTipo = typeof normalizarTipoVeiculo === 'function'
@@ -1398,12 +2073,40 @@ if (pedidoForm) {
 			});
 			localStorage.setItem('clientes', JSON.stringify(clientes));
 		} else if (clienteIndex !== -1 && fotoOS && !clientes[clienteIndex].foto) {
-			// Atualiza foto do cliente se não possuía
 			clientes[clienteIndex].foto = fotoOS;
 			localStorage.setItem('clientes', JSON.stringify(clientes));
 		}
 
 		const osId = 'os_' + Date.now();
+
+		const chkUsarPacoteEntrada = document.getElementById('chkUsarPacoteEntrada');
+		const selectPacoteEntrada = document.getElementById('entradaSelectPacoteAtivo');
+		const usarPacoteNaEntrada = Boolean(
+			estagioInicial === 'aberto' &&
+			chkUsarPacoteEntrada &&
+			chkUsarPacoteEntrada.checked &&
+			selectPacoteEntrada &&
+			selectPacoteEntrada.value &&
+			typeof PacotesService !== 'undefined'
+		);
+
+		let resPacoteEntrada = null;
+		if (usarPacoteNaEntrada) {
+			resPacoteEntrada = PacotesService.consumirCredito({
+				assinaturaId: selectPacoteEntrada.value,
+				pedidoId: osId,
+				cliente: clienteNome,
+				placa: placa || (isLavaJato ? 'SEM PLACA' : ''),
+				modelo: modelo,
+				itemDescricao: itemDescricao || modelo,
+				servicos: servicosSelecionados.join(', '),
+				operador: operadorNome
+			});
+			if (!resPacoteEntrada || !resPacoteEntrada.sucesso) {
+				if (window.UI) window.UI.toast((resPacoteEntrada && resPacoteEntrada.erro) || 'Não foi possível utilizar o pacote selecionado.', 'warning');
+				return;
+			}
+		}
 
 		// Salva checklist de vistoria
 		if (typeof VistoriaService !== 'undefined') {
@@ -1428,6 +2131,8 @@ if (pedidoForm) {
 			});
 		});
 
+		const servicosDetalheEntrada = obterDetalheServicosSelecionadosEntrada();
+
 		const novoPedido = {
 			id: osId,
 			cliente: clienteNome,
@@ -1438,17 +2143,29 @@ if (pedidoForm) {
 			itemDescricao: itemDescricao || modelo,
 			foto: fotoOS,
 			servicos: servicosSelecionados.join(', '),
+			servicosDetalhe: servicosDetalheEntrada,
 			produtosVendidos: produtosEntradaSelecionados,
 			operadorId: operadorId,
 			operadorNome: operadorNome,
 			data: data,
 			horaEntrada: obterHoraAtual(),
 			valor: valor,
-			status: 'aberto', // Entra no pátio com O.S. aberta
+			status: estagioInicial,
+			statusTV: estagioInicial === 'aberto' ? 'em_servico' : '',
+			orcamentoStatus: estagioInicial === 'orcamento' ? 'pendente' : '',
 			formaPagamento: '',
 			dataEncerramento: '',
 			horaEncerramento: ''
 		};
+
+		if (usarPacoteNaEntrada && resPacoteEntrada && resPacoteEntrada.assinatura) {
+			novoPedido.pacoteAbatido = true;
+			novoPedido.pacoteAbatidoNaEntrada = true;
+			novoPedido.pacoteAssinaturaId = resPacoteEntrada.assinatura.id;
+			novoPedido.pacoteNome = resPacoteEntrada.assinatura.planoNome;
+			novoPedido.pacoteCreditosRestantes = resPacoteEntrada.creditosRestantes;
+			novoPedido.pacoteServicosInclusos = obterServicosInclusosPacoteEntrada(resPacoteEntrada.assinatura);
+		}
 
 		const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
 		pedidos.push(novoPedido);
@@ -1456,9 +2173,11 @@ if (pedidoForm) {
 
 		// Limpa formulário
 		pedidoForm.reset();
+		if (estagioSelectEl) estagioSelectEl.value = 'aberto';
 		clienteSelecionadoOS = null;
 		veiculoSelecionadoId = null;
 		atualizarPainelVeiculosClienteOS(null);
+		atualizarPainelPacotesEntrada(null);
 		if (pedidoVeiculoTipo) pedidoVeiculoTipo.value = 'carro';
 		setOSFotoPreview('');
 		if (pedidoData) {
@@ -1469,11 +2188,24 @@ if (pedidoForm) {
 		popularSelectOperadores();
 		carregarProdutosVendaEntrada();
 		renderizarTabelas();
+		if (estagioInicial === 'aberto') {
+			sincronizarPainelTvSeguro(pedidos);
+		}
 
-		if (window.UI) window.UI.toast('Ordem de Serviço aberta com sucesso!', 'success');
+		if (window.UI) {
+			if (estagioInicial === 'orcamento') {
+				window.UI.toast('Orçamento salvo! Clique em "Gerar Link" ou "WhatsApp" na aba Orçamentos.', 'success');
+			} else {
+				window.UI.toast(
+					usarPacoteNaEntrada && resPacoteEntrada
+						? `O.S. aberta com 1 crédito abatido do pacote! Restam ${resPacoteEntrada.creditosRestantes} crédito(s).`
+						: 'Ordem de Serviço aberta com sucesso!',
+					'success'
+				);
+			}
+		}
 
-		// Rola até o pátio e garante a aba ativa
-		if (tabPatioBtn) tabPatioBtn.click();
+		ativarAbaPedidos(estagioInicial === 'orcamento' ? 'orcamentos' : 'patio');
 	});
 }
 
@@ -1511,15 +2243,167 @@ function configurarCamposSegmento() {
 			: '📋 Nova Ordem de Serviço & Atendimento';
 	}
 
-	const tabPatioBtn = document.getElementById('tabPatioBtn');
-	if (tabPatioBtn) {
+	const tabPatioEl = document.getElementById('tabPatioBtn');
+	if (tabPatioEl) {
 		const countSpan = document.getElementById('countPatio');
 		const countVal = countSpan ? countSpan.textContent : '0';
-		tabPatioBtn.innerHTML = isLavaJato 
+		tabPatioEl.innerHTML = isLavaJato 
 			? `🚗 Carros no Pátio / Em Andamento <span class="tab-count" id="countPatio">${countVal}</span>` 
 			: `📋 Atendimentos em Andamento <span class="tab-count" id="countPatio">${countVal}</span>`;
 	}
+
+	const estagioOptAberto = document.querySelector('#pedidoEstagioInicial option[value="aberto"]');
+	if (estagioOptAberto) {
+		estagioOptAberto.textContent = isLavaJato
+			? '🚗 Abrir direto no Pátio (Em Serviço)'
+			: '📋 Abrir direto em Atendimento (Em Serviço)';
+	}
 }
+
+// Integração Fase 3: Painel TV e Orçamentos Digitais Aprováveis
+function atualizarLinksPainelTV() {
+	const linkEl = document.getElementById('linkAbrirPainelTV');
+	if (linkEl && window.PublicoService && typeof window.PublicoService.obterLinkPainelTv === 'function') {
+		linkEl.href = window.PublicoService.obterLinkPainelTv();
+	}
+}
+
+function sincronizarPainelTvSeguro(pedidosOverride = null) {
+	if (window.PublicoService && typeof window.PublicoService.publicarPainelTv === 'function') {
+		window.PublicoService.publicarPainelTv(pedidosOverride).catch(() => {});
+	}
+}
+
+function iniciarSincronizacaoOrcamentosSeguro() {
+	if (window.PublicoService && typeof window.PublicoService.iniciarSincronizacaoOrcamentos === 'function') {
+		window.PublicoService.iniciarSincronizacaoOrcamentos((pedidoSync, novoStatus) => {
+			renderizarTabelas();
+			if (novoStatus === 'aprovado') {
+				sincronizarPainelTvSeguro();
+				if (window.UI) {
+					window.UI.toast(`✅ Orçamento de ${pedidoSync.cliente} aprovado pelo cliente e movido para o Pátio!`, 'success', 5000);
+				}
+			} else if (novoStatus === 'ajuste_solicitado') {
+				if (window.UI) {
+					window.UI.toast(`✏️ ${pedidoSync.cliente} solicitou ajuste no orçamento.`, 'warning', 5000);
+				}
+			}
+		});
+	}
+}
+
+window.alternarStatusTVPedido = function (osId) {
+	const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+	const idx = pedidos.findIndex((p) => String(p.id) === String(osId));
+	if (idx === -1) return;
+
+	const novoStatusTV = pedidos[idx].statusTV === 'pronto' ? 'em_servico' : 'pronto';
+	pedidos[idx].statusTV = novoStatusTV;
+	localStorage.setItem('pedidos', JSON.stringify(pedidos));
+
+	renderizarTabelas();
+	sincronizarPainelTvSeguro(pedidos);
+
+	if (window.UI) {
+		window.UI.toast(
+			novoStatusTV === 'pronto'
+				? 'Painel TV atualizado: atendimento marcado como PRONTO.'
+				: 'Painel TV atualizado: atendimento voltou para EM SERVIÇO.',
+			'info'
+		);
+	}
+};
+
+window.gerarECopiarLinkOrcamento = async function (osId) {
+	if (!window.PublicoService || typeof window.PublicoService.publicarOrcamentoPublico !== 'function') {
+		if (window.UI) window.UI.toast('Serviço público de orçamento ainda carregando. Tente novamente em instantes.', 'warning');
+		return null;
+	}
+
+	const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+	const idx = pedidos.findIndex((p) => String(p.id) === String(osId));
+	if (idx === -1) return null;
+
+	try {
+		const res = await window.PublicoService.publicarOrcamentoPublico(pedidos[idx]);
+		pedidos[idx].orcamentoToken = res.token;
+		pedidos[idx].orcamentoPublicoUrl = res.url;
+		pedidos[idx].orcamentoStatus = 'pendente';
+		pedidos[idx].orcamentoComentarioCliente = '';
+		localStorage.setItem('pedidos', JSON.stringify(pedidos));
+
+		renderizarTabelas();
+		iniciarSincronizacaoOrcamentosSeguro();
+
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			await navigator.clipboard.writeText(res.url).catch(() => {});
+		}
+		if (window.UI) {
+			window.UI.toast('🔗 Link do orçamento gerado e copiado para a área de transferência!', 'success', 4500);
+		}
+		return res.url;
+	} catch (err) {
+		console.error('Erro ao publicar orçamento:', err);
+		if (window.UI) window.UI.toast('Erro ao gerar link do orçamento. Verifique a conexão.', 'error');
+		return null;
+	}
+};
+
+window.enviarOrcamentoWhatsApp = async function (osId) {
+	const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+	const p = pedidos.find((item) => String(item.id) === String(osId));
+	if (!p) return;
+
+	let url = p.orcamentoPublicoUrl;
+	if (!url) {
+		url = await window.gerarECopiarLinkOrcamento(osId);
+		if (!url) return;
+	}
+
+	const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+	const cliObj = clientes.find((c) => c.nome && p.cliente && c.nome.trim().toLowerCase() === p.cliente.trim().toLowerCase());
+	const telLimpo = cliObj && cliObj.tel1 ? cliObj.tel1 : '';
+	const cfg = (typeof BrandService !== 'undefined' && typeof BrandService.getConfig === 'function')
+		? BrandService.getConfig()
+		: {};
+	const nomeEmpresa = cfg.nomeEstabelecimento || 'nosso estabelecimento';
+	const valorFmt = (parseFloat(p.valor || 0) || 0).toFixed(2).replace('.', ',');
+	const itemDesc = isSegmentoLavaJato()
+		? `${p.modelo || 'Veículo'}${p.placa ? ' (' + p.placa + ')' : ''}`
+		: (p.itemDescricao || p.servicos || 'Atendimento');
+
+	const msg = `Olá ${p.cliente || 'Cliente'}! Segue o orçamento digital de ${nomeEmpresa} para ${itemDesc}, no valor previsto de R$ ${valorFmt}.\n\nConfira os detalhes e aprove ou solicite ajustes pelo link:\n${url}`;
+
+	if (typeof WhatsAppService !== 'undefined' && typeof WhatsAppService.abrirWhatsApp === 'function') {
+		WhatsAppService.abrirWhatsApp(telLimpo, msg);
+	} else {
+		let fone = (telLimpo || '').replace(/\D/g, '').replace(/^0+/, '');
+		if (fone && !fone.startsWith('55') && fone.length <= 11) fone = `55${fone}`;
+		const baseUrl = 'https://api.whatsapp.com/send';
+		const linkWpp = fone ? `${baseUrl}?phone=${fone}&text=${encodeURIComponent(msg)}` : `${baseUrl}?text=${encodeURIComponent(msg)}`;
+		window.open(linkWpp, '_blank', 'noopener,noreferrer');
+	}
+};
+
+window.aprovarManualOrcamento = function (osId) {
+	const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+	const idx = pedidos.findIndex((p) => String(p.id) === String(osId));
+	if (idx === -1) return;
+
+	pedidos[idx].status = 'aberto';
+	pedidos[idx].statusTV = pedidos[idx].statusTV || 'em_servico';
+	pedidos[idx].orcamentoStatus = 'aprovado';
+	pedidos[idx].orcamentoRespondidoEm = new Date().toISOString();
+	localStorage.setItem('pedidos', JSON.stringify(pedidos));
+
+	renderizarTabelas();
+	sincronizarPainelTvSeguro(pedidos);
+	ativarAbaPedidos('patio');
+
+	if (window.UI) {
+		window.UI.toast(`O.S. de ${pedidos[idx].cliente} movida para o Pátio!`, 'success');
+	}
+};
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
@@ -1530,6 +2414,33 @@ document.addEventListener('DOMContentLoaded', () => {
 	popularSelectOperadores();
 	carregarProdutosVendaEntrada();
 	renderizarTabelas();
+
+	const btnCopiarTV = document.getElementById('btnCopiarLinkPainelTV');
+	if (btnCopiarTV) {
+		btnCopiarTV.addEventListener('click', () => {
+			if (!window.PublicoService || typeof window.PublicoService.obterLinkPainelTv !== 'function') {
+				if (window.UI) window.UI.toast('Serviço do Painel TV ainda carregando.', 'warning');
+				return;
+			}
+			const urlTV = window.PublicoService.obterLinkPainelTv();
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(urlTV).then(() => {
+					if (window.UI) window.UI.toast('🔗 Link do Painel TV copiado! Abra na Smart TV ou monitor da sala de espera.', 'success');
+				}).catch(() => {});
+			}
+		});
+	}
+
+	atualizarLinksPainelTV();
+	sincronizarPainelTvSeguro();
+	iniciarSincronizacaoOrcamentosSeguro();
+
+	// Re-sincroniza caso o módulo ES (publico-service) finalize logo após o DOMContentLoaded
+	setTimeout(() => {
+		atualizarLinksPainelTV();
+		sincronizarPainelTvSeguro();
+		iniciarSincronizacaoOrcamentosSeguro();
+	}, 900);
 
 	// Setup do seletor de fotos na O.S.
 	if (btnEscolherFotoOS && osFotoInput) {
@@ -1567,7 +2478,7 @@ function abrirDisparoWhatsAppCarroPronto(pedidoId) {
 	if (!p) return;
 
 	const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
-	const cliObj = clientes.find(c => c.nome && c.nome.toLowerCase() === (p.cliente || '').toLowerCase());
+	const cliObj = clientes.find(c => c.nome && c.nome.trim().toLowerCase() === (p.cliente || '').trim().toLowerCase());
 	const telLimpo = cliObj && cliObj.tel1 ? cliObj.tel1 : '';
 
 	const isLavaJato = isSegmentoLavaJato();
@@ -1582,7 +2493,13 @@ function abrirDisparoWhatsAppCarroPronto(pedidoId) {
 		});
 	} else {
 		const msgWhats = `Olá ${p.cliente}! O ${itemTexto} está pronto para retirada!`;
-		window.open(`https://wa.me/55${(telLimpo || '').replace(/\D/g, '')}?text=${encodeURIComponent(msgWhats)}`, '_blank');
+		let fone = (telLimpo || '').replace(/\D/g, '').replace(/^0+/, '');
+		if (fone && !fone.startsWith('55') && fone.length <= 11) fone = `55${fone}`;
+		const isDesktop = !/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent || '');
+		const canalSalvo = localStorage.getItem('whatsapp_canal_preferido');
+		const baseUrl = (isDesktop && canalSalvo === 'web') ? 'https://web.whatsapp.com/send' : 'https://api.whatsapp.com/send';
+		const url = fone ? `${baseUrl}?phone=${fone}&text=${encodeURIComponent(msgWhats)}` : `${baseUrl}?text=${encodeURIComponent(msgWhats)}`;
+		window.open(url, '_blank');
 	}
 }
 
@@ -1594,12 +2511,35 @@ window.addEventListener('cloudDataChanged', (e) => {
 	if (key === 'config_negocio') {
 		configurarCamposSegmento();
 		renderizarTabelas();
+		atualizarLinksPainelTV();
+		sincronizarPainelTvSeguro();
+	}
+	if (key === 'pedidos') {
+		renderizarTabelas();
+		iniciarSincronizacaoOrcamentosSeguro();
+		sincronizarPainelTvSeguro();
+	}
+	if (key === 'servicos') {
+		const selecionadosAtuais = pedidoServico
+			? Array.from(pedidoServico.selectedOptions).map((o) => o.value)
+			: [];
+		carregarSelectServicos();
+		if (pedidoServico && selecionadosAtuais.length > 0) {
+			Array.from(pedidoServico.options).forEach((opt) => {
+				if (selecionadosAtuais.includes(opt.value)) opt.selected = true;
+			});
+		}
+		atualizarPainelPacotesEntrada();
+	}
+	if (key === 'pacotes_clientes' || key === 'pacotes_planos') {
+		atualizarPainelPacotesEntrada();
 	}
 	if (key === 'clientes' && clienteSelecionadoOS) {
 		const atualizado = encontrarClientePorNome(clienteSelecionadoOS.nome);
 		if (atualizado) {
 			atualizarPainelVeiculosClienteOS(atualizado, false);
 		}
+		atualizarPainelPacotesEntrada(atualizado);
 	}
 });
 

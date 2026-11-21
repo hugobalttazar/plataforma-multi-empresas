@@ -2,7 +2,7 @@
 // Service Worker - Sistema de Gestão Multi-Empresas (PWA)
 // ==========================================================================
 
-const CACHE_NAME = 'gestao-saas-cache-v3';
+const CACHE_NAME = 'gestao-saas-cache-v9';
 const PRECACHE_ASSETS = [
     './',
     'index.html',
@@ -16,6 +16,9 @@ const PRECACHE_ASSETS = [
     'fidelidade.html',
     'configuracoes.html',
     'historico.html',
+    'orcamento.html',
+    'agenda-publica.html',
+    'painel-tv.html',
     'style.css',
     'manifest.json',
     'icon-192.png',
@@ -27,6 +30,8 @@ const PRECACHE_ASSETS = [
     'js/pwa-install.js',
     'js/error-guard.js',
     'js/brand-service.js',
+    'js/saas-guard.js',
+    'js/publico-service.js',
     'js/auth-service.js',
     'js/firebase-init.js',
     'js/firebase-sync.js',
@@ -35,7 +40,11 @@ const PRECACHE_ASSETS = [
     'js/equipe-service.js',
     'js/estoque-service.js',
     'js/fidelidade-service.js',
+    'js/pacotes-service.js',
+    'js/faturamento-service.js',
     'js/vistoria-service.js',
+    'js/pix-service.js',
+    'js/whatsapp-service.js',
     'js/recibo-service.js',
     'js/google-calendar-service.js',
     'js/backup-service.js',
@@ -46,7 +55,10 @@ const PRECACHE_ASSETS = [
     'js/caixa.js',
     'js/agendamentos.js',
     'js/configuracoes.js',
-    'js/historico.js'
+    'js/historico.js',
+    'js/orcamento-publico.js',
+    'js/agenda-publica.js',
+    'js/painel-tv.js'
 ];
 
 self.addEventListener('install', (event) => {

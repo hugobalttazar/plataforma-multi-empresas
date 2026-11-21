@@ -3,37 +3,208 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Default deny for any unmapped path
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 2 && id.size() <= 128 && !id.matches('.*[/\\\\].*');
+    }
+
+    function isValidOrcamentoPublico(d) {
+      return d.keys().hasAll([
+        'token', 'empresaId', 'empresaNome', 'tipoNegocio', 'pedidoId',
+        'clientePrimeiroNome', 'identificador', 'servicos', 'produtos',
+        'valorTotal', 'vistoriaResumo', 'fotoUrl', 'status',
+        'comentarioCliente', 'criadoEm', 'atualizadoEm'
+      ]) &&
+      d.keys().hasOnly([
+        'token', 'empresaId', 'empresaNome', 'empresaTelefone', 'icone',
+        'tipoNegocio', 'pedidoId', 'clientePrimeiroNome', 'identificador',
+        'placaMask', 'modelo', 'dataEntrada', 'servicos', 'produtos',
+        'valorTotal', 'vistoriaResumo', 'fotoUrl', 'status',
+        'comentarioCliente', 'criadoEm', 'respondidoEm', 'atualizadoEm'
+      ]) &&
+      d.token is string && d.token.size() >= 16 && d.token.size() <= 96 &&
+      d.empresaId is string && d.empresaId.size() >= 2 && d.empresaId.size() <= 80 &&
+      d.empresaNome is string && d.empresaNome.size() >= 1 && d.empresaNome.size() <= 120 &&
+      d.tipoNegocio is string && d.tipoNegocio.size() >= 1 && d.tipoNegocio.size() <= 40 &&
+      d.pedidoId is string && d.pedidoId.size() >= 3 && d.pedidoId.size() <= 80 &&
+      d.clientePrimeiroNome is string && d.clientePrimeiroNome.size() >= 1 && d.clientePrimeiroNome.size() <= 60 &&
+      d.identificador is string && d.identificador.size() >= 1 && d.identificador.size() <= 120 &&
+      d.servicos is list && d.servicos.size() <= 50 &&
+      d.produtos is list && d.produtos.size() <= 50 &&
+      d.valorTotal is number && d.valorTotal >= 0 && d.valorTotal <= 1000000 &&
+      d.vistoriaResumo is string && d.vistoriaResumo.size() <= 600 &&
+      d.fotoUrl is string && d.fotoUrl.size() <= 350000 &&
+      d.status in ['pendente', 'aprovado', 'ajuste_solicitado'] &&
+      d.comentarioCliente is string && d.comentarioCliente.size() <= 600 &&
+      d.criadoEm is string && d.criadoEm.size() >= 10 && d.criadoEm.size() <= 40 &&
+      d.atualizadoEm is string && d.atualizadoEm.size() >= 10 && d.atualizadoEm.size() <= 40;
+    }
+
+    function isValidAgendaPublicaConfig(d) {
+      return d.keys().hasAll([
+        'empresaId', 'empresaNome', 'tipoNegocio', 'segmentoAutomotivo',
+        'diasTrabalhoSemana', 'servicos', 'horariosOcupados', 'atualizadoEm'
+      ]) &&
+      d.keys().hasOnly([
+        'empresaId', 'empresaNome', 'icone', 'telefone', 'tipoNegocio',
+        'segmentoAutomotivo', 'diasTrabalhoSemana', 'horarioInicio',
+        'horarioFim', 'intervaloMinutos', 'servicos', 'horariosOcupados', 'atualizadoEm'
+      ]) &&
+      d.empresaId is string && d.empresaId.size() >= 2 && d.empresaId.size() <= 80 &&
+      d.empresaNome is string && d.empresaNome.size() >= 1 && d.empresaNome.size() <= 120 &&
+      d.tipoNegocio is string && d.tipoNegocio.size() >= 1 && d.tipoNegocio.size() <= 40 &&
+      d.segmentoAutomotivo is bool &&
+      d.diasTrabalhoSemana is list && d.diasTrabalhoSemana.size() <= 7 &&
+      d.servicos is list && d.servicos.size() <= 150 &&
+      d.horariosOcupados is list && d.horariosOcupados.size() <= 400 &&
+      d.atualizadoEm is string && d.atualizadoEm.size() >= 10 && d.atualizadoEm.size() <= 40;
+    }
+
+    function isValidAgendamentoPublico(d) {
+      return d.keys().hasAll([
+        'id', 'empresaId', 'clienteNome', 'clienteTelefone',
+        'data', 'hora', 'servicos', 'valor', 'status', 'criadoEm'
+      ]) &&
+      d.keys().hasOnly([
+        'id', 'empresaId', 'clienteNome', 'clienteTelefone',
+        'veiculoTipo', 'placa', 'modelo', 'cor', 'itemDescricao',
+        'data', 'hora', 'duracaoMinutos', 'servicos', 'valor',
+        'observacoes', 'status', 'criadoEm', 'atualizadoEm'
+      ]) &&
+      d.id is string && d.id.size() >= 4 && d.id.size() <= 80 &&
+      d.empresaId is string && d.empresaId.size() >= 2 && d.empresaId.size() <= 80 &&
+      d.clienteNome is string && d.clienteNome.size() >= 2 && d.clienteNome.size() <= 120 &&
+      d.clienteTelefone is string && d.clienteTelefone.size() >= 6 && d.clienteTelefone.size() <= 30 &&
+      d.data is string && d.data.size() == 10 &&
+      d.hora is string && d.hora.size() == 5 &&
+      d.servicos is string && d.servicos.size() >= 1 && d.servicos.size() <= 400 &&
+      d.valor is number && d.valor >= 0 && d.valor <= 1000000 &&
+      d.status in ['pendente_importacao', 'importado', 'cancelado'] &&
+      d.criadoEm is string && d.criadoEm.size() >= 10 && d.criadoEm.size() <= 40;
+    }
+
+    function isValidPainelTvPublico(d) {
+      return d.keys().hasAll([
+        'empresaId', 'empresaNome', 'tipoNegocio', 'segmentoAutomotivo',
+        'itens', 'atualizadoEm'
+      ]) &&
+      d.keys().hasOnly([
+        'empresaId', 'empresaNome', 'icone', 'tipoNegocio',
+        'segmentoAutomotivo', 'itens', 'atualizadoEm'
+      ]) &&
+      d.empresaId is string && d.empresaId.size() >= 2 && d.empresaId.size() <= 80 &&
+      d.empresaNome is string && d.empresaNome.size() >= 1 && d.empresaNome.size() <= 120 &&
+      d.tipoNegocio is string && d.tipoNegocio.size() >= 1 && d.tipoNegocio.size() <= 40 &&
+      d.segmentoAutomotivo is bool &&
+      d.itens is list && d.itens.size() <= 80 &&
+      d.atualizadoEm is string && d.atualizadoEm.size() >= 10 && d.atualizadoEm.size() <= 40;
+    }
+
     // Coleção global de usuários do sistema (validação de tipo e atributos mínimos)
     match /users/{userId} {
       allow read: if true;
-      allow create, update: if request.resource.data.username is string &&
-                              request.resource.data.username.size() >= 2 &&
-                              request.resource.data.empresaId is string;
-      allow delete: if true;
+      allow create, update: if isValidId(userId) &&
+                              incoming().username is string &&
+                              incoming().username.size() >= 2 &&
+                              incoming().empresaId is string;
+      allow delete: if isValidId(userId);
     }
 
     // Lista de empresas cadastradas no SaaS (validação de integridade)
     match /empresas_lista/{empresaId} {
       allow read: if true;
-      allow create, update: if request.resource.data.nome is string &&
-                              request.resource.data.nome.size() >= 2 &&
-                              request.resource.data.id is string;
-      allow delete: if true;
+      allow create, update: if isValidId(empresaId) &&
+                              incoming().nome is string &&
+                              incoming().nome.size() >= 2 &&
+                              incoming().id is string;
+      allow delete: if isValidId(empresaId);
     }
 
     // Metadados da empresa/tenant
     match /empresas/{empresaId} {
       allow read: if true;
-      allow create, update: if request.resource.data.nome is string &&
-                              request.resource.data.nome.size() >= 2;
-      allow delete: if true;
+      allow create, update: if isValidId(empresaId) &&
+                              incoming().nome is string &&
+                              incoming().nome.size() >= 2;
+      allow delete: if isValidId(empresaId);
     }
 
     // Documentos operacionais da empresa sincronizados em nuvem
     match /empresas/{empresaId}/dados/{docId} {
       allow read: if true;
-      allow create, update: if request.resource.data.data is string;
-      allow delete: if true;
+      allow create, update: if isValidId(empresaId) &&
+                              isValidId(docId) &&
+                              incoming().data is string;
+      allow delete: if isValidId(empresaId) && isValidId(docId);
+    }
+
+    // Orçamento Digital Público (sem listagem para impedir enumeração de tokens)
+    match /orcamentos_publicos/{token} {
+      allow get: if isValidId(token) && token.size() >= 16;
+      allow list: if false;
+      allow create: if isValidId(token) &&
+                      token.size() >= 16 &&
+                      isValidOrcamentoPublico(incoming()) &&
+                      incoming().token == token &&
+                      incoming().status == 'pendente';
+      allow update: if isValidId(token) &&
+                      token.size() >= 16 &&
+                      isValidOrcamentoPublico(incoming()) &&
+                      incoming().token == existing().token &&
+                      incoming().empresaId == existing().empresaId &&
+                      incoming().pedidoId == existing().pedidoId &&
+                      existing().status == 'pendente' &&
+                      incoming().status in ['aprovado', 'ajuste_solicitado'] &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['status', 'comentarioCliente', 'respondidoEm', 'atualizadoEm']);
+      allow delete: if isValidId(token) && token.size() >= 16;
+    }
+
+    // Configuração pública de autoagendamento por empresa (sem PII)
+    match /agenda_publica_config/{empresaId} {
+      allow get: if isValidId(empresaId);
+      allow list: if false;
+      allow create, update: if isValidId(empresaId) &&
+                              isValidAgendaPublicaConfig(incoming()) &&
+                              incoming().empresaId == empresaId;
+      allow delete: if isValidId(empresaId);
+    }
+
+    // Fila de pré-agendamentos públicos
+    match /agendamentos_publicos/{agId} {
+      allow get: if isValidId(agId);
+      allow list: if existing().empresaId is string && existing().empresaId.size() >= 2;
+      allow create: if isValidId(agId) &&
+                      isValidAgendamentoPublico(incoming()) &&
+                      incoming().id == agId &&
+                      incoming().status == 'pendente_importacao';
+      allow update: if isValidId(agId) &&
+                      isValidAgendamentoPublico(incoming()) &&
+                      incoming().id == existing().id &&
+                      incoming().empresaId == existing().empresaId &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['status', 'atualizadoEm']);
+      allow delete: if isValidId(agId);
+    }
+
+    // Painel TV público da sala de espera (sem PII)
+    match /painel_tv_publico/{empresaId} {
+      allow get: if isValidId(empresaId);
+      allow list: if false;
+      allow create, update: if isValidId(empresaId) &&
+                              isValidPainelTvPublico(incoming()) &&
+                              incoming().empresaId == empresaId;
+      allow delete: if isValidId(empresaId);
     }
   }
 }

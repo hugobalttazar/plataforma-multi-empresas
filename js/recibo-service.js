@@ -125,6 +125,30 @@ const ReciboService = {
 
 		const clienteNome = (pedido.cliente || 'CONSUMIDOR NÃO IDENTIFICADO').toUpperCase();
 
+		let blocoPixHTML = '';
+		const formaPgtoLower = (pedido.formaPagamento || '').toLowerCase();
+		const deveExibirQrPix = valorFinal > 0 && (formaPgtoLower.includes('pix') || formaPgtoLower.includes('prazo') || formaPgtoLower.includes('fiado'));
+		if (deveExibirQrPix && typeof window !== 'undefined' && window.PixService) {
+			const resPix = window.PixService.gerarCobrancaPixOS(pedido, valorFinal);
+			if (resPix && resPix.valido) {
+				const qrSvg = window.PixService.gerarSVG(resPix.payload, { size: 126, margin: 2 });
+				if (qrSvg) {
+					const payloadEsc = this.escaparHTML(resPix.payload);
+					blocoPixHTML = `
+						<div class="cupom-divider-dashed"></div>
+						<div class="cupom-pix-box" style="text-align:center; padding: 6px 0;">
+							<div style="font-weight:800; font-size:11px; color:#0f172a; margin-bottom:4px;">PAGAMENTO VIA PIX</div>
+							<div style="display:inline-block; background:#fff; padding:4px; border:1px solid #cbd5e1; border-radius:4px;">${qrSvg}</div>
+							<div style="font-size:9px; color:#475569; margin-top:4px;">Chave: ${this.escaparHTML(resPix.chaveNormalizada)}</div>
+							<button type="button" class="cupom-pix-copy-btn" data-pix="${payloadEsc}" onclick="navigator.clipboard && navigator.clipboard.writeText(this.getAttribute('data-pix')).then(() => { const orig = this.textContent; this.textContent = '✅ PIX Copiado!'; setTimeout(() => { this.textContent = orig; }, 1800); })" style="margin-top:6px; padding:4px 10px; font-size:10px; font-weight:700; border:1px solid #0284c7; background:#e0f2fe; color:#0369a1; border-radius:4px; cursor:pointer; font-family:inherit;">
+								📋 Copiar PIX Copia e Cola
+							</button>
+						</div>
+					`;
+				}
+			}
+		}
+
 		return `
 			<div class="cupom-fiscal-container" id="cupomImpressaoArea">
 				<!-- Cabeçalho da Empresa -->
@@ -203,9 +227,20 @@ const ReciboService = {
 					</div>
 					<div class="cupom-row">
 						<span>SITUAÇÃO:</span>
-						<strong style="color: #047857;">QUITADO / PAGO ✅</strong>
+						${(() => {
+							if (pedido.pacoteAbatido) {
+								const rest = typeof pedido.pacoteCreditosRestantes === 'number' ? ` (${pedido.pacoteCreditosRestantes} rest.)` : '';
+								return `<strong style="color: #0369a1;">PACOTE ATIVO${this.escaparHTML(rest)} ✅</strong>`;
+							}
+							if (pedido.formaPagamento === 'Faturado / A Receber' && pedido.statusFaturamento !== 'pago') {
+								return `<strong style="color: #b45309;">FATURADO (A RECEBER)</strong>`;
+							}
+							return `<strong style="color: #047857;">QUITADO / PAGO ✅</strong>`;
+						})()}
 					</div>
 				</div>
+
+				${blocoPixHTML}
 
 				<div class="cupom-divider-dashed"></div>
 
@@ -320,6 +355,9 @@ const ReciboService = {
 					.cupom-divider-dotted {
 						border-top: 1px dotted #000;
 						margin: 4px 0;
+					}
+					.cupom-pix-copy-btn {
+						display: none !important;
 					}
 					.cupom-doc-title {
 						text-align: center;
@@ -525,6 +563,17 @@ const ReciboService = {
 				y += 18; // Forma Pagamento
 				y += 18; // Valor Recebido
 				y += 18; // Situação
+
+				let pixCanvasInfo = null;
+				const formaLowerCanvas = (pedido.formaPagamento || '').toLowerCase();
+				if (valorFinal > 0 && (formaLowerCanvas.includes('pix') || formaLowerCanvas.includes('prazo') || formaLowerCanvas.includes('fiado')) && typeof window !== 'undefined' && window.PixService) {
+					const resPixCanvas = window.PixService.gerarCobrancaPixOS(pedido, valorFinal);
+					if (resPixCanvas && resPixCanvas.valido) {
+						pixCanvasInfo = resPixCanvas;
+						y += 165;
+					}
+				}
+
 				y += 20; // divisor
 
 				// Rodapé
@@ -723,7 +772,32 @@ const ReciboService = {
 
 				desenharLinhaDupla('FORMA DE PAGAMENTO:', formaPgto, true);
 				desenharLinhaDupla('VALOR RECEBIDO:', `R$ ${valorFinal.toFixed(2)}`);
-				desenharLinhaDupla('SITUAÇÃO:', 'QUITADO / PAGO ✅', true, '#047857');
+				if (pedido.pacoteAbatido) {
+					const restTxt = typeof pedido.pacoteCreditosRestantes === 'number' ? ` (${pedido.pacoteCreditosRestantes} rest.)` : '';
+					desenharLinhaDupla('SITUAÇÃO:', `ABATIDO DE PACOTE${restTxt}`, true, '#0369a1');
+				} else if (pedido.formaPagamento === 'Faturado / A Receber' && pedido.statusFaturamento !== 'pago') {
+					desenharLinhaDupla('SITUAÇÃO:', 'FATURADO (A RECEBER)', true, '#b45309');
+				} else {
+					desenharLinhaDupla('SITUAÇÃO:', 'QUITADO / PAGO ✅', true, '#047857');
+				}
+
+				if (pixCanvasInfo && typeof window !== 'undefined' && window.PixService) {
+					cursorY += 4;
+					desenharLinhaTracejada(cursorY);
+					cursorY += 16;
+					ctx.textAlign = 'center';
+					ctx.font = 'bold 11px "Courier New", monospace';
+					ctx.fillStyle = '#0f172a';
+					ctx.fillText('PAGAMENTO VIA PIX', larguraBase / 2, cursorY);
+					cursorY += 8;
+					const qrSizeCanvas = 118;
+					window.PixService.desenharNoCanvas(ctx, pixCanvasInfo.payload, (larguraBase - qrSizeCanvas) / 2, cursorY, qrSizeCanvas);
+					cursorY += qrSizeCanvas + 12;
+					ctx.font = '9px "Courier New", monospace';
+					ctx.fillStyle = '#475569';
+					ctx.fillText(`Chave: ${pixCanvasInfo.chaveNormalizada}`, larguraBase / 2, cursorY);
+					cursorY += 6;
+				}
 
 				cursorY += 4;
 				desenharLinhaTracejada(cursorY);
@@ -855,8 +929,8 @@ const ReciboService = {
 		);
 		let telLimpo = '';
 		if (clienteCadastrado && clienteCadastrado.tel1) {
-			telLimpo = clienteCadastrado.tel1.replace(/\D/g, '');
-			if (telLimpo.length >= 10 && !telLimpo.startsWith('55')) {
+			telLimpo = clienteCadastrado.tel1.replace(/\D/g, '').replace(/^0+/, '');
+			if (telLimpo.length >= 10 && telLimpo.length <= 11 && !telLimpo.startsWith('55')) {
 				telLimpo = '55' + telLimpo;
 			}
 		}
@@ -883,7 +957,7 @@ const ReciboService = {
 		const dataEmissao = this.formatarData(pedido.dataEncerramento || pedido.data || '');
 		const horaEmissao = pedido.horaEncerramento || pedido.horaEntrada || '';
 
-		let msg = `*🧾 COMPROVANTE DE PAGAMENTO / RECIBO*\n`;
+		let msg = `*📄 COMPROVANTE DE PAGAMENTO / RECIBO*\n`;
 		msg += `*${nomeEmpresa.toUpperCase()}*\n`;
 		if (config.telefone) msg += `📞 Contato: ${config.telefone}\n`;
 		msg += `------------------------------------\n`;
@@ -893,16 +967,26 @@ const ReciboService = {
 		msg += `*Item/Veículo:* ${pedido.placa || ''} ${pedido.modelo ? `(${pedido.modelo})` : ''}\n`;
 		msg += `*Serviços:* ${servicos}\n`;
 		msg += `------------------------------------\n`;
+		const statusMsg = pedido.pacoteAbatido
+			? `PACOTE ATIVO (${typeof pedido.pacoteCreditosRestantes === 'number' ? pedido.pacoteCreditosRestantes + ' créditos rest.' : 'Abatido'}) ✅`
+			: (pedido.formaPagamento === 'Faturado / A Receber' && pedido.statusFaturamento !== 'pago'
+				? 'FATURADO (A RECEBER)'
+				: 'QUITADO / PAGO ✅');
 		msg += `*VALOR TOTAL:* R$ ${valorFinal}\n`;
 		msg += `*Forma de Pagamento:* ${formaPgto}\n`;
-		msg += `*Status:* QUITADO / PAGO ✅\n`;
+		msg += `*Status:* ${statusMsg}\n`;
 		msg += `------------------------------------\n`;
 		msg += `_Obrigado pela preferência! Volte sempre._`;
 
 		const textoEncoded = encodeURIComponent(msg);
-		let urlWhatsApp = `https://api.whatsapp.com/send?text=${textoEncoded}`;
+		const isDesktop = typeof navigator !== 'undefined' && !/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent || '');
+		const canalSalvo = localStorage.getItem('whatsapp_canal_preferido');
+		const baseUrl = (isDesktop && canalSalvo === 'web')
+			? 'https://web.whatsapp.com/send'
+			: 'https://api.whatsapp.com/send';
+		let urlWhatsApp = `${baseUrl}?text=${textoEncoded}`;
 		if (telLimpo) {
-			urlWhatsApp = `https://api.whatsapp.com/send?phone=${telLimpo}&text=${textoEncoded}`;
+			urlWhatsApp = `${baseUrl}?phone=${telLimpo}&text=${textoEncoded}`;
 		}
 
 		window.open(urlWhatsApp, '_blank');

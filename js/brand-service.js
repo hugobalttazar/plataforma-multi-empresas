@@ -100,6 +100,8 @@ const BrandService = {
 			tipoNegocioCustom: config.tipoNegocioCustom || '',
 			telefone: config.telefone || (empresa ? (empresa.telefone || '') : ''),
 			endereco: config.endereco || '',
+			chavePix: config.chavePix || config.pix || '',
+			cidadePix: config.cidadePix || '',
 			responsavel: config.responsavel || (empresa ? (empresa.adminNome || '') : ''),
 			iconeCustom: config.iconeCustom || iconePadrao,
 			metaMensal: parseFloat(config.metaMensal || 0),

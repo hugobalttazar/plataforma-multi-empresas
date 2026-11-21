@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+		<title>Orçamento Digital | Aprovação do Cliente</title>
+		<meta name="description" content="Visualize e aprove o seu orçamento de serviço diretamente pelo celular." />
+		<link rel="icon" type="image/svg+xml" href="icon.svg" />
+		<meta name="theme-color" content="#0f172a" />
+		<style>
+			:root {
+				--bg: #f1f5f9;
+				--card: #ffffff;
+				--text: #0f172a;
+				--muted: #475569;
+				--border: #cbd5e1;
+				--primary: #0284c7;
+				--primary-dark: #0369a1;
+				--success: #16a34a;
+				--success-bg: #dcfce7;
+				--warning: #d97706;
+				--warning-bg: #fef3c7;
+				--danger: #dc2626;
+			}
+			* { box-sizing: border-box; }
+			body {
+				margin: 0;
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+				background: var(--bg);
+				color: var(--text);
+				line-height: 1.5;
+				padding: 16px 12px 40px;
+			}
+			.wrap {
+				max-width: 640px;
+				margin: 0 auto;
+				display: flex;
+				flex-direction: column;
+				gap: 14px;
+			}
+			.header-card {
+				background: #0f172a;
+				color: #f8fafc;
+				border-radius: 14px;
+				padding: 18px 20px;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 12px;
+			}
+			.brand-left {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+			}
+			.brand-ico {
+				width: 44px;
+				height: 44px;
+				border-radius: 10px;
+				background: rgba(255,255,255,0.12);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 1.5rem;
+				flex-shrink: 0;
+			}
+			.brand-name {
+				font-size: 1.1rem;
+				font-weight: 800;
+				margin: 0;
+			}
+			.brand-sub {
+				font-size: 0.82rem;
+				color: #94a3b8;
+			}
+			.card {
+				background: var(--card);
+				border: 1px solid var(--border);
+				border-radius: 14px;
+				padding: 18px 20px;
+				box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+			}
+			.status-banner {
+				border-radius: 10px;
+				padding: 12px 14px;
+				font-weight: 700;
+				font-size: 0.92rem;
+				display: flex;
+				align-items: center;
+				gap: 10px;
+			}
+			.status-pendente { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+			.status-aprovado { background: var(--success-bg); border: 1px solid #86efac; color: #166534; }
+			.status-ajuste { background: var(--warning-bg); border: 1px solid #fde68a; color: #92400e; }
+			.info-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+				gap: 10px;
+				margin-top: 12px;
+			}
+			.info-box {
+				background: #f8fafc;
+				border: 1px solid #e2e8f0;
+				border-radius: 10px;
+				padding: 10px 12px;
+			}
+			.info-label {
+				font-size: 0.74rem;
+				text-transform: uppercase;
+				letter-spacing: 0.04em;
+				color: var(--muted);
+				font-weight: 700;
+			}
+			.info-val {
+				font-size: 0.98rem;
+				font-weight: 700;
+				color: var(--text);
+				margin-top: 2px;
+			}
+			.section-title {
+				font-size: 0.92rem;
+				font-weight: 800;
+				text-transform: uppercase;
+				letter-spacing: 0.03em;
+				color: var(--muted);
+				margin: 0 0 10px;
+			}
+			.item-row {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 12px;
+				padding: 9px 0;
+				border-bottom: 1px solid #e2e8f0;
+				font-size: 0.95rem;
+			}
+			.item-row:last-child { border-bottom: none; }
+			.money {
+				font-variant-numeric: tabular-nums;
+				font-weight: 700;
+				white-space: nowrap;
+			}
+			.total-box {
+				margin-top: 12px;
+				padding-top: 12px;
+				border-top: 2px solid #cbd5e1;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+			.total-val {
+				font-size: 1.45rem;
+				font-weight: 900;
+				color: #0369a1;
+				font-variant-numeric: tabular-nums;
+			}
+			.foto-preview {
+				width: 100%;
+				max-height: 280px;
+				object-fit: cover;
+				border-radius: 10px;
+				border: 1px solid var(--border);
+				margin-top: 8px;
+			}
+			.actions-stack {
+				display: flex;
+				flex-direction: column;
+				gap: 10px;
+			}
+			.btn-pub {
+				min-height: 48px;
+				border-radius: 10px;
+				border: none;
+				font-size: 1rem;
+				font-weight: 700;
+				cursor: pointer;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				gap: 8px;
+				padding: 12px 16px;
+				width: 100%;
+			}
+			.btn-pub:disabled { opacity: 0.55; cursor: not-allowed; }
+			.btn-aprovar { background: var(--success); color: #ffffff; }
+			.btn-ajuste { background: #ffffff; color: #92400e; border: 2px solid #f59e0b; }
+			.btn-enviar-ajuste { background: #d97706; color: #ffffff; }
+			textarea {
+				width: 100%;
+				min-height: 92px;
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				padding: 10px 12px;
+				font-family: inherit;
+				font-size: 0.95rem;
+				resize: vertical;
+			}
+			.feedback-msg {
+				margin-top: 10px;
+				padding: 10px 12px;
+				border-radius: 8px;
+				font-size: 0.9rem;
+				font-weight: 600;
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<main class="wrap">
+			<header class="header-card">
+				<div class="brand-left">
+					<div class="brand-ico" id="orcEmpresaIcone">🛠️</div>
+					<div>
+						<h1 class="brand-name" id="orcEmpresaNome">Carregando orçamento...</h1>
+						<div class="brand-sub">Orçamento Digital do Atendimento</div>
+					</div>
+				</div>
+			</header>
+
+			<div id="orcLoading" class="card" style="text-align: center; padding: 36px 20px; color: var(--muted);">
+				Carregando detalhes do orçamento...
+			</div>
+
+			<div id="orcErro" class="card" style="display: none; text-align: center; padding: 32px 20px;">
+				<div style="font-size: 2rem; margin-bottom: 8px;">🔍</div>
+				<strong style="display: block; font-size: 1.05rem; margin-bottom: 6px;">Orçamento não encontrado</strong>
+				<p style="margin: 0; color: var(--muted); font-size: 0.92rem;" id="orcErroTexto">
+					Verifique se o link foi copiado por completo ou solicite um novo link ao estabelecimento.
+				</p>
+			</div>
+
+			<div id="orcConteudo" style="display: none; flex-direction: column; gap: 14px;">
+				<div class="card">
+					<div id="orcStatusBanner" class="status-banner status-pendente">
+						<span>⏳</span>
+						<span>Aguardando sua aprovação</span>
+					</div>
+
+					<div class="info-grid">
+						<div class="info-box">
+							<div class="info-label">Cliente</div>
+							<div class="info-val" id="orcClienteNome">-</div>
+						</div>
+						<div class="info-box">
+							<div class="info-label" id="orcIdentLabel">Identificação</div>
+							<div class="info-val" id="orcIdentValor">-</div>
+						</div>
+						<div class="info-box">
+							<div class="info-label">Data</div>
+							<div class="info-val" id="orcData">-</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card">
+					<h2 class="section-title">Serviços e Produtos Previstos</h2>
+					<div id="orcListaItens"></div>
+					<div class="total-box">
+						<strong style="font-size: 1rem;">Total Previsto</strong>
+						<span class="total-val" id="orcValorTotal">R$ 0,00</span>
+					</div>
+				</div>
+
+				<div class="card" id="orcCardVistoria">
+					<h2 class="section-title">Vistoria & Observações de Entrada</h2>
+					<p id="orcVistoriaTexto" style="margin: 0; font-size: 0.93rem; color: var(--muted);">-</p>
+					<img id="orcFotoImg" class="foto-preview" alt="Registro do atendimento" style="display: none;" />
+				</div>
+
+				<div class="card" id="orcCardAcoes">
+					<h2 class="section-title">Sua Decisão</h2>
+					<div id="orcBotoesAcao" class="actions-stack">
+						<button type="button" class="btn-pub btn-aprovar" id="btnAprovarOrcamento">
+							✅ Aprovar Orçamento e Autorizar Serviço
+						</button>
+						<button type="button" class="btn-pub btn-ajuste" id="btnAbrirAjusteOrcamento">
+							✏️ Solicitar Ajuste / Enviar Observação
+						</button>
+					</div>
+
+					<div id="orcBoxAjuste" style="display: none; margin-top: 12px;">
+						<label for="orcComentarioAjuste" style="display: block; font-weight: 700; font-size: 0.9rem; margin-bottom: 6px;">
+							Descreva o ajuste desejado:
+						</label>
+						<textarea id="orcComentarioAjuste" maxlength="550" placeholder="Ex: Gostaria de fazer apenas a lavagem simples hoje, ou incluir higienização interna..."></textarea>
+						<div style="display: flex; gap: 8px; margin-top: 10px;">
+							<button type="button" class="btn-pub btn-enviar-ajuste" id="btnConfirmarAjuste">
+								Enviar Solicitação de Ajuste
+							</button>
+						</div>
+					</div>
+
+					<div id="orcRespostaRegistrada" style="display: none; margin-top: 8px; font-size: 0.92rem; color: var(--muted);"></div>
+					<div id="orcFeedbackMsg" class="feedback-msg"></div>
+				</div>
+			</div>
+		</main>
+
+		<script type="module" src="js/orcamento-publico.js"></script>
+	</body>
+</html>

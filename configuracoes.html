@@ -286,6 +286,25 @@
 												placeholder="Rua, número, bairro, cidade - UF" />
 											<span class="field-helper">Endereço físico de atendimento.</span>
 										</div>
+
+										<div class="form-group">
+											<label for="cfgChavePix">🔑 Chave PIX Recebedora</label>
+											<input
+												type="text"
+												id="cfgChavePix"
+												placeholder="CPF, CNPJ, E-mail, Celular ou Chave Aleatória" />
+											<span class="field-helper">Gera QR Code e Copia e Cola com valor exato nas O.S. e recibos.</span>
+										</div>
+
+										<div class="form-group">
+											<label for="cfgCidadePix">Cidade para o QR Code PIX</label>
+											<input
+												type="text"
+												id="cfgCidadePix"
+												maxlength="15"
+												placeholder="Ex: Sao Paulo" />
+											<span class="field-helper">Nome da cidade (sem acentos, até 15 letras) exigido pelo padrão PIX.</span>
+										</div>
 									</div>
 								</div>
 
@@ -623,10 +642,11 @@
 					
 					<div id="abaConteudoUsuarios" style="display: none;">
 						<div class="settings-section-card">
-							<div class="settings-section-header">
+							<div class="settings-section-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
 								<h2 class="settings-section-title">
 									<span>👥 Controle de Acesso e Usuários</span>
 								</h2>
+								<span id="badgeLimiteUsuariosConfig" class="badge" style="background:var(--primary-light); color:var(--primary); font-variant-numeric:tabular-nums;"></span>
 							</div>
 							
 							<!-- Form Cadastro/Edição de Usuário -->
@@ -857,14 +877,37 @@
 												<th>Profissional</th>
 												<th>Função</th>
 												<th>Qtd Serviços</th>
-												<th>Faturamento Total</th>
-												<th>Comissão Total a Pagar</th>
+												<th>Faturamento</th>
+												<th>Pendente / Já Pago</th>
+												<th style="text-align: center;">Quitar Comissão</th>
 											</tr>
 										</thead>
 										<tbody id="corpoTabelaComissoes">
 											<!-- Preenchido via JS -->
 										</tbody>
 									</table>
+								</div>
+
+								<div style="margin-top: 22px;">
+									<h4 style="font-size: 0.9rem; font-weight: 700; color: var(--text-main); margin: 0 0 10px 0;">
+										🧾 Histórico de Pagamentos de Comissões (Integrado ao Caixa)
+									</h4>
+									<div class="table-responsive" style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); overflow-x: auto;">
+										<table class="tabela" style="width: 100%; font-size: 0.83rem; border: none;">
+											<thead>
+												<tr>
+													<th>Data</th>
+													<th>Profissional</th>
+													<th>Qtd O.S.</th>
+													<th>Valor Pago</th>
+													<th>Registrado por</th>
+												</tr>
+											</thead>
+											<tbody id="corpoTabelaPagamentosComissao">
+												<!-- Preenchido via JS -->
+											</tbody>
+										</table>
+									</div>
 								</div>
 							</div>
 						</div>
@@ -1012,6 +1055,7 @@
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('agendamento', '{link_agenda}')">📆 {link_agenda}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('agendamento', '{nome_empresa}')">🏢 {nome_empresa}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('agendamento', '{chave_pix}')">🔑 {chave_pix}</button>
+											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('agendamento', '{pix_copia_cola}')">📱 {pix_copia_cola}</button>
 										</div>
 									</div>
 
@@ -1069,6 +1113,7 @@
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('pronto', '{valor_total}')" style="background: #fef3c7; border-color: #fde68a; color: #92400e;">💰 {valor_total}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('pronto', '{nome_empresa}')">🏢 {nome_empresa}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('pronto', '{chave_pix}')">🔑 {chave_pix}</button>
+											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('pronto', '{pix_copia_cola}')">📱 {pix_copia_cola}</button>
 										</div>
 									</div>
 
@@ -1130,6 +1175,7 @@
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('recibo', '{nome_empresa}')">🏢 {nome_empresa}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('recibo', '{telefone_empresa}')">📞 {telefone_empresa}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('recibo', '{chave_pix}')">🔑 {chave_pix}</button>
+											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('recibo', '{pix_copia_cola}')">📱 {pix_copia_cola}</button>
 										</div>
 									</div>
 
@@ -1393,6 +1439,7 @@
 		<script src="js/backup-service.js"></script>
 		<script src="js/caixa-service.js"></script>
 		<script src="js/equipe-service.js"></script>
+		<script src="js/pix-service.js"></script>
 		<script src="js/whatsapp-service.js"></script>
 		<script src="js/configuracoes.js"></script>
 		<script>
@@ -1411,6 +1458,15 @@
 				}
 				const corpo = document.getElementById('corpoTabelaUsuarios');
 				if (!corpo) return;
+
+				const badgeLim = document.getElementById('badgeLimiteUsuariosConfig');
+				if (badgeLim && window.SaasGuard && window.EmpresaService) {
+					const emp = window.EmpresaService.getEmpresaAtiva();
+					const chk = window.SaasGuard.verificarLimiteUsuarios({ empresa: emp, usuariosDaEmpresa: users, editando: false });
+					badgeLim.textContent = `Plano ${chk.planoNome}: ${chk.qtdAtual}/${chk.limite} usuário(s)`;
+					badgeLim.style.background = chk.permitido ? 'var(--primary-light)' : '#fef3c7';
+					badgeLim.style.color = chk.permitido ? 'var(--primary)' : '#92400e';
+				}
 
 				corpo.innerHTML = '';
 				

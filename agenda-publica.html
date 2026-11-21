@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+		<title>Autoagendamento Online</title>
+		<meta name="description" content="Escolha o serviço, a data e o melhor horário para o seu atendimento." />
+		<link rel="icon" type="image/svg+xml" href="icon.svg" />
+		<meta name="theme-color" content="#0f172a" />
+		<style>
+			:root {
+				--bg: #f1f5f9;
+				--card: #ffffff;
+				--text: #0f172a;
+				--muted: #475569;
+				--border: #cbd5e1;
+				--primary: #0284c7;
+				--success: #16a34a;
+			}
+			* { box-sizing: border-box; }
+			body {
+				margin: 0;
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+				background: var(--bg);
+				color: var(--text);
+				line-height: 1.5;
+				padding: 16px 12px 48px;
+			}
+			.wrap {
+				max-width: 680px;
+				margin: 0 auto;
+				display: flex;
+				flex-direction: column;
+				gap: 14px;
+			}
+			.header-card {
+				background: #0f172a;
+				color: #f8fafc;
+				border-radius: 14px;
+				padding: 18px 20px;
+				display: flex;
+				align-items: center;
+				gap: 12px;
+			}
+			.brand-ico {
+				width: 46px;
+				height: 46px;
+				border-radius: 10px;
+				background: rgba(255,255,255,0.12);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 1.5rem;
+				flex-shrink: 0;
+			}
+			.card {
+				background: var(--card);
+				border: 1px solid var(--border);
+				border-radius: 14px;
+				padding: 18px 20px;
+				box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+			}
+			.section-title {
+				font-size: 0.92rem;
+				font-weight: 800;
+				text-transform: uppercase;
+				letter-spacing: 0.03em;
+				color: var(--muted);
+				margin: 0 0 12px;
+			}
+			.field {
+				margin-bottom: 12px;
+			}
+			label {
+				display: block;
+				font-weight: 700;
+				font-size: 0.88rem;
+				margin-bottom: 4px;
+			}
+			input, select, textarea {
+				width: 100%;
+				min-height: 44px;
+				padding: 10px 12px;
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				font-size: 0.96rem;
+				font-family: inherit;
+				background: #ffffff;
+				color: var(--text);
+			}
+			.grid-2 {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+				gap: 12px;
+			}
+			.servicos-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+				gap: 8px;
+			}
+			.srv-option {
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				padding: 10px 12px;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 8px;
+				cursor: pointer;
+				min-height: 46px;
+				background: #f8fafc;
+			}
+			.srv-option.selected {
+				background: #eff6ff;
+				border-color: var(--primary);
+				box-shadow: inset 0 0 0 1px var(--primary);
+			}
+			.srv-price {
+				font-variant-numeric: tabular-nums;
+				font-weight: 700;
+				color: #0369a1;
+				white-space: nowrap;
+			}
+			.slots-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+				gap: 8px;
+				margin-top: 8px;
+			}
+			.slot-btn {
+				min-height: 44px;
+				border-radius: 8px;
+				border: 1px solid var(--border);
+				background: #ffffff;
+				font-weight: 700;
+				font-size: 0.92rem;
+				font-variant-numeric: tabular-nums;
+				cursor: pointer;
+				color: var(--text);
+			}
+			.slot-btn.selected {
+				background: var(--primary);
+				color: #ffffff;
+				border-color: var(--primary);
+			}
+			.slot-btn:disabled {
+				background: #e2e8f0;
+				color: #94a3b8;
+				text-decoration: line-through;
+				cursor: not-allowed;
+			}
+			.btn-submit {
+				min-height: 50px;
+				width: 100%;
+				border: none;
+				border-radius: 10px;
+				background: var(--success);
+				color: #ffffff;
+				font-size: 1.02rem;
+				font-weight: 800;
+				cursor: pointer;
+			}
+			.btn-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+			.alert-box {
+				padding: 10px 12px;
+				border-radius: 8px;
+				font-size: 0.9rem;
+				font-weight: 600;
+				display: none;
+				margin-top: 10px;
+			}
+		</style>
+	</head>
+	<body>
+		<main class="wrap">
+			<header class="header-card">
+				<div class="brand-ico" id="agPubIcone">📅</div>
+				<div>
+					<h1 style="margin:0; font-size:1.15rem; font-weight:800;" id="agPubEmpresaNome">Carregando agenda...</h1>
+					<div style="font-size:0.84rem; color:#94a3b8;">Autoagendamento Online</div>
+				</div>
+			</header>
+
+			<div id="agPubLoading" class="card" style="text-align:center; padding:32px; color:var(--muted);">
+				Carregando horários e serviços disponíveis...
+			</div>
+
+			<div id="agPubErro" class="card" style="display:none; text-align:center; padding:32px;">
+				<strong style="display:block; margin-bottom:6px;">Agenda indisponível</strong>
+				<p id="agPubErroTexto" style="margin:0; color:var(--muted); font-size:0.92rem;">Estabelecimento não encontrado.</p>
+			</div>
+
+			<form id="formAgendaPublica" style="display:none; flex-direction:column; gap:14px;">
+				<div class="card">
+					<h2 class="section-title">1. Escolha os Serviços</h2>
+					<div id="agPubServicosGrid" class="servicos-grid"></div>
+					<div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center; font-weight:700;">
+						<span>Valor estimado:</span>
+						<span id="agPubTotal" style="font-size:1.2rem; color:#0369a1; font-variant-numeric:tabular-nums;">R$ 0,00</span>
+					</div>
+				</div>
+
+				<div class="card">
+					<h2 class="section-title">2. Escolha Data e Horário</h2>
+					<div class="field">
+						<label for="agPubData">Data desejada *</label>
+						<input type="date" id="agPubData" required />
+					</div>
+					<div id="agPubDiaAviso" style="display:none; color:#b45309; background:#fef3c7; border:1px solid #fde68a; border-radius:8px; padding:10px 12px; font-size:0.88rem; font-weight:600;"></div>
+					<div id="agPubSlotsGrid" class="slots-grid"></div>
+					<input type="hidden" id="agPubHoraSelecionada" value="" />
+				</div>
+
+				<div class="card">
+					<h2 class="section-title">3. Seus Dados</h2>
+					<div class="grid-2">
+						<div class="field">
+							<label for="agPubNome">Seu Nome *</label>
+							<input type="text" id="agPubNome" required maxlength="100" placeholder="Ex: João Silva" />
+						</div>
+						<div class="field">
+							<label for="agPubTelefone">WhatsApp / Telefone *</label>
+							<input type="tel" id="agPubTelefone" required maxlength="25" placeholder="(00) 00000-0000" />
+						</div>
+					</div>
+
+					<div id="agPubCamposAuto" class="grid-2" style="display:none;">
+						<div class="field">
+							<label for="agPubPlaca">Placa do Veículo</label>
+							<input type="text" id="agPubPlaca" maxlength="8" style="text-transform:uppercase; font-weight:700;" placeholder="ABC1D23" />
+						</div>
+						<div class="field">
+							<label for="agPubModelo">Modelo do Veículo</label>
+							<input type="text" id="agPubModelo" maxlength="60" placeholder="Ex: Onix, Civic, CG 160..." />
+						</div>
+					</div>
+
+					<div id="agPubCamposOutro" class="field" style="display:none;">
+						<label for="agPubItemDesc">Detalhe do Atendimento (Opcional)</label>
+						<input type="text" id="agPubItemDesc" maxlength="80" placeholder="Ex: Cabelo e Barba, Banho e Tosa..." />
+					</div>
+
+					<div class="field" style="margin-bottom:0;">
+						<label for="agPubObs">Observações (Opcional)</label>
+						<input type="text" id="agPubObs" maxlength="200" placeholder="Alguma preferência ou observação?" />
+					</div>
+				</div>
+
+				<div class="card">
+					<button type="submit" id="btnConfirmarAgendaPub" class="btn-submit">
+						✅ Confirmar Pré-Agendamento
+					</button>
+					<div id="agPubFeedback" class="alert-box"></div>
+				</div>
+			</form>
+
+			<div id="agPubSucesso" class="card" style="display:none; text-align:center; padding:28px 20px;">
+				<div style="font-size:2.4rem; margin-bottom:8px;">✅</div>
+				<h2 style="margin:0 0 8px; color:#166534;">Agendamento Enviado!</h2>
+				<p id="agPubResumoSucesso" style="margin:0 0 16px; color:var(--muted); font-size:0.95rem;"></p>
+				<button type="button" class="btn-submit" style="background:var(--primary);" id="btnNovoAgPub">
+					Fazer Outro Agendamento
+				</button>
+			</div>
+		</main>
+
+		<script type="module" src="js/agenda-publica.js"></script>
+	</body>
+</html>

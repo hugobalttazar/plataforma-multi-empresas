@@ -493,6 +493,10 @@ if (agendamentoForm) {
 	agendamentoForm.addEventListener('submit', async (e) => {
 		e.preventDefault();
 
+		if (window.SaasGuard && !window.SaasGuard.bloquearSeSuspenso('novo agendamento')) {
+			return;
+		}
+
 		const servicosSelecionados = Array.from(agendamentoServico.selectedOptions).map((o) => o.value).join(', ');
 		const valorNum = parseFloat(agendamentoValor.value || 0);
 
@@ -558,6 +562,9 @@ if (agendamentoForm) {
 		if (agendamentoHora) agendamentoHora.value = '09:00';
 		atualizarPreviewCorAgendamento();
 		renderizarListaAgendamentos();
+		if (window.PublicoService) {
+			window.PublicoService.publicarAgendaPublicaConfig(agendamentos).catch(() => {});
+		}
 		
 		const toast = document.getElementById('toastSucessoAgendamento');
 		if (toast) {
@@ -628,19 +635,32 @@ function renderizarListaAgendamentos() {
 		// Link e ação de WhatsApp com modal de pré-visualização e modelo personalizado
 		const linkCalendarWeb = typeof GoogleCalendarService !== 'undefined' ? GoogleCalendarService.gerarLinkWebCalendar(ag) : '#';
 
+		const isAuto = isSegmentoAutomotivoAg();
+		const identCelula = isAuto
+			? `
+				<div class="veiculo-info-cell">
+					${renderizarIconeCarro(corObj, 26, ag.veiculoTipo)}
+					<div class="veiculo-meta">
+						<span class="badge-placa">${esc(ag.placa || 'SEM PLACA')}</span>
+						<span class="veiculo-cor-nome">${esc(corObj.nome)}${modeloTexto}</span>
+					</div>
+				</div>
+			`
+			: `
+				<div>
+					<strong style="color:var(--text-main);">${esc(ag.itemDescricao || ag.modelo || 'Atendimento')}</strong>
+					${ag.origem === 'publico' ? '<div><span class="badge" style="background:#eff6ff; color:#1d4ed8; font-size:0.72rem;">🌐 Autoagendamento</span></div>' : ''}
+				</div>
+			`;
+
 		tr.innerHTML = `
 			<td>
 				<div style="font-weight:700; color:var(--text-main); font-size: 0.95rem;">${esc(ag.hora)}</div>
 				<small style="color:var(--text-muted); font-size:0.8rem;">${formatarDataBR(ag.data)} (${ag.duracaoMinutos || 60}m)</small>
 			</td>
 			<td>
-				<div class="veiculo-info-cell">
-					${renderizarIconeCarro(corObj, 26, ag.veiculoTipo)}
-					<div class="veiculo-meta">
-						<span class="badge-placa">${esc(ag.placa)}</span>
-						<span class="veiculo-cor-nome">${esc(corObj.nome)}${modeloTexto}</span>
-					</div>
-				</div>
+				${identCelula}
+				${isAuto && ag.origem === 'publico' ? '<span class="badge" style="background:#eff6ff; color:#1d4ed8; font-size:0.7rem; margin-top:4px;">🌐 Autoagendamento</span>' : ''}
 			</td>
 			<td>
 				<div style="font-weight:600; color:var(--text-main);">${esc(ag.clienteNome)}</div>
@@ -726,6 +746,9 @@ window.cancelarAgendamento = function (id) {
 	ag.status = 'cancelado';
 	salvarAgendamentos(agendamentos);
 	renderizarListaAgendamentos();
+	if (window.PublicoService) {
+		window.PublicoService.publicarAgendaPublicaConfig(agendamentos).catch(() => {});
+	}
 };
 
 // Modal de Reagendamento
@@ -814,6 +837,44 @@ document.addEventListener('DOMContentLoaded', () => {
 		else filtroDataAgendamento.value = obterDataHojeISO();
 	}
 	renderizarListaAgendamentos();
+
+	// Sincronização Pública de Autoagendamento
+	const syncAgendaPublica = () => {
+		if (!window.PublicoService) return;
+		window.PublicoService.publicarAgendaPublicaConfig().catch(() => {});
+		window.PublicoService.iniciarListenerAgendamentosPublicos((qtd) => {
+			renderizarListaAgendamentos();
+			if (window.UI && qtd > 0) {
+				window.UI.toast(`${qtd} novo(s) pré-agendamento(s) online recebido(s)!`, 'info', 4500);
+			}
+		});
+	};
+	setTimeout(syncAgendaPublica, 450);
+
+	const btnLinkAgendaPub = document.getElementById('btnCopiarLinkAgendaPublica');
+	if (btnLinkAgendaPub) {
+		btnLinkAgendaPub.addEventListener('click', async () => {
+			if (!window.PublicoService) return;
+			try {
+				await window.PublicoService.publicarAgendaPublicaConfig();
+				const link = window.PublicoService.obterLinkAgendaPublica();
+				if (navigator.clipboard && navigator.clipboard.writeText) {
+					await navigator.clipboard.writeText(link);
+				}
+				if (window.UI) window.UI.toast(`Link de Autoagendamento copiado: ${link}`, 'success', 4500);
+			} catch (err) {
+				if (window.UI) window.UI.toast('Não foi possível sincronizar o link agora.', 'warning');
+			}
+		});
+	}
+
+	window.addEventListener('cloudDataChanged', (e) => {
+		if (['servicos', 'agendamentos', 'config_negocio'].includes(e?.detail)) {
+			popularServicosAgendamento();
+			renderizarListaAgendamentos();
+			if (window.PublicoService) window.PublicoService.publicarAgendaPublicaConfig().catch(() => {});
+		}
+	});
 });
 
 // Abertura do modal interativo de WhatsApp (Ideia 2 combinada com Ideia 1)
@@ -830,9 +891,14 @@ function abrirDisparoWhatsAppAgendamento(agId) {
 			titulo: 'Confirmar / Lembrar Agendamento'
 		});
 	} else {
-		const telLimpo = (ag.clienteTelefone || '').replace(/\D/g, '');
+		let telLimpo = (ag.clienteTelefone || '').replace(/\D/g, '').replace(/^0+/, '');
+		if (telLimpo && !telLimpo.startsWith('55') && telLimpo.length <= 11) telLimpo = `55${telLimpo}`;
 		const msg = `Olá ${ag.clienteNome}! Confirmamos o seu agendamento em ${formatarDataBR(ag.data)} às ${ag.hora}.`;
-		window.open(`https://wa.me/55${telLimpo}?text=${encodeURIComponent(msg)}`, '_blank');
+		const isDesktop = !/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent || '');
+		const canalSalvo = localStorage.getItem('whatsapp_canal_preferido');
+		const baseUrl = (isDesktop && canalSalvo === 'web') ? 'https://web.whatsapp.com/send' : 'https://api.whatsapp.com/send';
+		const url = telLimpo ? `${baseUrl}?phone=${telLimpo}&text=${encodeURIComponent(msg)}` : `${baseUrl}?text=${encodeURIComponent(msg)}`;
+		window.open(url, '_blank');
 	}
 }
 

@@ -381,6 +381,10 @@ document.addEventListener('DOMContentLoaded', () => {
 	form.addEventListener('submit', (e) => {
 		e.preventDefault();
 
+		if (editIndex === null && window.SaasGuard && !window.SaasGuard.bloquearSeSuspenso('cadastrar cliente')) {
+			return;
+		}
+
 		// Se o usuário preencheu um veículo nos campos mas esqueceu de clicar "+ Adicionar Veículo", incorpora automaticamente
 		if (segmentoAuto && ((veiculoPlacaInput && veiculoPlacaInput.value.trim()) || (veiculoModeloInput && veiculoModeloInput.value.trim()))) {
 			const ok = adicionarOuAtualizarVeiculoNaLista();

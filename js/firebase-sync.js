@@ -1,9 +1,10 @@
 import { db, doc, setDoc, getDoc, onSnapshot } from './firebase-init.js';
 
 const COLLECTIONS = [
-    'clientes', 'servicos', 'pedidos', 'caixas_fechados', 'caixa_atual', 'caixa_saidas',
+    'clientes', 'servicos', 'pedidos', 'caixas_fechados', 'caixa_atual', 'caixa_saidas', 'caixa_entradas',
     'config_negocio', 'agendamentos', 'estoque_produtos', 'equipe_membros', 
-    'fidelidade_config', 'vistorias_pedidos', 'usuarios'
+    'comissoes_pagamentos', 'fidelidade_config', 'fidelidade_lembretes', 'vistorias_pedidos',
+    'pacotes_planos', 'pacotes_clientes', 'contas_financeiras', 'faturamentos_lotes', 'usuarios'
 ];
 
 let isSyncing = false;
@@ -237,6 +238,7 @@ window.addEventListener('cloudDataChanged', (e) => {
     if (key === 'agendamentos' && typeof window.renderizarAgenda === 'function') window.renderizarAgenda();
     if (key === 'equipe_membros' && typeof window.renderizarEquipe === 'function') window.renderizarEquipe();
     if (key === 'estoque_produtos' && typeof window.renderizarEstoque === 'function') window.renderizarEstoque();
+    if ((key === 'pacotes_planos' || key === 'pacotes_clientes' || key === 'contas_financeiras' || key === 'faturamentos_lotes' || key === 'caixa_entradas') && typeof window.carregarDadosCaixa === 'function') window.carregarDadosCaixa();
     if (key === 'usuarios' && typeof window.renderizarUsuarios === 'function') window.renderizarUsuarios();
 });
 

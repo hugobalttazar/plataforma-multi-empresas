@@ -11,9 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
 	mascararCamposNegocio();
 	inicializarStatusFirebaseUI();
 
-	// Suporte a abertura direta de abas via query string (?aba=equipe) ou hash (#equipe)
+	// Suporte a abertura direta de abas via query string (?aba=equipe ou ?tab=equipe) ou hash (#equipe)
 	const urlParams = new URLSearchParams(window.location.search);
-	const abaUrl = urlParams.get('aba');
+	const abaUrl = urlParams.get('aba') || urlParams.get('tab');
 	const hashUrl = window.location.hash ? window.location.hash.replace('#', '') : null;
 	const abaDestino = abaUrl || hashUrl;
 	if (abaDestino && ['negocio', 'database', 'usuarios', 'equipe', 'mensagens'].includes(abaDestino)) {
@@ -137,6 +137,8 @@ function carregarFormularioNegocio() {
 	const elTel = document.getElementById('cfgTelefone');
 	const elResp = document.getElementById('cfgResponsavel');
 	const elEnd = document.getElementById('cfgEndereco');
+	const elChavePix = document.getElementById('cfgChavePix');
+	const elCidadePix = document.getElementById('cfgCidadePix');
 
 	const tipoAtual = config.tipoNegocio || 'lava_jato';
 
@@ -148,6 +150,8 @@ function carregarFormularioNegocio() {
 	if (elTel) elTel.value = config.telefone || '';
 	if (elResp) elResp.value = config.responsavel || '';
 	if (elEnd) elEnd.value = config.endereco || '';
+	if (elChavePix) elChavePix.value = config.chavePix || '';
+	if (elCidadePix) elCidadePix.value = config.cidadePix || '';
 
 	if (elRowCustom) {
 		elRowCustom.style.display = (tipoAtual === 'geral') ? 'flex' : 'none';
@@ -307,6 +311,8 @@ function salvarConfiguracaoNegocio(e) {
 	const elTel = document.getElementById('cfgTelefone');
 	const elResp = document.getElementById('cfgResponsavel');
 	const elEnd = document.getElementById('cfgEndereco');
+	const elChavePix = document.getElementById('cfgChavePix');
+	const elCidadePix = document.getElementById('cfgCidadePix');
 	const elMeta = document.getElementById('cfgMetaMensal');
 
 	const nomeEstabelecimento = elNome ? elNome.value.trim() : '';
@@ -329,6 +335,8 @@ function salvarConfiguracaoNegocio(e) {
 		telefone: elTel ? elTel.value.trim() : '',
 		responsavel: elResp ? elResp.value.trim() : '',
 		endereco: elEnd ? elEnd.value.trim() : '',
+		chavePix: elChavePix ? elChavePix.value.trim() : '',
+		cidadePix: elCidadePix ? elCidadePix.value.trim() : '',
 		metaMensal: elMeta ? parseFloat(elMeta.value || 0) : 0,
 		diasTrabalhoSemana: diasSelecionados.length > 0 ? diasSelecionados : [1, 2, 3, 4, 5, 6]
 	};
@@ -1393,7 +1401,7 @@ function filtrarComissoes() {
 	if (!corpo) return;
 
 	if (!window.EquipeService) {
-		corpo.innerHTML = '<tr><td colspan="5" class="empty-table-message">Serviço de equipe indisponível.</td></tr>';
+		corpo.innerHTML = '<tr><td colspan="6" class="empty-table-message">Serviço de equipe indisponível.</td></tr>';
 		return;
 	}
 
@@ -1413,23 +1421,24 @@ function filtrarComissoes() {
 
 	const relatorio = window.EquipeService.calcularComissoesPorPeriodo(inicio, fim);
 
-	let totalGeralComissoes = 0;
+	let totalGeralPendente = 0;
 	let totalGeralServicos = 0;
 
 	relatorio.forEach(r => {
-		totalGeralComissoes += r.totalComissao || 0;
+		totalGeralPendente += r.totalComissaoPendente !== undefined ? r.totalComissaoPendente : (r.totalComissao || 0);
 		totalGeralServicos += r.qtdServicos || 0;
 	});
 
 	const statComissoes = document.getElementById('statTotalComissoes');
-	if (statComissoes) statComissoes.textContent = `R$ ${totalGeralComissoes.toFixed(2)}`;
+	if (statComissoes) statComissoes.textContent = `R$ ${totalGeralPendente.toFixed(2)}`;
 
 	const statServicos = document.getElementById('statTotalServicosExecutados');
 	if (statServicos) statServicos.textContent = totalGeralServicos;
 
 	corpo.innerHTML = '';
 	if (relatorio.length === 0) {
-		corpo.innerHTML = '<tr><td colspan="5" class="empty-table-message">Nenhum dado de produtividade encontrado para o período.</td></tr>';
+		corpo.innerHTML = '<tr><td colspan="6" class="empty-table-message">Nenhum dado de produtividade encontrado para o período.</td></tr>';
+		renderizarHistoricoPagamentosComissao();
 		return;
 	}
 
@@ -1438,6 +1447,10 @@ function filtrarComissoes() {
 		const regraFmt = m.tipoComissao === 'percentual'
 			? `${m.valorComissao || 0}%`
 			: `R$ ${parseFloat(m.valorComissao || 0).toFixed(2)}`;
+
+		const pendente = parseFloat(r.totalComissaoPendente || 0);
+		const jaPago = parseFloat(r.totalComissaoPago || 0);
+		const qtdPend = r.qtdPendente || 0;
 
 		const tr = document.createElement('tr');
 		tr.innerHTML = `
@@ -1459,13 +1472,105 @@ function filtrarComissoes() {
 				R$ ${(r.totalFaturado || 0).toFixed(2)}
 			</td>
 			<td>
-				<span class="badge-price" style="background: #dcfce7; color: #15803d; font-weight: 700; font-size: 0.9rem;">
-					R$ ${(r.totalComissao || 0).toFixed(2)}
-				</span>
+				<div style="display:flex; flex-direction:column; gap:3px;">
+					<span class="badge-price" style="background: ${pendente > 0 ? '#dcfce7' : '#f1f5f9'}; color: ${pendente > 0 ? '#15803d' : '#64748b'}; font-weight: 700; font-size: 0.86rem;">
+						Pendente: R$ ${pendente.toFixed(2)}
+					</span>
+					${jaPago > 0 ? `<small style="color: var(--text-muted); font-size: 0.74rem;">Já pago: R$ ${jaPago.toFixed(2)} (${r.qtdPago || 0} O.S.)</small>` : ''}
+				</div>
+			</td>
+			<td style="text-align: center;">
+				${qtdPend > 0 && pendente > 0
+					? `<button type="button" class="btn btn-sm btn-primary" onclick="pagarComissaoMembro('${m.id}')" style="background:#16a34a; border-color:#15803d; font-weight:700; white-space:nowrap;">💸 Pagar (${qtdPend})</button>`
+					: `<span class="badge" style="background:#f1f5f9; color:#64748b; font-size:0.76rem;">✅ Quitado</span>`
+				}
 			</td>
 		`;
 		corpo.appendChild(tr);
 	});
+
+	renderizarHistoricoPagamentosComissao();
+}
+
+function renderizarHistoricoPagamentosComissao() {
+	const corpo = document.getElementById('corpoTabelaPagamentosComissao');
+	if (!corpo || !window.EquipeService || typeof window.EquipeService.getPagamentos !== 'function') return;
+
+	const pagamentos = window.EquipeService.getPagamentos();
+	corpo.innerHTML = '';
+
+	if (pagamentos.length === 0) {
+		corpo.innerHTML = '<tr><td colspan="5" class="empty-table-message">Nenhum pagamento de comissão registrado ainda.</td></tr>';
+		return;
+	}
+
+	pagamentos.slice(0, 30).forEach((pg) => {
+		const dataFmt = window.DateBR ? (window.DateBR.formatarParaBR(pg.dataPagamento) || pg.dataPagamento) : pg.dataPagamento;
+		const tr = document.createElement('tr');
+		tr.innerHTML = `
+			<td><strong>${dataFmt || '-'}</strong></td>
+			<td>${pg.membroNome || '-'}</td>
+			<td><span class="badge" style="background:#eff6ff; color:#1e40af;">${pg.qtdServicos || 0} O.S.</span></td>
+			<td><span class="badge-price" style="color:#b91c1c; background:#fef2f2;">- R$ ${parseFloat(pg.valorPago || 0).toFixed(2)}</span></td>
+			<td><small style="color:var(--text-muted);">${pg.registradoPor || 'Sistema'}</small></td>
+		`;
+		corpo.appendChild(tr);
+	});
+}
+
+async function pagarComissaoMembro(membroId) {
+	if (!window.EquipeService) return;
+
+	const inicioInput = document.getElementById('filtroComissaoInicio');
+	const fimInput = document.getElementById('filtroComissaoFim');
+	const rawInicio = inicioInput ? inicioInput.value.trim() : '';
+	const rawFim = fimInput ? fimInput.value.trim() : '';
+	const inicio = window.DateBR ? (rawInicio ? window.DateBR.converterBRParaISO(rawInicio) : '') : rawInicio;
+	const fim = window.DateBR ? (rawFim ? window.DateBR.converterBRParaISO(rawFim) : '') : rawFim;
+
+	const relatorio = window.EquipeService.calcularComissoesPorPeriodo(inicio || '', fim || '');
+	const item = relatorio.find(r => r.membro.id === membroId);
+
+	if (!item || !item.pedidosPendentes || item.pedidosPendentes.length === 0) {
+		if (window.UI) window.UI.toast('Não há comissões pendentes para este profissional no período.', 'info');
+		return;
+	}
+
+	const pedidoIds = item.pedidosPendentes.map(p => p.id);
+	const valorPendente = item.totalComissaoPendente || 0;
+
+	let confirmado = false;
+	if (window.UI && typeof window.UI.confirm === 'function') {
+		confirmado = await window.UI.confirm({
+			title: 'Confirmar Pagamento de Comissão',
+			message: `Quitar comissão de <strong>${item.membro.nome}</strong> referente a <strong>${pedidoIds.length} O.S. pendentes</strong> no valor de <strong>R$ ${valorPendente.toFixed(2)}</strong>?<br><br><small style="color:var(--text-muted);">Será registrada automaticamente uma saída no Caixa de hoje na categoria "Comissões / Equipe".</small>`,
+			confirmText: 'Confirmar Pagamento',
+			icon: '💸'
+		});
+	} else {
+		confirmado = confirm(`Pagar R$ ${valorPendente.toFixed(2)} para ${item.membro.nome} (${pedidoIds.length} O.S.)?`);
+	}
+
+	if (!confirmado) return;
+
+	const res = window.EquipeService.registrarPagamentoComissao({
+		membroId: item.membro.id,
+		periodoInicio: inicio || '',
+		periodoFim: fim || '',
+		pedidoIds,
+		lancarNoCaixa: true
+	});
+
+	if (res && res.sucesso) {
+		if (window.UI) {
+			window.UI.toast(`Comissão de R$ ${res.pagamento.valorPago.toFixed(2)} paga e lançada no Caixa!`, 'success');
+		}
+		filtrarComissoes();
+	} else {
+		if (window.UI) {
+			window.UI.toast((res && res.erro) || 'Não foi possível registrar o pagamento.', 'error');
+		}
+	}
 }
 
 function limparFiltroComissoes() {
@@ -1490,6 +1595,7 @@ window.removerMembroEquipeConfig = removerMembroEquipeConfig;
 window.cancelarEdicaoMembroConfig = cancelarEdicaoMembroConfig;
 window.filtrarComissoes = filtrarComissoes;
 window.limparFiltroComissoes = limparFiltroComissoes;
+window.pagarComissaoMembro = pagarComissaoMembro;
 
 // ==========================================================================
 // LÓGICA DA ABA MENSAGENS (WHATSAPP)
