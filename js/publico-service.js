@@ -37,6 +37,18 @@ function limparTexto(str, maxLen = 120) {
     return String(str || '').trim().slice(0, maxLen);
 }
 
+export function resolverUrlPublica(caminhoRelativo = '', baseHref = null) {
+    const cleanPath = String(caminhoRelativo || '').replace(/^\/+/, '');
+    const base = baseHref || (typeof window !== 'undefined' && window.location ? window.location.href : '');
+    if (!base) return cleanPath;
+    try {
+        return new URL(cleanPath, base).href;
+    } catch (e) {
+        const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
+        return origin ? `${origin}/${cleanPath}` : cleanPath;
+    }
+}
+
 function isSegmentoAutoConfig(config = {}, empresa = {}) {
     const tipo = config?.tipoNegocio || empresa?.tipoNegocio || '';
     return !tipo || tipo === 'lava_jato' || tipo === 'mecanica';
@@ -339,8 +351,7 @@ export async function publicarOrcamentoPublico(pedido, opts = {}) {
 
     await setDoc(doc(db, 'orcamentos_publicos', token), payload);
 
-    const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
-    const url = `${origin}/orcamento.html?token=${encodeURIComponent(token)}`;
+    const url = resolverUrlPublica(`orcamento.html?token=${encodeURIComponent(token)}`);
     return { token, url, payload };
 }
 
@@ -432,7 +443,7 @@ export function obterLinkPainelTv() {
     if (typeof window === 'undefined') return '';
     const { empresa } = getContextoRuntimeTenant();
     const codigo = encodeURIComponent(empresa?.codigo || empresa?.id || 'danilodetailer');
-    return `${window.location.origin}/painel-tv.html?empresa=${codigo}`;
+    return resolverUrlPublica(`painel-tv.html?empresa=${codigo}`);
 }
 
 export async function publicarAgendaPublicaConfig(agendamentosOverride = null) {
@@ -454,7 +465,7 @@ export function obterLinkAgendaPublica() {
     if (typeof window === 'undefined') return '';
     const { empresa } = getContextoRuntimeTenant();
     const codigo = encodeURIComponent(empresa?.codigo || empresa?.id || 'danilodetailer');
-    return `${window.location.origin}/agenda-publica.html?empresa=${codigo}`;
+    return resolverUrlPublica(`agenda-publica.html?empresa=${codigo}`);
 }
 
 let _unsubAgendaPublica = null;
@@ -539,6 +550,7 @@ export function iniciarListenerAgendamentosPublicos(onImportados) {
 const PublicoService = {
     gerarTokenSeguro,
     extrairPrimeiroNome,
+    resolverUrlPublica,
     sanitizarOrcamentoParaPublico,
     sanitizarPainelTv,
     sanitizarAgendaConfigParaPublico,

@@ -178,9 +178,9 @@ document.addEventListener('DOMContentLoaded', () => {
 				</div>
 				<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
 					${prog.etapas.map((et) => `
-						<div style="padding:10px 12px; border-radius:var(--radius-sm); border:1px solid ${et.concluida ? '#bbf7d0' : 'var(--border-color)'}; background:${et.concluida ? '#f0fdf4' : 'var(--bg-surface)'}; display:flex; flex-direction:column; justify-content:space-between; gap:8px;">
+						<div style="padding:10px 12px; border-radius:var(--radius-sm); border:1px solid ${et.concluida ? 'var(--success-border)' : 'var(--border-color)'}; background:${et.concluida ? 'var(--success-light)' : 'var(--bg-surface)'}; display:flex; flex-direction:column; justify-content:space-between; gap:8px;">
 							<div>
-								<div style="font-weight:700; font-size:0.88rem; color:${et.concluida ? '#166534' : 'var(--text-main)'};">
+								<div style="font-weight:700; font-size:0.88rem; color:${et.concluida ? 'var(--success)' : 'var(--text-main)'};">
 									${et.concluida ? '✅' : '⬜'} ${esc(et.titulo)}
 								</div>
 								<small style="display:block; margin-top:3px; color:var(--text-muted); font-size:0.78rem;">${esc(et.descricao)}</small>

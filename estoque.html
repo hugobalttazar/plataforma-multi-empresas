@@ -171,7 +171,7 @@
 							</div>
 							<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
 								<div class="form-group" style="margin-bottom: 0;">
-									<label for="insumoPrecoVenda" style="font-weight: 700; color: #1e3a8a;">
+									<label for="insumoPrecoVenda" style="font-weight: 700; color: var(--primary-dark);">
 										Preço de Venda Final (R$) *
 									</label>
 									<input 
@@ -180,11 +180,11 @@
 										step="0.01" 
 										min="0" 
 										placeholder="0.00" 
-										style="background: #ffffff; border-color: #93c5fd; font-weight: 700; font-size: 1rem; color: #1d4ed8;" />
-									<small style="color: #64748b; font-size: 0.78rem;">Preço cobrado na O.S. ao cliente</small>
+										style="background: var(--bg-input); border-color: var(--border-tech); font-weight: 700; font-size: 1rem; color: var(--primary-dark);" />
+									<small style="color: var(--text-muted); font-size: 0.78rem;">Preço cobrado na O.S. ao cliente</small>
 								</div>
 								<div class="form-group" style="margin-bottom: 0;">
-									<label for="insumoMargem" style="font-weight: 700; color: #1e3a8a;">
+									<label for="insumoMargem" style="font-weight: 700; color: var(--primary-dark);">
 										Margem de Lucro Bruta (%)
 									</label>
 									<input 
@@ -193,8 +193,8 @@
 										step="0.1" 
 										min="0" 
 										placeholder="Ex: 50.0" 
-										style="background: #ffffff; border-color: #93c5fd; font-weight: 700; font-size: 1rem; color: #166534;" />
-									<small style="color: #64748b; font-size: 0.78rem;">Calcula o preço de venda automaticamente</small>
+										style="background: var(--bg-input); border-color: var(--border-tech); font-weight: 700; font-size: 1rem; color: var(--success);" />
+									<small style="color: var(--text-muted); font-size: 0.78rem;">Calcula o preço de venda automaticamente</small>
 								</div>
 							</div>
 							<div id="badgeLucroEstimado" class="lucro-preview-badge" style="display: none;">

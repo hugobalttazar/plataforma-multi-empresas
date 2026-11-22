@@ -147,13 +147,13 @@
 					</div>
 
 					<!-- Bloco de Campos: OUTROS SEGMENTOS (Foto do Cliente / Produto / Item e Referência) -->
-					<div id="blocoCamposOutroSegmento" class="campos-segmento-wrapper full-width" style="display: none; background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px;">
+					<div id="blocoCamposOutroSegmento" class="campos-segmento-wrapper full-width" style="display: none; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px;">
 						<div style="font-weight: 700; font-size: 0.92rem; margin-bottom: 10px; color: var(--text-main); display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
 							<span>📸 Identificação Visual (Foto do Cliente ou Produto / Item)</span>
 							<span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(Substitui a placa no seu tipo de negócio)</span>
 						</div>
 						<div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
-							<div class="cliente-avatar-preview-box" id="osFotoPreviewBox" style="width: 72px; height: 72px; border-radius: 8px; border: 2px dashed var(--border-color); display: flex; align-items: center; justify-content: center; background: #fff; cursor: pointer; overflow: hidden; position: relative;">
+							<div class="cliente-avatar-preview-box" id="osFotoPreviewBox" style="width: 72px; height: 72px; border-radius: 8px; border: 2px dashed var(--border-color); display: flex; align-items: center; justify-content: center; background: var(--bg-input); cursor: pointer; overflow: hidden; position: relative;">
 								<span id="osFotoPlaceholderIcon" style="font-size: 1.8rem;">📷</span>
 								<img id="osFotoPreviewImg" src="" alt="Foto O.S." style="display:none; width: 100%; height: 100%; object-fit: cover;" />
 							</div>
@@ -214,26 +214,26 @@
 					</div>
 
 					<!-- Pacote / Plano Ativo do Cliente na Abertura da O.S. -->
-					<div id="blocoPacoteAtivoEntrada" class="form-group full-width" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 12px;">
-						<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; color: #1e40af; font-size: 0.92rem; margin-bottom: 8px;">
-							<input type="checkbox" id="chkUsarPacoteEntrada" style="width: 18px; height: 18px; accent-color: #2563eb; cursor: pointer;" />
+					<div id="blocoPacoteAtivoEntrada" class="form-group full-width" style="display: none; background: var(--primary-light); border: 1px solid var(--border-tech); border-radius: var(--radius-sm); padding: 12px;">
+						<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; color: var(--primary-dark); font-size: 0.92rem; margin-bottom: 8px;">
+							<input type="checkbox" id="chkUsarPacoteEntrada" style="width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer;" />
 							<span>🎟️ Usar 1 crédito de Pacote Ativo do cliente nesta O.S.</span>
 						</label>
-						<select id="entradaSelectPacoteAtivo" style="width: 100%; padding: 8px 10px; border: 1px solid #93c5fd; border-radius: var(--radius-sm); font-size: 0.86rem; background: #ffffff; color: var(--text-main);">
+						<select id="entradaSelectPacoteAtivo" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-tech); border-radius: var(--radius-sm); font-size: 0.86rem; background: var(--bg-input); color: var(--text-main);">
 						</select>
-						<small id="infoPacoteEntrada" style="display: block; margin-top: 6px; font-size: 0.78rem; color: #1d4ed8;">
+						<small id="infoPacoteEntrada" style="display: block; margin-top: 6px; font-size: 0.78rem; color: var(--primary-dark);">
 							Ao marcar, 1 crédito será reservado/abatido na abertura da O.S. e os serviços vinculados ao pacote serão zerados (mantendo serviços extras e produtos).
 						</small>
 					</div>
 
 					<!-- Produtos Comerciais / Venda Balcão na Entrada da O.S. -->
-					<div class="form-group full-width" id="blocoProdutosVendaEntrada" style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:var(--radius-sm); padding:12px;">
+					<div class="form-group full-width" id="blocoProdutosVendaEntrada" style="background:var(--success-light); border:1px solid var(--success-border); border-radius:var(--radius-sm); padding:12px;">
 						<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-							<div style="font-weight:700; font-size:0.92rem; color:#166534; display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+							<div style="font-weight:700; font-size:0.92rem; color:var(--success); display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
 								<span>🛍️ Produtos de Venda / Balcão Levados pelo Cliente</span>
-								<span style="font-size:0.75rem; font-weight:normal; color:#15803d;">(Opcional)</span>
+								<span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(Opcional)</span>
 							</div>
-							<span id="contadorItensVendaEntrada" style="font-size:0.78rem; font-weight:700; color:#166534;"></span>
+							<span id="contadorItensVendaEntrada" style="font-size:0.78rem; font-weight:700; color:var(--success);"></span>
 						</div>
 						<div id="gridProdutosVendaEntrada" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:8px;">
 							<!-- Preenchido via JS com os produtos destinados à venda -->
@@ -241,7 +241,7 @@
 					</div>
 
 					<!-- Checklist / Vistoria Rápida de Entrada -->
-					<div class="form-group full-width" style="background:#f8fafc; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px;">
+					<div class="form-group full-width" style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px;">
 						<div style="font-weight:700; font-size:0.92rem; margin-bottom:8px; color:var(--text-main); display:flex; align-items:center; gap:6px;">
 							<span>🔍 Vistoria & Checklist Rápido de Entrada</span>
 							<span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(Evita contestações de avarias)</span>
@@ -258,7 +258,7 @@
 					</div>
 
 					<!-- Estágio Inicial: Pátio vs Orçamento Digital -->
-					<div class="form-group full-width" style="background:#f8fafc; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px;">
+					<div class="form-group full-width" style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px;">
 						<label for="pedidoEstagioInicial" style="font-weight:700; color:var(--text-main); margin-bottom:6px; display:block;">
 							Modo de Abertura (Pátio ou Orçamento Digital)
 						</label>
@@ -378,13 +378,13 @@
 						</div>
 
 						<!-- Adicionar Produtos Rápidos no Fechamento do Caixa / O.S. -->
-						<div class="modal-balcao-box" style="margin-bottom: 14px; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); box-sizing: border-box; width: 100%;">
+						<div class="modal-balcao-box" style="margin-bottom: 14px; padding: 12px; background: var(--success-light); border: 1px solid var(--success-border); border-radius: var(--radius-sm); box-sizing: border-box; width: 100%;">
 							<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 4px;">
-								<span style="font-size: 0.88rem; font-weight: 700; color: #166534;">🛍️ Produtos de Balcão Levados na Saída</span>
-								<span id="modalResumoSubtotalProdutos" style="font-size: 0.8rem; font-weight: 700; color: #15803d;"></span>
+								<span style="font-size: 0.88rem; font-weight: 700; color: var(--success);">🛍️ Produtos de Balcão Levados na Saída</span>
+								<span id="modalResumoSubtotalProdutos" style="font-size: 0.8rem; font-weight: 700; color: var(--success);"></span>
 							</div>
 							<div class="modal-balcao-row" style="display: flex; gap: 8px; align-items: stretch; width: 100%; box-sizing: border-box;">
-								<select id="modalSelectProdutoBalcao" style="flex: 1 1 0; min-width: 0; font-size: 0.82rem; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid #86efac; background: #ffffff; color: var(--text-main); height: 38px; box-sizing: border-box;">
+								<select id="modalSelectProdutoBalcao" style="flex: 1 1 0; min-width: 0; font-size: 0.82rem; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--success-border); background: var(--bg-input); color: var(--text-main); height: 38px; box-sizing: border-box;">
 									<option value="">Selecione um produto para adicionar à O.S....</option>
 								</select>
 								<button type="button" class="btn btn-sm" id="modalBtnAddProdutoBalcao" style="background: #166534; color: #ffffff; padding: 0 14px; font-weight: 700; white-space: nowrap; flex-shrink: 0; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
@@ -397,15 +397,15 @@
 						</div>
 
 						<!-- Abatimento via Pacote / Plano Ativo do Cliente -->
-						<div id="blocoPacoteAtivoEncerramento" style="display: none; margin-bottom: 14px; padding: 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm);">
-							<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; color: #1e40af; font-size: 0.9rem; margin-bottom: 8px;">
-								<input type="checkbox" id="chkAbaterPacoteOS" style="width: 18px; height: 18px; accent-color: #2563eb; cursor: pointer;" />
+						<div id="blocoPacoteAtivoEncerramento" style="display: none; margin-bottom: 14px; padding: 12px; background: var(--primary-light); border: 1px solid var(--border-tech); border-radius: var(--radius-sm);">
+							<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; color: var(--primary-dark); font-size: 0.9rem; margin-bottom: 8px;">
+								<input type="checkbox" id="chkAbaterPacoteOS" style="width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer;" />
 								<span>🎟️ Abater 1 crédito do Pacote Ativo do Cliente</span>
 							</label>
-							<select id="modalSelectPacoteAtivo" style="width: 100%; padding: 8px 10px; border: 1px solid #93c5fd; border-radius: var(--radius-sm); font-size: 0.85rem; background: #ffffff; color: var(--text-main);">
+							<select id="modalSelectPacoteAtivo" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-tech); border-radius: var(--radius-sm); font-size: 0.85rem; background: var(--bg-input); color: var(--text-main);">
 								<!-- Preenchido via JS -->
 							</select>
-							<small id="infoPacoteAtivoEncerramento" style="display: block; margin-top: 6px; font-size: 0.78rem; color: #1d4ed8;">
+							<small id="infoPacoteAtivoEncerramento" style="display: block; margin-top: 6px; font-size: 0.78rem; color: var(--primary-dark);">
 								Ao marcar, o valor dos serviços desta O.S. é zerado e 1 crédito é descontado do pacote.
 							</small>
 						</div>
@@ -433,7 +433,7 @@
 							<!-- Renderizado via JS (PixService) -->
 						</div>
 
-						<div style="margin-top: 14px; padding: 10px 12px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px;">
+						<div style="margin-top: 14px; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px;">
 							<input type="checkbox" id="modalCheckImprimirRecibo" checked style="width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer;" />
 							<label for="modalCheckImprimirRecibo" style="font-size: 0.88rem; font-weight: 600; color: var(--text-main); margin: 0; cursor: pointer;">
 								🧾 Exibir e imprimir recibo estilo cupom fiscal ao fechar
@@ -466,7 +466,7 @@
 						<!-- Renderizado dinamicamente via ReciboService -->
 					</div>
 				</div>
-				<div class="modal-footer" style="padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; background: #ffffff; border-top: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;">
+				<div class="modal-footer" style="padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); border-top: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;">
 					<button type="button" class="btn btn-secondary" id="modalReciboFecharInferiorBtn">
 						Fechar
 					</button>

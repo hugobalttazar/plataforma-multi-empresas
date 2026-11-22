@@ -473,59 +473,59 @@ const WhatsAppService = {
 					<button type="button" class="btn-close-modal" id="btnFecharModalWhatsApp" style="color: #ffffff; opacity: 0.9;">✕</button>
 				</div>
 
-				<div class="modal-body" style="padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px; background: #f8fafc;">
+				<div class="modal-body" style="padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px; background: var(--bg-body); color: var(--text-main);">
 					
 					<!-- Destinatário e Telefone -->
-					<div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; background: #ffffff; padding: 12px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
+					<div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border-color);">
 						<div style="flex: 1; min-width: 180px;">
-							<label style="font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 2px;">Destinatário</label>
-							<div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">👤 ${this._escaparHtml(clienteNome)}</div>
+							<label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 2px;">Destinatário</label>
+							<div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">👤 ${this._escaparHtml(clienteNome)}</div>
 						</div>
 						<div style="flex: 1; min-width: 180px;">
-							<label for="inputWppTelefone" style="font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 2px;">WhatsApp do Cliente</label>
+							<label for="inputWppTelefone" style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 2px;">WhatsApp do Cliente</label>
 							<div style="display: flex; align-items: center; gap: 6px;">
-								<span style="font-size: 0.85rem; font-weight: 700; color: #059669;">+55</span>
-								<input type="tel" id="inputWppTelefone" value="${this._escaparHtml(telInicial.replace(/\D/g, '').replace(/^55/, ''))}" placeholder="DDD + Número (ex: 11988887777)" style="flex: 1; min-width: 0; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem; font-weight: 600;" />
+								<span style="font-size: 0.85rem; font-weight: 700; color: var(--success);">+55</span>
+								<input type="tel" id="inputWppTelefone" value="${this._escaparHtml(telInicial.replace(/\D/g, '').replace(/^55/, ''))}" placeholder="DDD + Número (ex: 11988887777)" style="flex: 1; min-width: 0; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.88rem; font-weight: 600; background: var(--bg-input); color: var(--text-main);" />
 							</div>
 						</div>
 					</div>
 
 					<!-- Filtros / Switches Rápidos -->
-					<div style="background: #ffffff; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 10px;">
+					<div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;">
 						<div style="display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center;">
-							<span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Opções de Envio:</span>
+							<span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Opções de Envio:</span>
 							
-							<label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: #334155; font-weight: 600;">
+							<label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: var(--text-main); font-weight: 600;">
 								<input type="checkbox" id="chkIncluirValor" ${opcoes.incluirValor ? 'checked' : ''} style="accent-color: #16a34a; width: 16px; height: 16px;" />
 								<span>💰 Incluir Preço</span>
 							</label>
 
 							${tipo === 'agendamento' ? `
-								<label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: #334155; font-weight: 600;">
+								<label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: var(--text-main); font-weight: 600;">
 									<input type="checkbox" id="chkIncluirAgenda" ${opcoes.incluirAgenda ? 'checked' : ''} style="accent-color: #16a34a; width: 16px; height: 16px;" />
 									<span>📅 Google Calendar</span>
 								</label>
 							` : ''}
 
-							<label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: #334155; font-weight: 600;">
+							<label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: var(--text-main); font-weight: 600;">
 								<input type="checkbox" id="chkIncluirPix" ${opcoes.incluirPix ? 'checked' : ''} style="accent-color: #16a34a; width: 16px; height: 16px;" />
 								<span>🔑 Chave PIX</span>
 							</label>
 
-							<label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: #334155; font-weight: 600;">
+							<label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: var(--text-main); font-weight: 600;">
 								<input type="checkbox" id="chkIncluirEmojis" ${opcoes.incluirEmojis ? 'checked' : ''} style="accent-color: #16a34a; width: 16px; height: 16px;" />
 								<span>😊 Incluir Emojis</span>
 							</label>
 
 							${pixDisponivel ? `
-								<label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: #0f766e; font-weight: 700;">
+								<label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: var(--success); font-weight: 700;">
 									<input type="checkbox" id="chkIncluirQRImagem" ${opcoes.incluirQRImagem ? 'checked' : ''} style="accent-color: #0d9488; width: 16px; height: 16px;" />
 									<span>📱 Enviar QR Code PIX</span>
 								</label>
 							` : ''}
 
 							${temTagCopiaCola && pixDisponivel ? `
-								<label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: #475569; font-weight: 600;">
+								<label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: var(--text-main); font-weight: 600;">
 									<input type="checkbox" id="chkIncluirCopiaCola" ${opcoes.incluirPixCopiaCola ? 'checked' : ''} style="accent-color: #16a34a; width: 16px; height: 16px;" />
 									<span>📋 Copia e Cola em texto</span>
 								</label>
@@ -533,11 +533,11 @@ const WhatsAppService = {
 						</div>
 
 						${isDesktop ? `
-							<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding-top: 8px; border-top: 1px dashed #e2e8f0;">
-								<label for="selectCanalWppDesktop" style="font-size: 0.78rem; font-weight: 700; color: #475569;">
+							<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding-top: 8px; border-top: 1px dashed var(--border-color);">
+								<label for="selectCanalWppDesktop" style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">
 									💻 Abrir no PC via:
 								</label>
-								<select id="selectCanalWppDesktop" style="flex: 1; min-width: 220px; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem; font-weight: 600; color: #0f172a; background: #f8fafc;">
+								<select id="selectCanalWppDesktop" style="flex: 1; min-width: 220px; padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.82rem; font-weight: 600; color: var(--text-main); background: var(--bg-input);">
 									<option value="app" ${canalSelecionado === 'app' ? 'selected' : ''}>📱 App WhatsApp Desktop (Padrão — abre chat e copia com emojis para Ctrl+V)</option>
 									<option value="web" ${canalSelecionado === 'web' ? 'selected' : ''}>🌐 WhatsApp Web no Navegador (envia texto + emojis direto na URL)</option>
 								</select>
@@ -547,18 +547,18 @@ const WhatsAppService = {
 
 					<!-- Bloco Cartão QR Code PIX com Valor do Serviço -->
 					${pixDisponivel ? `
-						<div id="blocoQRCodeWhatsApp" style="display: ${opcoes.incluirQRImagem ? 'flex' : 'none'}; flex-wrap: wrap; gap: 14px; align-items: center; background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 10px; padding: 12px 14px;">
-							<div style="background: #ffffff; padding: 6px; border-radius: 8px; border: 1px solid #cbd5e1; line-height: 0; flex-shrink: 0;">
+						<div id="blocoQRCodeWhatsApp" style="display: ${opcoes.incluirQRImagem ? 'flex' : 'none'}; flex-wrap: wrap; gap: 14px; align-items: center; background: var(--success-light); border: 1px solid var(--success-border); border-radius: 10px; padding: 12px 14px;">
+							<div style="background: #ffffff; padding: 6px; border-radius: 8px; border: 1px solid var(--border-color); line-height: 0; flex-shrink: 0;">
 								${gerarSvgQR()}
 							</div>
 							<div style="flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 6px;">
-								<div style="font-size: 0.86rem; font-weight: 800; color: #065f46;">
+								<div style="font-size: 0.86rem; font-weight: 800; color: var(--success);">
 									📱 QR Code PIX Pronto para Envio
 								</div>
-								<div style="font-size: 0.82rem; color: #047857;">
+								<div style="font-size: 0.82rem; color: var(--text-main);">
 									Valor embutido: <strong>${valorNum > 0 ? 'R$ ' + valorNum.toFixed(2).replace('.', ',') : 'Em aberto'}</strong> &bull; Chave: <strong>${this._escaparHtml(resPix.chaveNormalizada)}</strong>
 								</div>
-								<div style="font-size: 0.76rem; color: #065f46; line-height: 1.35;">
+								<div style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.35;">
 									No celular abre direto para compartilhar a imagem no WhatsApp; no PC copia a imagem para você colar (Ctrl+V) no chat.
 								</div>
 								<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
@@ -579,17 +579,17 @@ const WhatsAppService = {
 					<!-- Edição do Texto -->
 					<div>
 						<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-							<label for="textareaWppMensagem" style="font-size: 0.82rem; font-weight: 700; color: #334155;">
+							<label for="textareaWppMensagem" style="font-size: 0.82rem; font-weight: 700; color: var(--text-main);">
 								✏️ Conteúdo da Mensagem (Você pode editar antes de enviar):
 							</label>
-							<span id="contadorCaracteresWpp" style="font-size: 0.75rem; color: #64748b;">0 caracteres</span>
+							<span id="contadorCaracteresWpp" style="font-size: 0.75rem; color: var(--text-muted);">0 caracteres</span>
 						</div>
-						<textarea id="textareaWppMensagem" rows="6" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.88rem; line-height: 1.45; resize: vertical; box-sizing: border-box; background: #ffffff;"></textarea>
+						<textarea id="textareaWppMensagem" rows="6" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit; font-size: 0.88rem; line-height: 1.45; resize: vertical; box-sizing: border-box; background: var(--bg-input); color: var(--text-main);"></textarea>
 					</div>
 
 					<!-- Prévia Balão WhatsApp -->
 					<div>
-						<div style="font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">
+						<div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
 							👁️ Como o cliente verá no celular:
 						</div>
 						<div style="background: #e5ddd5; background-image: radial-gradient(#d1c7bc 1px, transparent 1px); background-size: 16px 16px; padding: 14px; border-radius: 8px; display: flex; justify-content: flex-end;">
@@ -605,7 +605,7 @@ const WhatsAppService = {
 
 				</div>
 
-				<div class="modal-footer" style="background: #ffffff; padding: 12px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+				<div class="modal-footer" style="background: var(--bg-surface); padding: 12px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
 					<div style="display: flex; gap: 8px; flex-wrap: wrap;">
 						<button type="button" class="btn btn-secondary" id="btnCopiarTextoWpp" style="font-size: 0.85rem; padding: 8px 12px; display: inline-flex; align-items: center; gap: 6px;">
 							<span>📋</span>

@@ -3708,6 +3708,279 @@ html[data-theme="dark"] .tag-chip:hover {
 	color: var(--primary);
 }
 
+html[data-theme="dark"] .form select option {
+	background-color: var(--bg-input);
+	color: var(--text-main);
+}
+
+html[data-theme="dark"] .form select[multiple] option:checked {
+	background: var(--primary);
+	color: #090d16;
+	font-weight: 700;
+}
+
+/* Estoque: Cards de Destinação (Uso Interno / Venda ao Consumidor) e Precificação */
+html[data-theme="dark"] .tipo-card {
+	background: var(--bg-surface);
+	border-color: var(--border-color);
+	color: var(--text-main);
+}
+
+html[data-theme="dark"] .tipo-card:hover {
+	border-color: var(--primary);
+	background: rgba(56, 189, 248, 0.08);
+}
+
+html[data-theme="dark"] .tipo-card.active {
+	background: rgba(56, 189, 248, 0.16);
+	border-color: var(--primary);
+	box-shadow: 0 0 0 1px var(--primary-glow);
+}
+
+html[data-theme="dark"] .tipo-card.active .tipo-card-text strong {
+	color: var(--primary-dark);
+}
+
+html[data-theme="dark"] .bloco-precificacao-venda {
+	background: rgba(37, 99, 235, 0.14);
+	border-color: rgba(56, 189, 248, 0.35);
+}
+
+html[data-theme="dark"] .bloco-precificacao-title {
+	color: #7dd3fc;
+}
+
+html[data-theme="dark"] .lucro-preview-badge {
+	background: rgba(52, 211, 153, 0.16);
+	border-color: rgba(52, 211, 153, 0.35);
+	color: #6ee7b7;
+}
+
+html[data-theme="dark"] #alertaEstoqueCritico {
+	background: rgba(245, 158, 11, 0.14) !important;
+	border-color: rgba(245, 158, 11, 0.35) !important;
+	color: #fde68a !important;
+}
+
+html[data-theme="dark"] #alertaEstoqueCritico #textoProdutosCriticos {
+	color: #fcd34d !important;
+}
+
+/* Configurações: Navegação Lateral, Segmentos, Mensagens e Google Drive */
+html[data-theme="dark"] .settings-nav-item:hover {
+	background: rgba(56, 189, 248, 0.1);
+	color: var(--primary);
+}
+
+html[data-theme="dark"] .settings-nav-item.active {
+	background: var(--bg-card);
+	color: var(--primary);
+	border-color: var(--primary);
+}
+
+html[data-theme="dark"] .segment-option-card {
+	background: var(--bg-surface);
+	border-color: var(--border-color);
+	color: var(--text-main);
+}
+
+html[data-theme="dark"] .segment-option-card:hover {
+	background: rgba(56, 189, 248, 0.08);
+	border-color: var(--primary);
+}
+
+html[data-theme="dark"] .segment-option-card.active {
+	background: rgba(56, 189, 248, 0.16);
+	border-color: var(--primary);
+	box-shadow: 0 0 0 1px var(--primary-glow);
+}
+
+html[data-theme="dark"] .segment-option-card.active .segment-icon-badge {
+	background: rgba(56, 189, 248, 0.24);
+}
+
+html[data-theme="dark"] .negocio-form-block,
+html[data-theme="dark"] .msg-template-card,
+html[data-theme="dark"] .gdrive-action-box,
+html[data-theme="dark"] .gdrive-user-badge {
+	background: var(--bg-surface);
+	border-color: var(--border-color);
+	color: var(--text-main);
+}
+
+html[data-theme="dark"] .tag-chips-wrapper {
+	background: var(--bg-input);
+	border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .tag-chips-label {
+	color: var(--text-muted);
+}
+
+html[data-theme="dark"] .gdrive-hero-card {
+	background: linear-gradient(135deg, rgba(17, 24, 43, 0.96) 0%, rgba(22, 35, 68, 0.96) 100%);
+	border-color: rgba(56, 189, 248, 0.35);
+}
+
+html[data-theme="dark"] .gdrive-hero-top {
+	border-bottom-color: rgba(56, 189, 248, 0.22);
+}
+
+html[data-theme="dark"] .gdrive-hero-title {
+	color: #7dd3fc;
+}
+
+html[data-theme="dark"] .gdrive-hero-desc {
+	color: #93c5fd;
+}
+
+html[data-theme="dark"] .gdrive-user-avatar {
+	background: rgba(56, 189, 248, 0.2);
+	color: #7dd3fc;
+}
+
+html[data-theme="dark"] .db-status-banner {
+	background: var(--success-light);
+	border-color: var(--success-border);
+	color: #6ee7b7;
+}
+
+html[data-theme="dark"] .db-status-text p {
+	color: #a7f3d0;
+}
+
+html[data-theme="dark"] .excel-dropzone:hover,
+html[data-theme="dark"] .excel-dropzone.dragover {
+	background: rgba(56, 189, 248, 0.1);
+	border-color: var(--primary);
+}
+
+/* Painel Master (Empresas) */
+html[data-theme="dark"] .tenant-card {
+	background: var(--bg-surface);
+	border-color: var(--border-color);
+	color: var(--text-main);
+}
+
+html[data-theme="dark"] .tenant-card.active-tenant {
+	background: rgba(245, 158, 11, 0.14);
+	border-color: #f59e0b;
+}
+
+/* Tabs, Badges, Botões de Recibo e Toasts */
+html[data-theme="dark"] .tab-button.active .tab-count {
+	background: var(--primary);
+	color: #090d16;
+}
+
+html[data-theme="dark"] .badge-status-aberto {
+	background-color: rgba(245, 158, 11, 0.18);
+	color: #fcd34d;
+	border-color: rgba(245, 158, 11, 0.4);
+}
+
+html[data-theme="dark"] .badge-status-encerrado,
+html[data-theme="dark"] .badge-caixa-aberto {
+	background-color: rgba(52, 211, 153, 0.16);
+	color: #6ee7b7;
+	border-color: rgba(52, 211, 153, 0.35);
+}
+
+html[data-theme="dark"] .badge-caixa-fechado {
+	background-color: var(--bg-surface);
+	color: #cbd5e1;
+	border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .btn-recibo-os {
+	background-color: rgba(52, 211, 153, 0.16);
+	border-color: rgba(52, 211, 153, 0.38);
+	color: #6ee7b7;
+}
+
+html[data-theme="dark"] .btn-recibo-os:hover {
+	background-color: rgba(52, 211, 153, 0.25);
+	color: #a7f3d0;
+}
+
+html[data-theme="dark"] .btn-recibo-download {
+	background-color: rgba(56, 189, 248, 0.16);
+	border-color: rgba(56, 189, 248, 0.38);
+	color: #7dd3fc;
+}
+
+html[data-theme="dark"] .btn-recibo-download:hover {
+	background-color: rgba(56, 189, 248, 0.25);
+	color: #bae6fd;
+}
+
+html[data-theme="dark"] .edit__btn {
+	color: #7dd3fc;
+	border-color: rgba(56, 189, 248, 0.4);
+}
+
+html[data-theme="dark"] .edit__btn:hover {
+	background-color: rgba(56, 189, 248, 0.24);
+	color: #e0f2fe;
+}
+
+html[data-theme="dark"] .modal-recibo-card {
+	background: var(--bg-card);
+	border: 1px solid var(--border-color);
+}
+
+html[data-theme="dark"] .recibo-scroll-area {
+	background: var(--bg-body);
+}
+
+html[data-theme="dark"] .ui-toast {
+	background: var(--bg-surface);
+	color: var(--text-main);
+	border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .ui-toast-success {
+	background: #064e3b;
+	border-color: #10b981;
+	color: #ecfdf5;
+}
+
+html[data-theme="dark"] .ui-toast-error {
+	background: #7f1d1d;
+	border-color: #f87171;
+	color: #fef2f2;
+}
+
+html[data-theme="dark"] .ui-toast-warning {
+	background: #78350f;
+	border-color: #fbbf24;
+	color: #fffbeb;
+}
+
+html[data-theme="dark"] .ui-toast-info {
+	background: #0c4a6e;
+	border-color: #38bdf8;
+	color: #f0f9ff;
+}
+
+html[data-theme="dark"] .cliente-avatar-preview-box,
+html[data-theme="dark"] .os-foto-thumbnail.sem-foto {
+	background: var(--bg-surface);
+	border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .os-foto-badge-tag {
+	color: #7dd3fc;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-track {
+	background: #0f172a;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+	background: #334155;
+}
+
 /* ==========================================================================
    Fotos de Clientes e Miniaturas Multi-Segmento
    ========================================================================== */

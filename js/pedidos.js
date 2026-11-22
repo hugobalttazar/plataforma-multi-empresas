@@ -574,9 +574,9 @@ function carregarProdutosVendaEntrada() {
 			display: flex;
 			align-items: center;
 			gap: 8px;
-			background: #ffffff;
+			background: var(--bg-input);
 			padding: 8px 10px;
-			border: 1px solid ${semEstoque ? '#e2e8f0' : '#bbf7d0'};
+			border: 1px solid ${semEstoque ? 'var(--border-color)' : 'var(--success-border)'};
 			border-radius: var(--radius-sm);
 			cursor: ${semEstoque ? 'not-allowed' : 'pointer'};
 			opacity: ${semEstoque ? '0.6' : '1'};
@@ -593,9 +593,9 @@ function carregarProdutosVendaEntrada() {
 				style="width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;" />
 			<div style="flex: 1; line-height: 1.25;">
 				<div style="font-size: 0.84rem; font-weight: 700; color: var(--text-main);">${p.nome}</div>
-				<div style="font-size: 0.76rem; color: #15803d; font-weight: 700; margin-top: 2px;">
+				<div style="font-size: 0.76rem; color: var(--success); font-weight: 700; margin-top: 2px;">
 					R$ ${precoVenda.toFixed(2)} 
-					<span style="color: #64748b; font-weight: normal; font-size: 0.72rem;">(Disp: ${saldo})</span>
+					<span style="color: var(--text-muted); font-weight: normal; font-size: 0.72rem;">(Disp: ${saldo})</span>
 				</div>
 			</div>
 		`;
@@ -604,10 +604,10 @@ function carregarProdutosVendaEntrada() {
 		chk.addEventListener('change', () => {
 			if (chk.checked) {
 				label.style.borderColor = 'var(--primary)';
-				label.style.background = '#f0fdf4';
+				label.style.background = 'var(--success-light)';
 			} else {
-				label.style.borderColor = '#bbf7d0';
-				label.style.background = '#ffffff';
+				label.style.borderColor = 'var(--success-border)';
+				label.style.background = 'var(--bg-input)';
 			}
 			calcularValorTotalEntrada();
 		});
@@ -1729,7 +1729,7 @@ function renderizarProdutosFechamento() {
 	let subtotalProdutos = 0;
 	if (produtosFechamentoAtuais.length === 0) {
 		modalListaProdutosFechamento.innerHTML = `
-			<span style="color: #64748b; font-size: 0.8rem; font-style: italic;">
+			<span style="color: var(--text-muted); font-size: 0.8rem; font-style: italic;">
 				Nenhum produto de balcão adicionado nesta O.S.
 			</span>
 		`;
@@ -1748,20 +1748,20 @@ function renderizarProdutosFechamento() {
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			background: #ffffff;
+			background: var(--bg-input);
 			padding: 6px 10px;
-			border: 1px solid #cbd5e1;
+			border: 1px solid var(--border-color);
 			border-radius: 4px;
 		`;
 
 		div.innerHTML = `
 			<div>
 				<strong style="color: var(--text-main); font-size: 0.82rem;">🛍️ ${item.nome}</strong>
-				<span style="color: #15803d; font-size: 0.78rem; margin-left: 6px;">
+				<span style="color: var(--success); font-size: 0.78rem; margin-left: 6px;">
 					${qtd}x R$ ${preco.toFixed(2)} = <strong>R$ ${subtotal.toFixed(2)}</strong>
 				</span>
 			</div>
-			<button type="button" class="btn btn-sm" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 1px 6px; font-size: 0.75rem; cursor: pointer;" onclick="removerProdutoFechamento(${index})" title="Remover produto da O.S.">
+			<button type="button" class="btn btn-sm" style="background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 1px 6px; font-size: 0.75rem; cursor: pointer;" onclick="removerProdutoFechamento(${index})" title="Remover produto da O.S.">
 				✕
 			</button>
 		`;

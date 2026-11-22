@@ -876,7 +876,7 @@ function renderizarAbaEmpresasMaster() {
 
 			<div style="font-size: 0.8rem; color: var(--text-muted); background: var(--bg-surface); padding: 8px 10px; border-radius: 4px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;">
 				<div><strong>Responsável:</strong> ${emp.adminNome || 'Administrador'}</div>
-				<div><strong>Usuário de Login:</strong> <code style="background: #e2e8f0; padding: 1px 4px; border-radius: 3px;">${emp.adminUsername}</code></div>
+				<div><strong>Usuário de Login:</strong> <code style="background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); padding: 1px 5px; border-radius: 3px;">${emp.adminUsername}</code></div>
 				${emp.telefone ? `<div><strong>Contato:</strong> ${emp.telefone}</div>` : ''}
 			</div>
 
