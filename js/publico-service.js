@@ -154,11 +154,162 @@ export function sanitizarOrcamentoParaPublico({
     };
 }
 
-export function sanitizarPainelTv({ pedidos = [], empresa = {}, config = {} } = {}) {
+export function registrarEventoOrcamentoHistorico(pedido, evento = {}) {
+    if (!pedido || typeof pedido !== 'object') return { lista: [], inserido: false };
+    if (!Array.isArray(pedido.orcamentoHistorico)) {
+        pedido.orcamentoHistorico = [];
+    }
+
+    const tipo = limparTexto(evento.tipo || 'registro', 40);
+    const dataHora = limparTexto(evento.dataHora || new Date().toISOString(), 40);
+    const autor = limparTexto(evento.autor || 'Sistema', 80);
+    const titulo = limparTexto(evento.titulo || 'Atualização do orçamento', 120);
+    const comentario = limparTexto(evento.comentario || '', 600);
+    const ip = limparTexto(evento.ip || '', 64);
+    const token = limparTexto(evento.token || '', 96);
+    const valorAnterior = (evento.valorAnterior !== null && evento.valorAnterior !== undefined && !Number.isNaN(Number(evento.valorAnterior)))
+        ? Number(evento.valorAnterior)
+        : null;
+    const valorNovo = (evento.valorNovo !== null && evento.valorNovo !== undefined && !Number.isNaN(Number(evento.valorNovo)))
+        ? Number(evento.valorNovo)
+        : null;
+    const alteracoes = Array.isArray(evento.alteracoes)
+        ? evento.alteracoes.map((a) => limparTexto(a, 240)).filter(Boolean).slice(0, 20)
+        : [];
+
+    const existente = pedido.orcamentoHistorico.find((h) =>
+        h &&
+        h.tipo === tipo &&
+        String(h.token || '') === token &&
+        String(h.comentario || '') === comentario &&
+        (String(h.dataHora || '') === dataHora || (token && (tipo === 'cliente_ajuste' || tipo === 'cliente_aprovado')))
+    );
+
+    if (existente) {
+        let atualizado = false;
+        if (ip && (!existente.ip || existente.ip === 'Não identificado') && existente.ip !== ip) {
+            existente.ip = ip;
+            atualizado = true;
+        }
+        if (dataHora && !existente.dataHora) {
+            existente.dataHora = dataHora;
+            atualizado = true;
+        }
+        return { lista: pedido.orcamentoHistorico, inserido: atualizado };
+    }
+
+    pedido.orcamentoHistorico.push({
+        id: limparTexto(evento.id || `oh_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, 60),
+        tipo,
+        dataHora,
+        autor,
+        titulo,
+        comentario,
+        ip,
+        token,
+        valorAnterior,
+        valorNovo,
+        alteracoes
+    });
+
+    if (pedido.orcamentoHistorico.length > 200) {
+        pedido.orcamentoHistorico = pedido.orcamentoHistorico.slice(-200);
+    }
+
+    return { lista: pedido.orcamentoHistorico, inserido: true };
+}
+
+export function garantirHistoricoInicialOrcamento(pedido) {
+    if (!pedido || typeof pedido !== 'object') return false;
+    let mudou = false;
+
+    if (!Array.isArray(pedido.orcamentoHistorico)) {
+        pedido.orcamentoHistorico = [];
+        mudou = true;
+    }
+
+    if (pedido.orcamentoHistorico.length === 0) {
+        let dataCriacao = pedido.criadoEm || '';
+        if (!dataCriacao && pedido.data) {
+            const horaBase = /^\d{2}:\d{2}/.test(String(pedido.horaEntrada || '')) ? String(pedido.horaEntrada).slice(0, 5) : '00:00';
+            dataCriacao = `${String(pedido.data).slice(0, 10)}T${horaBase}:00`;
+        }
+        const itensResumo = [];
+        if (pedido.servicos) itensResumo.push(`Serviços: ${pedido.servicos}`);
+        if (Array.isArray(pedido.produtosVendidos) && pedido.produtosVendidos.length > 0) {
+            itensResumo.push(`Produtos: ${pedido.produtosVendidos.map((pv) => `${pv.quantidade || 1}x ${pv.nome}`).join(', ')}`);
+        }
+        registrarEventoOrcamentoHistorico(pedido, {
+            tipo: 'criado',
+            dataHora: dataCriacao || new Date().toISOString(),
+            autor: pedido.operadorNome || 'Atendimento',
+            titulo: 'Orçamento criado no sistema',
+            alteracoes: itensResumo,
+            valorNovo: Number(pedido.valor || 0) || 0
+        });
+        mudou = true;
+    }
+
+    if (pedido.orcamentoToken && !pedido.orcamentoHistorico.some((h) => h && h.tipo === 'link_gerado' && h.token === pedido.orcamentoToken)) {
+        registrarEventoOrcamentoHistorico(pedido, {
+            tipo: 'link_gerado',
+            dataHora: pedido.orcamentoRespondidoEm || new Date().toISOString(),
+            autor: 'Sistema',
+            titulo: 'Link público de aprovação gerado',
+            token: pedido.orcamentoToken,
+            valorNovo: Number(pedido.valor || 0) || 0
+        });
+        mudou = true;
+    }
+
+    if (pedido.orcamentoComentarioCliente) {
+        const resAj = registrarEventoOrcamentoHistorico(pedido, {
+            tipo: 'cliente_ajuste',
+            dataHora: pedido.orcamentoRespondidoEm || new Date().toISOString(),
+            autor: 'Cliente (via Link)',
+            titulo: 'Cliente solicitou ajuste pelo link',
+            comentario: pedido.orcamentoComentarioCliente,
+            ip: pedido.orcamentoUltimoIp || pedido.orcamentoAprovadoIp || '',
+            token: pedido.orcamentoToken || ''
+        });
+        if (resAj.inserido) mudou = true;
+    }
+
+    if (pedido.orcamentoStatus === 'aprovado') {
+        const jaTemAprov = pedido.orcamentoHistorico.some((h) => h && (h.tipo === 'cliente_aprovado' || h.tipo === 'aprovado_manual'));
+        if (!jaTemAprov) {
+            const viaLink = Boolean(pedido.aprovadoViaLinkEm || pedido.orcamentoAprovadoIp);
+            registrarEventoOrcamentoHistorico(pedido, {
+                tipo: viaLink ? 'cliente_aprovado' : 'aprovado_manual',
+                dataHora: pedido.orcamentoAprovadoEm || pedido.aprovadoViaLinkEm || pedido.orcamentoRespondidoEm || new Date().toISOString(),
+                autor: viaLink ? 'Cliente (via Link)' : 'Atendimento',
+                titulo: viaLink ? 'Orçamento aprovado pelo cliente' : 'Orçamento aprovado manualmente',
+                ip: viaLink ? (pedido.orcamentoAprovadoIp || pedido.orcamentoUltimoIp || 'Não identificado') : '',
+                token: pedido.orcamentoToken || '',
+                valorNovo: Number(pedido.valor || 0) || 0
+            });
+            mudou = true;
+        }
+    }
+
+    return mudou;
+}
+
+export function sanitizarPainelTv({ pedidos = [], empresa = {}, config = {}, tema = null } = {}) {
     const isAuto = isSegmentoAutoConfig(config, empresa);
     const empresaId = limparTexto(empresa?.id || empresa?.codigo || config?.codigoEmpresa || 'danilodetailer', 80);
     const empresaNome = limparTexto(config?.nomeEstabelecimento || empresa?.nome || 'Estabelecimento', 120);
     const tipoNegocio = limparTexto(config?.tipoNegocio || empresa?.tipoNegocio || 'geral', 40);
+
+    let temaResolvido = 'light';
+    if (tema === 'dark' || tema === 'light') {
+        temaResolvido = tema;
+    } else if (typeof window !== 'undefined') {
+        const themeAtual = window.ThemeService?.getTheme?.()
+            || (typeof localStorage !== 'undefined' ? localStorage.getItem('app_theme') : '')
+            || document?.documentElement?.getAttribute?.('data-theme');
+        temaResolvido = themeAtual === 'dark' ? 'dark' : 'light';
+    }
 
     const abertos = Array.isArray(pedidos) ? pedidos.filter((p) => p && p.status === 'aberto') : [];
     const itens = abertos.slice(-80).reverse().map((p) => {
@@ -191,6 +342,7 @@ export function sanitizarPainelTv({ pedidos = [], empresa = {}, config = {} } = 
         tipoNegocio,
         segmentoAutomotivo: Boolean(isAuto),
         itens,
+        tema: temaResolvido,
         atualizadoEm: new Date().toISOString()
     };
 }
@@ -369,23 +521,55 @@ export function iniciarSincronizacaoOrcamentos(onSyncPedido) {
         if (idx === -1) return;
 
         const ped = lista[idx];
+        let alterou = garantirHistoricoInicialOrcamento(ped);
+
         const statusAnt = ped.orcamentoStatus || 'pendente';
         const comentAnt = ped.orcamentoComentarioCliente || '';
-        const mudouStatus = data.status && data.status !== statusAnt;
+        const ipRecebido = limparTexto(data.clienteIp || '', 64);
+        const respEm = data.respondidoEm || data.atualizadoEm || new Date().toISOString();
+        const mudouStatus = Boolean(data.status && data.status !== statusAnt);
         const mudouComent = (data.comentarioCliente || '') !== comentAnt;
+        const mudouIp = Boolean(ipRecebido && ipRecebido !== (ped.orcamentoUltimoIp || ''));
 
-        if (!mudouStatus && !mudouComent && !(data.status === 'aprovado' && ped.status === 'orcamento')) {
+        if (data.status === 'aprovado' || data.status === 'ajuste_solicitado') {
+            const resEv = registrarEventoOrcamentoHistorico(ped, {
+                tipo: data.status === 'aprovado' ? 'cliente_aprovado' : 'cliente_ajuste',
+                dataHora: respEm,
+                autor: 'Cliente (via Link)',
+                titulo: data.status === 'aprovado'
+                    ? 'Orçamento aprovado pelo cliente'
+                    : 'Cliente solicitou ajuste pelo link',
+                comentario: data.comentarioCliente || '',
+                ip: ipRecebido || 'Não identificado',
+                token,
+                valorNovo: Number(ped.valor || 0) || 0
+            });
+            if (resEv.inserido) alterou = true;
+        }
+
+        if (!mudouStatus && !mudouComent && !mudouIp && !alterou && !(data.status === 'aprovado' && ped.status === 'orcamento')) {
             return;
         }
 
-        lista[idx].orcamentoStatus = data.status;
-        lista[idx].orcamentoComentarioCliente = data.comentarioCliente || '';
-        lista[idx].orcamentoRespondidoEm = data.respondidoEm || data.atualizadoEm || new Date().toISOString();
+        if (data.status) lista[idx].orcamentoStatus = data.status;
+        if (mudouComent || data.comentarioCliente !== undefined) {
+            lista[idx].orcamentoComentarioCliente = data.comentarioCliente || '';
+        }
+        if (data.status === 'aprovado' || data.status === 'ajuste_solicitado') {
+            lista[idx].orcamentoRespondidoEm = respEm;
+            if (ipRecebido) {
+                lista[idx].orcamentoUltimoIp = ipRecebido;
+            }
+        }
 
-        if (data.status === 'aprovado' && lista[idx].status === 'orcamento') {
-            lista[idx].status = 'aberto';
-            lista[idx].statusTV = lista[idx].statusTV || 'em_servico';
-            lista[idx].aprovadoViaLinkEm = lista[idx].orcamentoRespondidoEm;
+        if (data.status === 'aprovado') {
+            lista[idx].orcamentoAprovadoEm = respEm;
+            lista[idx].orcamentoAprovadoIp = ipRecebido || lista[idx].orcamentoAprovadoIp || 'Não identificado';
+            if (lista[idx].status === 'orcamento') {
+                lista[idx].status = 'aberto';
+                lista[idx].statusTV = lista[idx].statusTV || 'em_servico';
+                lista[idx].aprovadoViaLinkEm = respEm;
+            }
         }
 
         localStorage.setItem('pedidos', JSON.stringify(lista));
@@ -551,6 +735,8 @@ const PublicoService = {
     gerarTokenSeguro,
     extrairPrimeiroNome,
     resolverUrlPublica,
+    registrarEventoOrcamentoHistorico,
+    garantirHistoricoInicialOrcamento,
     sanitizarOrcamentoParaPublico,
     sanitizarPainelTv,
     sanitizarAgendaConfigParaPublico,
@@ -566,6 +752,19 @@ const PublicoService = {
 
 if (typeof window !== 'undefined') {
     window.PublicoService = PublicoService;
+
+    let _timerThemeSync = null;
+    window.addEventListener('themechange', () => {
+        if (_timerThemeSync) clearTimeout(_timerThemeSync);
+        _timerThemeSync = setTimeout(() => {
+            try {
+                const user = window.AuthService?.getCurrentUser?.();
+                if (user && user.empresaId) {
+                    publicarPainelTv().catch(() => {});
+                }
+            } catch (e) {}
+        }, 250);
+    });
 }
 
 export default PublicoService;

@@ -21,6 +21,55 @@ function formatarDataBR(iso) {
     return `${m[3]}/${m[2]}/${m[1]}`;
 }
 
+function formatarDataHoraBR(iso) {
+    if (!iso || typeof iso !== 'string') return '-';
+    const dt = new Date(iso);
+    if (Number.isNaN(dt.getTime())) return formatarDataBR(iso);
+    const dd = String(dt.getDate()).padStart(2, '0');
+    const mm = String(dt.getMonth() + 1).padStart(2, '0');
+    const yyyy = dt.getFullYear();
+    const hh = String(dt.getHours()).padStart(2, '0');
+    const min = String(dt.getMinutes()).padStart(2, '0');
+    const ss = String(dt.getSeconds()).padStart(2, '0');
+    return `${dd}/${mm}/${yyyy} às ${hh}:${min}:${ss}`;
+}
+
+async function obterIpCliente() {
+    const consultarJson = async (url, timeoutMs = 2200) => {
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+        try {
+            const resp = await fetch(url, {
+                cache: 'no-store',
+                signal: controller ? controller.signal : undefined
+            });
+            if (!resp.ok) return '';
+            const json = await resp.json().catch(() => null);
+            const ip = json && typeof json.ip === 'string' ? json.ip.trim() : '';
+            if (ip && /^[a-fA-F0-9:.]{3,64}$/.test(ip)) return ip;
+            return '';
+        } catch (e) {
+            return '';
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
+    };
+
+    try {
+        const ipProprio = await consultarJson('api/publico/client-ip', 1800);
+        if (ipProprio && ipProprio !== '127.0.0.1') return ipProprio;
+
+        const ipPublico = await consultarJson('https://api64.ipify.org?format=json', 2400);
+        if (ipPublico) return ipPublico;
+
+        const ipFallback = await consultarJson('https://api.ipify.org?format=json', 2000);
+        if (ipFallback) return ipFallback;
+
+        if (ipProprio) return ipProprio;
+    } catch (e) {}
+    return 'Não identificado';
+}
+
 const params = new URLSearchParams(window.location.search);
 const token = (params.get('token') || '').trim();
 
@@ -126,14 +175,14 @@ function renderizarOrcamento(d) {
         botoesEl.style.display = 'none';
         boxAjuste.style.display = 'none';
         respRegEl.style.display = 'block';
-        respRegEl.innerHTML = `Resposta registrada em ${esc(formatarDataBR(d.respondidoEm || d.atualizadoEm))}. O estabelecimento já recebeu sua aprovação.`;
+        respRegEl.innerHTML = `Resposta registrada em ${esc(formatarDataHoraBR(d.respondidoEm || d.atualizadoEm))}. O estabelecimento já recebeu sua aprovação.`;
     } else if (d.status === 'ajuste_solicitado') {
         bannerEl.className = 'status-banner status-ajuste';
         bannerEl.innerHTML = '<span>✏️</span><span>Solicitação de ajuste enviada ao estabelecimento.</span>';
         botoesEl.style.display = 'none';
         boxAjuste.style.display = 'none';
         respRegEl.style.display = 'block';
-        respRegEl.innerHTML = `<strong>Seu comentário:</strong> "${esc(d.comentarioCliente || 'Solicitou ajuste')}"<br><small>Aguarde o estabelecimento atualizar o orçamento ou entrar em contato.</small>`;
+        respRegEl.innerHTML = `<strong>Seu comentário:</strong> "${esc(d.comentarioCliente || 'Solicitou ajuste')}"<br><small>Enviado em ${esc(formatarDataHoraBR(d.respondidoEm || d.atualizadoEm))}. Aguarde o estabelecimento atualizar o orçamento ou entrar em contato.</small>`;
     } else {
         bannerEl.className = 'status-banner status-pendente';
         bannerEl.innerHTML = '<span>⏳</span><span>Aguardando sua aprovação para iniciar o atendimento</span>';
@@ -153,10 +202,12 @@ async function enviarResposta(novoStatus, comentario = '') {
     if (btnAjuste) btnAjuste.disabled = true;
 
     try {
+        const clienteIp = await obterIpCliente();
         const agora = new Date().toISOString();
         await updateDoc(doc(db, 'orcamentos_publicos', token), {
             status: novoStatus,
             comentarioCliente: String(comentario || '').trim().slice(0, 580),
+            clienteIp: String(clienteIp || 'Não identificado').slice(0, 64),
             respondidoEm: agora,
             atualizadoEm: agora
         });

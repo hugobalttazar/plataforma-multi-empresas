@@ -1542,12 +1542,21 @@ body:has(.navbar) .container {
 	width: 100%;
 	max-width: 520px;
 	max-height: 92vh;
+	max-height: 92dvh;
 	display: flex;
 	flex-direction: column;
 	box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
 	overflow: hidden;
 	transform: scale(0.96);
 	transition: transform 0.2s ease;
+}
+
+.modal-card > form {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: hidden;
 }
 
 .modal-overlay.open .modal-card {
@@ -1586,6 +1595,7 @@ body:has(.navbar) .container {
 	overflow-y: auto;
 	-webkit-overflow-scrolling: touch;
 	flex: 1 1 auto;
+	min-height: 0;
 }
 
 .modal-footer {
@@ -1978,6 +1988,7 @@ body:has(.navbar) .container {
 	}
 	.modal-card {
 		max-height: 92vh;
+		max-height: 92dvh;
 		display: flex;
 		flex-direction: column;
 	}
@@ -1985,6 +1996,7 @@ body:has(.navbar) .container {
 		padding: 14px 12px;
 		overflow-y: auto;
 		-webkit-overflow-scrolling: touch;
+		min-height: 0;
 	}
 	.modal-header {
 		padding: 12px 14px;
@@ -4563,5 +4575,285 @@ html[data-theme="dark"] .banner-comissoes-pendentes {
 	background-color: rgba(245, 158, 11, 0.12);
 	border-color: rgba(245, 158, 11, 0.35);
 	color: #fde68a;
+}
+
+/* ==========================================================================
+   Orçamentos: Comentário do Cliente, Auditoria (IP + Data/Hora), Edição e Timeline
+   ========================================================================== */
+.modal-orcamento-card {
+	max-width: 660px;
+}
+
+.orc-comment-preview {
+	margin-top: 6px;
+	font-size: 0.78rem;
+	color: #92400e;
+	background: #fffbeb;
+	border: 1px solid #fde68a;
+	border-radius: 6px;
+	padding: 6px 8px;
+	max-width: 260px;
+	text-align: left;
+	word-break: break-word;
+	line-height: 1.38;
+}
+
+html[data-theme="dark"] .orc-comment-preview {
+	color: #fde68a;
+	background: rgba(245, 158, 11, 0.14);
+	border-color: rgba(245, 158, 11, 0.4);
+}
+
+.orc-audit-chip {
+	margin-top: 5px;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 0.72rem;
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	color: var(--text-muted);
+	background: var(--bg-surface);
+	border: 1px solid var(--border-subtle);
+	border-radius: 6px;
+	padding: 3px 7px;
+	max-width: 260px;
+	word-break: break-word;
+	text-align: left;
+}
+
+html[data-theme="dark"] .orc-audit-chip {
+	color: #cbd5e1;
+	background: rgba(30, 41, 59, 0.85);
+	border-color: rgba(148, 163, 184, 0.25);
+}
+
+.orc-history-link-btn {
+	margin-top: 6px;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	background: transparent;
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	padding: 3px 8px;
+	font-size: 0.73rem;
+	font-weight: 600;
+	color: var(--primary);
+	cursor: pointer;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.orc-history-link-btn:hover {
+	background: var(--primary-light);
+	border-color: var(--primary);
+}
+
+html[data-theme="dark"] .orc-history-link-btn {
+	color: #7dd3fc;
+	border-color: rgba(56, 189, 248, 0.35);
+}
+
+html[data-theme="dark"] .orc-history-link-btn:hover {
+	background: rgba(56, 189, 248, 0.14);
+}
+
+.orc-edit-summary-banner {
+	margin-bottom: 14px;
+	padding: 10px 12px;
+	background: var(--bg-surface);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	font-size: 0.86rem;
+	color: var(--text-main);
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.orc-edit-produtos-box {
+	background: var(--success-light);
+	border: 1px solid var(--success-border);
+	border-radius: var(--radius-sm);
+	padding: 12px;
+}
+
+.orc-edit-produtos-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.orc-edit-produto-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 7px 10px;
+	background: var(--bg-input);
+	border: 1px solid var(--border-subtle);
+	border-radius: 6px;
+	font-size: 0.84rem;
+}
+
+.orc-edit-produto-qty {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.orc-history-header-card {
+	padding: 12px 14px;
+	background: var(--bg-surface);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	margin-bottom: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.orc-timeline {
+	position: relative;
+	padding-left: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.orc-timeline::before {
+	content: '';
+	position: absolute;
+	left: 6px;
+	top: 6px;
+	bottom: 6px;
+	width: 2px;
+	background: var(--border-color);
+}
+
+.orc-timeline-item {
+	position: relative;
+}
+
+.orc-timeline-dot {
+	position: absolute;
+	left: -19px;
+	top: 12px;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: var(--primary);
+	border: 2px solid var(--bg-card);
+	box-shadow: 0 0 0 2px var(--border-color);
+}
+
+.orc-timeline-dot.tipo-cliente_aprovado,
+.orc-timeline-dot.tipo-aprovado_manual {
+	background: #16a34a;
+}
+
+.orc-timeline-dot.tipo-cliente_ajuste {
+	background: #d97706;
+}
+
+.orc-timeline-dot.tipo-editado {
+	background: #7c3aed;
+}
+
+.orc-timeline-dot.tipo-link_gerado {
+	background: #2563eb;
+}
+
+.orc-event-card {
+	background: var(--bg-surface);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	padding: 10px 12px;
+}
+
+.orc-event-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.orc-event-title {
+	font-weight: 700;
+	font-size: 0.88rem;
+	color: var(--text-main);
+}
+
+.orc-event-date {
+	font-size: 0.75rem;
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	color: var(--text-muted);
+}
+
+.orc-event-meta {
+	margin-top: 4px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.76rem;
+	color: var(--text-muted);
+}
+
+.orc-event-ip {
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	padding: 2px 6px;
+	border-radius: 4px;
+	background: var(--bg-input);
+	border: 1px solid var(--border-subtle);
+	color: var(--text-main);
+}
+
+.orc-event-comment {
+	margin-top: 8px;
+	padding: 8px 10px;
+	border-radius: 6px;
+	background: #fffbeb;
+	border: 1px solid #fde68a;
+	color: #92400e;
+	font-size: 0.84rem;
+	line-height: 1.42;
+	word-break: break-word;
+}
+
+html[data-theme="dark"] .orc-event-comment {
+	background: rgba(245, 158, 11, 0.14);
+	border-color: rgba(245, 158, 11, 0.4);
+	color: #fde68a;
+}
+
+.orc-diff-list {
+	margin: 8px 0 0;
+	padding: 8px 10px 8px 22px;
+	background: var(--bg-input);
+	border: 1px solid var(--border-subtle);
+	border-radius: 6px;
+	font-size: 0.8rem;
+	color: var(--text-main);
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.orc-event-valor-badge {
+	margin-top: 6px;
+	display: inline-block;
+	font-size: 0.76rem;
+	font-weight: 700;
+	color: var(--primary-dark);
+}
+
+html[data-theme="dark"] .orc-event-valor-badge {
+	color: #7dd3fc;
 }
 

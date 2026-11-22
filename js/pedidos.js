@@ -213,6 +213,132 @@ const modalReciboBaixarBtn = document.getElementById('modalReciboBaixarBtn');
 let pedidoSelecionadoParaRecibo = null;
 let pedidoSelecionadoParaEncerrar = null;
 
+// Helpers de Auditoria e Histórico de Orçamentos
+function obterOperadorLogadoNome() {
+	try {
+		const u = window.AuthService && typeof window.AuthService.getCurrentUser === 'function'
+			? window.AuthService.getCurrentUser()
+			: null;
+		if (u && (u.nome || u.username)) return String(u.nome || u.username);
+	} catch (e) {}
+	return 'Atendimento';
+}
+
+function formatarDataHoraAuditoriaBR(isoStr) {
+	if (!isoStr) return '';
+	const dt = new Date(isoStr);
+	if (Number.isNaN(dt.getTime())) return String(isoStr);
+	return dt.toLocaleString('pt-BR', {
+		day: '2-digit',
+		month: '2-digit',
+		year: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit'
+	}).replace(',', ' às');
+}
+
+function registrarEventoHistoricoPedidoSeguro(pedido, evento = {}) {
+	if (!pedido || typeof pedido !== 'object') return { lista: [], inserido: false };
+	if (window.PublicoService && typeof window.PublicoService.registrarEventoOrcamentoHistorico === 'function') {
+		return window.PublicoService.registrarEventoOrcamentoHistorico(pedido, evento);
+	}
+	if (!Array.isArray(pedido.orcamentoHistorico)) {
+		pedido.orcamentoHistorico = [];
+	}
+	const tipo = String(evento.tipo || 'registro').trim().slice(0, 40);
+	const dataHora = String(evento.dataHora || new Date().toISOString()).trim().slice(0, 40);
+	const autor = String(evento.autor || 'Sistema').trim().slice(0, 80);
+	const titulo = String(evento.titulo || 'Atualização do orçamento').trim().slice(0, 120);
+	const comentario = String(evento.comentario || '').trim().slice(0, 600);
+	const ip = String(evento.ip || '').trim().slice(0, 64);
+	const token = String(evento.token || '').trim().slice(0, 96);
+	const valorAnterior = (evento.valorAnterior !== null && evento.valorAnterior !== undefined && !Number.isNaN(Number(evento.valorAnterior)))
+		? Number(evento.valorAnterior)
+		: null;
+	const valorNovo = (evento.valorNovo !== null && evento.valorNovo !== undefined && !Number.isNaN(Number(evento.valorNovo)))
+		? Number(evento.valorNovo)
+		: null;
+	const alteracoes = Array.isArray(evento.alteracoes)
+		? evento.alteracoes.map((a) => String(a || '').trim().slice(0, 240)).filter(Boolean).slice(0, 20)
+		: [];
+
+	const existente = pedido.orcamentoHistorico.find((h) =>
+		h &&
+		h.tipo === tipo &&
+		String(h.token || '') === token &&
+		String(h.comentario || '') === comentario &&
+		(String(h.dataHora || '') === dataHora || (token && (tipo === 'cliente_ajuste' || tipo === 'cliente_aprovado')))
+	);
+	if (existente) {
+		let atualizado = false;
+		if (ip && (!existente.ip || existente.ip === 'Não identificado') && existente.ip !== ip) {
+			existente.ip = ip;
+			atualizado = true;
+		}
+		return { lista: pedido.orcamentoHistorico, inserido: atualizado };
+	}
+
+	pedido.orcamentoHistorico.push({
+		id: `oh_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+		tipo,
+		dataHora,
+		autor,
+		titulo,
+		comentario,
+		ip,
+		token,
+		valorAnterior,
+		valorNovo,
+		alteracoes
+	});
+	if (pedido.orcamentoHistorico.length > 200) {
+		pedido.orcamentoHistorico = pedido.orcamentoHistorico.slice(-200);
+	}
+	return { lista: pedido.orcamentoHistorico, inserido: true };
+}
+
+function garantirHistoricoInicialPedidoSeguro(pedido) {
+	if (!pedido || typeof pedido !== 'object') return false;
+	if (window.PublicoService && typeof window.PublicoService.garantirHistoricoInicialOrcamento === 'function') {
+		return window.PublicoService.garantirHistoricoInicialOrcamento(pedido);
+	}
+	let mudou = false;
+	if (!Array.isArray(pedido.orcamentoHistorico)) {
+		pedido.orcamentoHistorico = [];
+		mudou = true;
+	}
+	if (pedido.orcamentoHistorico.length === 0) {
+		const itensResumo = [];
+		if (pedido.servicos) itensResumo.push(`Serviços: ${pedido.servicos}`);
+		if (Array.isArray(pedido.produtosVendidos) && pedido.produtosVendidos.length > 0) {
+			itensResumo.push(`Produtos: ${pedido.produtosVendidos.map((pv) => `${pv.quantidade || 1}x ${pv.nome}`).join(', ')}`);
+		}
+		registrarEventoHistoricoPedidoSeguro(pedido, {
+			tipo: 'criado',
+			dataHora: pedido.criadoEm || new Date().toISOString(),
+			autor: pedido.operadorNome || 'Atendimento',
+			titulo: 'Orçamento criado no sistema',
+			alteracoes: itensResumo,
+			valorNovo: Number(pedido.valor || 0) || 0
+		});
+		mudou = true;
+	}
+	if (pedido.orcamentoComentarioCliente) {
+		const res = registrarEventoHistoricoPedidoSeguro(pedido, {
+			tipo: 'cliente_ajuste',
+			dataHora: pedido.orcamentoRespondidoEm || new Date().toISOString(),
+			autor: 'Cliente (via Link)',
+			titulo: 'Cliente solicitou ajuste pelo link',
+			comentario: pedido.orcamentoComentarioCliente,
+			ip: pedido.orcamentoUltimoIp || pedido.orcamentoAprovadoIp || '',
+			token: pedido.orcamentoToken || ''
+		});
+		if (res.inserido) mudou = true;
+	}
+	return mudou;
+}
+
 // Normalização de dados legados no carregamento
 function normalizarDadosPedidos() {
 	const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
@@ -235,6 +361,11 @@ function normalizarDadosPedidos() {
 		if (!p.cor) {
 			p.cor = 'prata';
 			houveModificacao = true;
+		}
+		if (p.status === 'orcamento' || p.orcamentoStatus || p.orcamentoToken || p.orcamentoComentarioCliente || p.orcamentoAprovadoIp || p.orcamentoUltimoIp) {
+			if (garantirHistoricoInicialPedidoSeguro(p)) {
+				houveModificacao = true;
+			}
 		}
 	});
 
@@ -1065,6 +1196,14 @@ function renderizarTabelas() {
 			const cliObj = clientes.find(c => c.nome && c.nome.toLowerCase() === (p.cliente || '').toLowerCase());
 			const temTelefone = cliObj && cliObj.tel1;
 
+			const possuiHistoricoOrc = Boolean(
+				(Array.isArray(p.orcamentoHistorico) && p.orcamentoHistorico.length > 0) ||
+				p.orcamentoAprovadoIp ||
+				p.orcamentoUltimoIp ||
+				p.orcamentoToken
+			);
+			const dataAprovLink = formatarDataHoraAuditoriaBR(p.orcamentoAprovadoEm || p.aprovadoViaLinkEm || p.orcamentoRespondidoEm);
+
 			tr.innerHTML = `
 				<td>
 					${renderizarIdentificacaoOS(p, isLavaJato, 32)}
@@ -1095,6 +1234,11 @@ function renderizarTabelas() {
 							${prontoNaTV ? '📺 Pronto na TV' : '📺 Em Serviço na TV'}
 						</span>
 					</div>
+					${p.orcamentoAprovadoIp ? `
+						<div class="orc-audit-chip" title="Aprovação registrada pelo cliente via link">
+							✅ IP: ${esc(p.orcamentoAprovadoIp)}${dataAprovLink ? ` • ${esc(dataAprovLink)}` : ''}
+						</div>
+					` : ''}
 					${p.pacoteAbatido ? `
 						<div style="margin-top:4px;">
 							<span class="badge" style="font-size:0.72rem; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">
@@ -1111,6 +1255,11 @@ function renderizarTabelas() {
 						${temTelefone ? `
 							<button type="button" class="btn btn-sm" onclick="abrirDisparoWhatsAppCarroPronto('${p.id}')" style="background:#16a34a; color:#fff; display:inline-flex; align-items:center; gap:4px;" title="Avisar cliente no WhatsApp que o serviço está pronto">
 								💬 ${isLavaJato ? 'Carro Pronto' : 'Avisar Pronto'}
+							</button>
+						` : ''}
+						${possuiHistoricoOrc ? `
+							<button type="button" class="btn btn-sm btn-secondary" onclick="window.abrirHistoricoOrcamento('${p.id}')" title="Ver histórico do orçamento, mensagens e IP de aprovação">
+								📜 Hist. Orç.
 							</button>
 						` : ''}
 						<button type="button" class="btn btn-sm btn-receber-os" data-id="${p.id}" onclick="window.abrirModalEncerramento('${p.id}')" style="background-color: var(--success); color: #fff; cursor: pointer; font-weight:700;">
@@ -1152,8 +1301,23 @@ function renderizarTabelas() {
 				}
 
 				const comentarioHtml = p.orcamentoComentarioCliente
-					? `<div style="margin-top:6px; font-size:0.78rem; color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:6px 8px; max-width:240px; text-align:left;">"${esc(p.orcamentoComentarioCliente)}"</div>`
+					? `<div class="orc-comment-preview">"${esc(p.orcamentoComentarioCliente)}"</div>`
 					: '';
+
+				const ipAuditoria = p.orcamentoUltimoIp || p.orcamentoAprovadoIp || '';
+				const dataAuditoria = formatarDataHoraAuditoriaBR(p.orcamentoRespondidoEm || p.orcamentoAprovadoEm);
+				const auditoriaHtml = (ipAuditoria || dataAuditoria)
+					? `<div class="orc-audit-chip" title="Registro de resposta do cliente">${ipAuditoria ? `🌐 IP: ${esc(ipAuditoria)}` : '🕒 Resposta'}${dataAuditoria ? ` • ${esc(dataAuditoria)}` : ''}</div>`
+					: '';
+
+				const qtdHistorico = Array.isArray(p.orcamentoHistorico) ? p.orcamentoHistorico.length : 0;
+				const historicoLinkHtml = `
+					<div>
+						<button type="button" class="orc-history-link-btn" onclick="window.abrirHistoricoOrcamento('${p.id}')" title="Ver linha do tempo completa de mensagens, edições e IP">
+							📜 Histórico (${qtdHistorico})
+						</button>
+					</div>
+				`;
 
 				tr.innerHTML = `
 					<td>${renderizarIdentificacaoOS(p, isLavaJato, 30)}</td>
@@ -1179,6 +1343,8 @@ function renderizarTabelas() {
 					<td>
 						${statusBadgeHtml}
 						${comentarioHtml}
+						${auditoriaHtml}
+						${historicoLinkHtml}
 					</td>
 					<td style="text-align: center;">
 						<div class="btn-action-group" style="flex-wrap:wrap; justify-content:center;">
@@ -1187,6 +1353,12 @@ function renderizarTabelas() {
 							</button>
 							<button type="button" class="btn btn-sm" onclick="window.enviarOrcamentoWhatsApp('${p.id}')" style="background:#16a34a; color:#fff; font-weight:600;" title="Enviar link de aprovação no WhatsApp">
 								💬 WhatsApp
+							</button>
+							<button type="button" class="btn btn-sm" onclick="window.abrirModalEditarOrcamento('${p.id}')" style="background:#7c3aed; color:#fff; font-weight:600;" title="Editar serviços, produtos, valor e observações do orçamento">
+								✏️ Editar
+							</button>
+							<button type="button" class="btn btn-sm btn-secondary" onclick="window.abrirHistoricoOrcamento('${p.id}')" title="Ver histórico de edições, mensagens e IPs">
+								📜 Histórico
 							</button>
 							<button type="button" class="btn btn-sm" onclick="window.aprovarManualOrcamento('${p.id}')" style="background:#0f766e; color:#fff; font-weight:600;" title="Aprovar orçamento manualmente e mover para o Pátio">
 								✅ Abrir Pátio
@@ -1220,6 +1392,13 @@ function renderizarTabelas() {
 			const dataSaidaBruta = p.dataEncerramento || p.data || '';
 			const dataSaida = window.DateBR ? (window.DateBR.formatarParaBR(dataSaidaBruta) || '-') : (dataSaidaBruta || '-');
 			const horaSaida = p.horaEncerramento ? ` às ${esc(p.horaEncerramento)}` : '';
+			const possuiHistoricoOrc = Boolean(
+				(Array.isArray(p.orcamentoHistorico) && p.orcamentoHistorico.length > 0) ||
+				p.orcamentoAprovadoIp ||
+				p.orcamentoUltimoIp ||
+				p.orcamentoToken
+			);
+			const dataAprovLink = formatarDataHoraAuditoriaBR(p.orcamentoAprovadoEm || p.aprovadoViaLinkEm || p.orcamentoRespondidoEm);
 
 			tr.innerHTML = `
 				<td>
@@ -1250,6 +1429,11 @@ function renderizarTabelas() {
 							</span>
 						</div>
 					` : ''}
+					${p.orcamentoAprovadoIp ? `
+						<div class="orc-audit-chip" title="Aprovação registrada pelo cliente via link">
+							✅ IP: ${esc(p.orcamentoAprovadoIp)}${dataAprovLink ? ` • ${esc(dataAprovLink)}` : ''}
+						</div>
+					` : ''}
 					${p.pacoteAbatido ? `
 						<div style="margin-top:4px;">
 							<span class="badge" style="font-size:0.72rem; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">
@@ -1259,10 +1443,15 @@ function renderizarTabelas() {
 					` : ''}
 				</td>
 				<td style="text-align: center;">
-					<div style="display: inline-flex; align-items: center; gap: 6px;">
+					<div style="display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;">
 						<button type="button" class="btn btn-sm btn-recibo-os" data-id="${p.id}" onclick="abrirModalRecibo('${p.id}')" title="Ver e Imprimir Recibo Estilo Cupom Fiscal">
 							🧾 Recibo
 						</button>
+						${possuiHistoricoOrc ? `
+							<button type="button" class="btn btn-sm btn-secondary" onclick="window.abrirHistoricoOrcamento('${p.id}')" title="Ver histórico e IP de aprovação do orçamento">
+								📜 Hist.
+							</button>
+						` : ''}
 						<button type="button" class="btn btn-sm btn-secondary btn-cancelar-os" data-id="${p.id}" style="color: var(--danger);" title="Excluir Registro">
 							🗑️
 						</button>
@@ -2132,6 +2321,7 @@ if (pedidoForm) {
 		});
 
 		const servicosDetalheEntrada = obterDetalheServicosSelecionadosEntrada();
+		const agoraCriacaoISO = new Date().toISOString();
 
 		const novoPedido = {
 			id: osId,
@@ -2155,8 +2345,28 @@ if (pedidoForm) {
 			orcamentoStatus: estagioInicial === 'orcamento' ? 'pendente' : '',
 			formaPagamento: '',
 			dataEncerramento: '',
-			horaEncerramento: ''
+			horaEncerramento: '',
+			criadoEm: agoraCriacaoISO
 		};
+
+		if (estagioInicial === 'orcamento') {
+			const itensIniciais = [];
+			if (novoPedido.servicos) itensIniciais.push(`Serviços: ${novoPedido.servicos}`);
+			if (produtosEntradaSelecionados.length > 0) {
+				itensIniciais.push(`Produtos: ${produtosEntradaSelecionados.map((pv) => `${pv.quantidade || 1}x ${pv.nome}`).join(', ')}`);
+			}
+			const obsVist = vistoriaObs ? vistoriaObs.value.trim() : '';
+			if (obsVist) itensIniciais.push(`Obs./Vistoria: ${obsVist}`);
+
+			registrarEventoHistoricoPedidoSeguro(novoPedido, {
+				tipo: 'criado',
+				dataHora: agoraCriacaoISO,
+				autor: operadorNome || obterOperadorLogadoNome(),
+				titulo: 'Orçamento criado no sistema',
+				alteracoes: itensIniciais,
+				valorNovo: Number(valor || 0)
+			});
+		}
 
 		if (usarPacoteNaEntrada && resPacoteEntrada && resPacoteEntrada.assinatura) {
 			novoPedido.pacoteAbatido = true;
@@ -2325,11 +2535,24 @@ window.gerarECopiarLinkOrcamento = async function (osId) {
 	if (idx === -1) return null;
 
 	try {
+		garantirHistoricoInicialPedidoSeguro(pedidos[idx]);
+		const jaTinhaLink = Boolean(pedidos[idx].orcamentoToken);
+
 		const res = await window.PublicoService.publicarOrcamentoPublico(pedidos[idx]);
 		pedidos[idx].orcamentoToken = res.token;
 		pedidos[idx].orcamentoPublicoUrl = res.url;
 		pedidos[idx].orcamentoStatus = 'pendente';
 		pedidos[idx].orcamentoComentarioCliente = '';
+
+		registrarEventoHistoricoPedidoSeguro(pedidos[idx], {
+			tipo: 'link_gerado',
+			dataHora: new Date().toISOString(),
+			autor: obterOperadorLogadoNome(),
+			titulo: jaTinhaLink ? 'Novo link de orçamento gerado (anterior substituído)' : 'Link público de aprovação gerado',
+			token: res.token,
+			valorNovo: Number(pedidos[idx].valor || 0) || 0
+		});
+
 		localStorage.setItem('pedidos', JSON.stringify(pedidos));
 
 		renderizarTabelas();
@@ -2390,10 +2613,23 @@ window.aprovarManualOrcamento = function (osId) {
 	const idx = pedidos.findIndex((p) => String(p.id) === String(osId));
 	if (idx === -1) return;
 
+	garantirHistoricoInicialPedidoSeguro(pedidos[idx]);
+	const agoraISO = new Date().toISOString();
+
 	pedidos[idx].status = 'aberto';
 	pedidos[idx].statusTV = pedidos[idx].statusTV || 'em_servico';
 	pedidos[idx].orcamentoStatus = 'aprovado';
-	pedidos[idx].orcamentoRespondidoEm = new Date().toISOString();
+	pedidos[idx].orcamentoRespondidoEm = agoraISO;
+	pedidos[idx].orcamentoAprovadoEm = agoraISO;
+
+	registrarEventoHistoricoPedidoSeguro(pedidos[idx], {
+		tipo: 'aprovado_manual',
+		dataHora: agoraISO,
+		autor: obterOperadorLogadoNome(),
+		titulo: 'Orçamento aprovado manualmente e movido para o Pátio',
+		valorNovo: Number(pedidos[idx].valor || 0) || 0
+	});
+
 	localStorage.setItem('pedidos', JSON.stringify(pedidos));
 
 	renderizarTabelas();
@@ -2404,6 +2640,570 @@ window.aprovarManualOrcamento = function (osId) {
 		window.UI.toast(`O.S. de ${pedidos[idx].cliente} movida para o Pátio!`, 'success');
 	}
 };
+
+// ==========================================================================
+// Modais: Edição de Orçamento & Histórico / Auditoria
+// ==========================================================================
+let editOrcamentoIdAtual = null;
+let editOrcamentoProdutosAtuais = [];
+
+function fecharModalEditarOrcamento() {
+	const modal = document.getElementById('modalEditarOrcamento');
+	if (modal) modal.classList.remove('open');
+	editOrcamentoIdAtual = null;
+	editOrcamentoProdutosAtuais = [];
+}
+
+function calcularSomaEditOrcamento() {
+	const selServicos = document.getElementById('editOrcamentoServicos');
+	const totalServicos = selServicos
+		? Array.from(selServicos.selectedOptions).reduce((acc, opt) => acc + (parseFloat(opt.dataset.preco || 0) || 0), 0)
+		: 0;
+	const totalProdutos = editOrcamentoProdutosAtuais.reduce(
+		(acc, p) => acc + (Math.max(1, Number(p.quantidade || 1)) * (Number(p.precoUnitario || 0) || 0)),
+		0
+	);
+	return Math.max(0, Math.round((totalServicos + totalProdutos) * 100) / 100);
+}
+
+function atualizarValorEditOrcamentoSePermitido(forcar = false) {
+	const inputValor = document.getElementById('editOrcamentoValor');
+	if (!inputValor) return;
+	if (!forcar && inputValor.dataset.manualOverride === 'true') return;
+	inputValor.value = calcularSomaEditOrcamento().toFixed(2);
+}
+
+function renderizarProdutosEditOrcamento() {
+	const listaEl = document.getElementById('editOrcamentoListaProdutos');
+	const subEl = document.getElementById('editOrcamentoSubtotalProdutos');
+	if (!listaEl) return;
+
+	const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
+	const subtotal = editOrcamentoProdutosAtuais.reduce(
+		(acc, p) => acc + (Math.max(1, Number(p.quantidade || 1)) * (Number(p.precoUnitario || 0) || 0)),
+		0
+	);
+	if (subEl) {
+		subEl.textContent = editOrcamentoProdutosAtuais.length > 0
+			? `Subtotal: R$ ${subtotal.toFixed(2)}`
+			: 'Nenhum produto incluído';
+	}
+
+	if (editOrcamentoProdutosAtuais.length === 0) {
+		listaEl.innerHTML = '<div style="font-size:0.8rem; color:var(--text-muted); padding:4px 0;">Nenhum produto comercial adicionado a este orçamento.</div>';
+		return;
+	}
+
+	listaEl.innerHTML = editOrcamentoProdutosAtuais.map((item, idx) => {
+		const qtd = Math.max(1, Number(item.quantidade || 1));
+		const unit = Number(item.precoUnitario || 0) || 0;
+		return `
+			<div class="orc-edit-produto-item">
+				<div style="min-width:0; flex:1;">
+					<strong style="color:var(--text-main);">${esc(item.nome)}</strong>
+					<div style="font-size:0.75rem; color:var(--text-muted);">R$ ${unit.toFixed(2)} un. • Sub: R$ ${(qtd * unit).toFixed(2)}</div>
+				</div>
+				<div class="orc-edit-produto-qty">
+					<button type="button" class="btn btn-secondary btn-sm" onclick="window.alterarQtdProdutoEditOrcamento(${idx}, -1)" style="padding:2px 8px;">-</button>
+					<span style="min-width:20px; text-align:center; font-weight:700;">${qtd}</span>
+					<button type="button" class="btn btn-secondary btn-sm" onclick="window.alterarQtdProdutoEditOrcamento(${idx}, 1)" style="padding:2px 8px;">+</button>
+					<button type="button" class="btn btn-secondary btn-sm" onclick="window.removerProdutoEditOrcamento(${idx})" style="padding:2px 8px; color:var(--danger);" title="Remover produto">🗑️</button>
+				</div>
+			</div>
+		`;
+	}).join('');
+}
+
+window.alterarQtdProdutoEditOrcamento = function (idx, delta) {
+	if (!editOrcamentoProdutosAtuais[idx]) return;
+	const novaQtd = (Number(editOrcamentoProdutosAtuais[idx].quantidade || 1) || 1) + delta;
+	if (novaQtd <= 0) {
+		editOrcamentoProdutosAtuais.splice(idx, 1);
+	} else {
+		editOrcamentoProdutosAtuais[idx].quantidade = novaQtd;
+	}
+	renderizarProdutosEditOrcamento();
+	atualizarValorEditOrcamentoSePermitido(false);
+};
+
+window.removerProdutoEditOrcamento = function (idx) {
+	if (!editOrcamentoProdutosAtuais[idx]) return;
+	editOrcamentoProdutosAtuais.splice(idx, 1);
+	renderizarProdutosEditOrcamento();
+	atualizarValorEditOrcamentoSePermitido(false);
+};
+
+window.abrirModalEditarOrcamento = function (osId) {
+	if (window.SaasGuard && typeof window.SaasGuard.bloquearSeSuspenso === 'function') {
+		if (!window.SaasGuard.bloquearSeSuspenso('editar orçamento')) return;
+	}
+
+	const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+	const p = pedidos.find((item) => String(item.id) === String(osId));
+	if (!p) return;
+
+	if (p.status !== 'orcamento') {
+		if (window.UI) window.UI.toast('Apenas propostas na aba Orçamentos podem ser editadas por este modal.', 'warning');
+		return;
+	}
+
+	editOrcamentoIdAtual = p.id;
+	editOrcamentoProdutosAtuais = Array.isArray(p.produtosVendidos)
+		? p.produtosVendidos.map((pv) => ({ ...pv }))
+		: [];
+
+	const modal = document.getElementById('modalEditarOrcamento');
+	const resumoTopo = document.getElementById('editOrcamentoResumoTopo');
+	const grupoAuto = document.getElementById('editOrcamentoGrupoAuto');
+	const grupoOutro = document.getElementById('editOrcamentoGrupoOutro');
+	const inputPlaca = document.getElementById('editOrcamentoPlaca');
+	const inputModelo = document.getElementById('editOrcamentoModelo');
+	const inputItemDesc = document.getElementById('editOrcamentoItemDesc');
+	const inputData = document.getElementById('editOrcamentoData');
+	const selOperador = document.getElementById('editOrcamentoOperador');
+	const selServicos = document.getElementById('editOrcamentoServicos');
+	const selProduto = document.getElementById('editOrcamentoSelectProduto');
+	const inputValor = document.getElementById('editOrcamentoValor');
+	const inputVistoriaObs = document.getElementById('editOrcamentoVistoriaObs');
+	const inputMotivo = document.getElementById('editOrcamentoMotivo');
+	const chkRenovar = document.getElementById('editOrcamentoRenovarLink');
+
+	const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
+	const isAuto = isSegmentoLavaJato();
+	if (grupoAuto) grupoAuto.style.display = isAuto ? 'contents' : 'none';
+	if (grupoOutro) grupoOutro.style.display = isAuto ? 'none' : 'block';
+
+	if (resumoTopo) {
+		resumoTopo.innerHTML = `
+			<div><strong>Cliente:</strong> ${esc(p.cliente || 'Não identificado')}</div>
+			<div style="font-size:0.8rem; color:var(--text-muted);">OS #${esc(p.id)}</div>
+		`;
+	}
+
+	if (inputPlaca) inputPlaca.value = p.placa || '';
+	if (inputModelo) inputModelo.value = p.modelo || '';
+	if (inputItemDesc) inputItemDesc.value = p.itemDescricao || p.modelo || '';
+
+	if (inputData) {
+		if (window.DateBR && typeof window.DateBR.setInputISO === 'function') {
+			window.DateBR.setInputISO(inputData, p.data || obterDataHojeISO());
+		} else {
+			inputData.value = p.data || obterDataHojeISO();
+		}
+	}
+
+	if (selOperador) {
+		selOperador.innerHTML = '<option value="">Sem responsável definido</option>';
+		const membros = (typeof window.EquipeService !== 'undefined' && typeof window.EquipeService.getMembros === 'function')
+			? window.EquipeService.getMembros()
+			: [];
+		membros.forEach((m) => {
+			if (!m || m.ativo === false) return;
+			const opt = document.createElement('option');
+			opt.value = m.id;
+			opt.textContent = m.nome;
+			if (p.operadorId && String(p.operadorId) === String(m.id)) opt.selected = true;
+			selOperador.appendChild(opt);
+		});
+	}
+
+	if (selServicos) {
+		const catalogo = JSON.parse(localStorage.getItem('servicos')) || [];
+		const nomesAtuais = Array.isArray(p.servicosDetalhe) && p.servicosDetalhe.length > 0
+			? p.servicosDetalhe.map((s) => String(s.nome || '').trim().toLowerCase()).filter(Boolean)
+			: String(p.servicos || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+
+		selServicos.innerHTML = '';
+		const nomesCatalogoSet = new Set();
+		catalogo.forEach((s) => {
+			if (!s || !s.nome) return;
+			const opt = document.createElement('option');
+			opt.value = s.nome;
+			opt.dataset.preco = String(Number(s.preco || 0) || 0);
+			opt.textContent = `${s.nome} (R$ ${(Number(s.preco || 0) || 0).toFixed(2)})`;
+			const lower = s.nome.trim().toLowerCase();
+			nomesCatalogoSet.add(lower);
+			if (nomesAtuais.includes(lower)) opt.selected = true;
+			selServicos.appendChild(opt);
+		});
+
+		if (Array.isArray(p.servicosDetalhe)) {
+			p.servicosDetalhe.forEach((sd) => {
+				if (!sd || !sd.nome) return;
+				const lower = sd.nome.trim().toLowerCase();
+				if (!nomesCatalogoSet.has(lower)) {
+					const opt = document.createElement('option');
+					opt.value = sd.nome;
+					opt.dataset.preco = String(Number(sd.preco || 0) || 0);
+					opt.textContent = `${sd.nome} (R$ ${(Number(sd.preco || 0) || 0).toFixed(2)})`;
+					opt.selected = true;
+					selServicos.appendChild(opt);
+				}
+			});
+		}
+	}
+
+	if (selProduto) {
+		selProduto.innerHTML = '<option value="">Adicionar produto comercial ao orçamento...</option>';
+		const produtosVenda = (typeof window.EstoqueService !== 'undefined' && typeof window.EstoqueService.getProdutosParaVenda === 'function')
+			? window.EstoqueService.getProdutosParaVenda()
+			: [];
+		produtosVenda.forEach((pv) => {
+			const opt = document.createElement('option');
+			opt.value = pv.id;
+			opt.dataset.nome = pv.nome;
+			opt.dataset.preco = String(parseFloat(pv.precoVenda || 0) || 0);
+			opt.textContent = `${pv.nome} — R$ ${(parseFloat(pv.precoVenda || 0) || 0).toFixed(2)}`;
+			selProduto.appendChild(opt);
+		});
+	}
+
+	renderizarProdutosEditOrcamento();
+
+	if (inputValor) {
+		const valorAtualNum = Number(p.valor || 0) || 0;
+		const somaCalculada = calcularSomaEditOrcamento();
+		inputValor.value = valorAtualNum.toFixed(2);
+		inputValor.dataset.manualOverride = Math.abs(valorAtualNum - somaCalculada) > 0.01 ? 'true' : 'false';
+	}
+
+	if (inputVistoriaObs) {
+		const vAtual = (typeof window.VistoriaService !== 'undefined' && typeof window.VistoriaService.getVistoriaPorPedidoId === 'function')
+			? window.VistoriaService.getVistoriaPorPedidoId(p.id)
+			: null;
+		inputVistoriaObs.value = (vAtual && vAtual.observacoes) ? vAtual.observacoes : '';
+	}
+
+	if (inputMotivo) {
+		inputMotivo.value = '';
+	}
+	if (chkRenovar) {
+		chkRenovar.checked = Boolean(p.orcamentoToken || p.orcamentoPublicoUrl);
+	}
+
+	if (modal) modal.classList.add('open');
+};
+
+function fecharModalHistoricoOrcamento() {
+	const modal = document.getElementById('modalHistoricoOrcamento');
+	if (modal) modal.classList.remove('open');
+}
+
+window.abrirHistoricoOrcamento = function (osId) {
+	const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+	const p = pedidos.find((item) => String(item.id) === String(osId));
+	if (!p) return;
+
+	const copia = JSON.parse(JSON.stringify(p));
+	garantirHistoricoInicialPedidoSeguro(copia);
+
+	const modal = document.getElementById('modalHistoricoOrcamento');
+	const cabEl = document.getElementById('historicoOrcamentoCabecalho');
+	const timeEl = document.getElementById('historicoOrcamentoTimeline');
+	const btnEditar = document.getElementById('btnIrParaEditarDoHistorico');
+	const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
+
+	const isAuto = isSegmentoLavaJato();
+	const ident = isAuto
+		? `${p.placa || 'SEM PLACA'}${p.modelo ? ' • ' + p.modelo : ''}`
+		: (p.itemDescricao || p.modelo || 'Atendimento');
+
+	const statusMap = {
+		pendente: '⏳ Aguardando Cliente',
+		ajuste_solicitado: '✏️ Ajuste Solicitado',
+		aprovado: '✅ Aprovado'
+	};
+	const statusTxt = statusMap[p.orcamentoStatus] || (p.status === 'orcamento' ? '⏳ Aguardando Cliente' : '✅ Aprovado');
+	const aprovIp = p.orcamentoAprovadoIp || '';
+	const aprovDt = formatarDataHoraAuditoriaBR(p.orcamentoAprovadoEm || p.aprovadoViaLinkEm);
+	const ultIp = p.orcamentoUltimoIp || '';
+	const ultDt = formatarDataHoraAuditoriaBR(p.orcamentoRespondidoEm);
+
+	if (cabEl) {
+		cabEl.innerHTML = `
+			<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+				<div>
+					<strong style="font-size:0.96rem; color:var(--text-main);">${esc(p.cliente || 'Cliente')}</strong>
+					<span style="color:var(--text-muted); font-size:0.84rem;"> • ${esc(ident)}</span>
+				</div>
+				<span class="badge-price">R$ ${(parseFloat(p.valor || 0) || 0).toFixed(2)}</span>
+			</div>
+			<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:0.8rem; color:var(--text-muted);">
+				<span><strong>Status:</strong> ${esc(statusTxt)}</span>
+				${aprovIp ? `<span class="orc-event-ip">✅ Aprovação • IP: ${esc(aprovIp)}${aprovDt ? ` • ${esc(aprovDt)}` : ''}</span>` : ''}
+				${(!aprovIp && ultIp) ? `<span class="orc-event-ip">🌐 Último IP: ${esc(ultIp)}${ultDt ? ` • ${esc(ultDt)}` : ''}</span>` : ''}
+			</div>
+		`;
+	}
+
+	const eventos = Array.isArray(copia.orcamentoHistorico) ? [...copia.orcamentoHistorico].reverse() : [];
+	if (timeEl) {
+		if (eventos.length === 0) {
+			timeEl.innerHTML = '<div style="font-size:0.88rem; color:var(--text-muted);">Nenhum evento registrado ainda neste orçamento.</div>';
+		} else {
+			const icones = {
+				criado: '📝',
+				link_gerado: '🔗',
+				cliente_ajuste: '💬',
+				cliente_aprovado: '✅',
+				aprovado_manual: '🏁',
+				editado: '✏️'
+			};
+			timeEl.innerHTML = eventos.map((ev) => {
+				const tipo = ev.tipo || 'registro';
+				const icone = icones[tipo] || '•';
+				const dataFmt = formatarDataHoraAuditoriaBR(ev.dataHora);
+				const diffsHtml = Array.isArray(ev.alteracoes) && ev.alteracoes.length > 0
+					? `<ul class="orc-diff-list">${ev.alteracoes.map((a) => `<li>${esc(a)}</li>`).join('')}</ul>`
+					: '';
+				const valorHtml = (ev.valorAnterior !== null && ev.valorAnterior !== undefined && ev.valorNovo !== null && ev.valorNovo !== undefined && Math.abs(ev.valorAnterior - ev.valorNovo) > 0.009)
+					? `<div class="orc-event-valor-badge">💰 Valor: R$ ${Number(ev.valorAnterior).toFixed(2)} → R$ ${Number(ev.valorNovo).toFixed(2)}</div>`
+					: ((ev.valorNovo !== null && ev.valorNovo !== undefined && (tipo === 'criado' || tipo === 'cliente_aprovado' || tipo === 'aprovado_manual'))
+						? `<div class="orc-event-valor-badge">💰 Valor registrado: R$ ${Number(ev.valorNovo).toFixed(2)}</div>`
+						: '');
+
+				return `
+					<div class="orc-timeline-item">
+						<span class="orc-timeline-dot tipo-${esc(tipo)}"></span>
+						<div class="orc-event-card">
+							<div class="orc-event-header">
+								<span class="orc-event-title">${icone} ${esc(ev.titulo || 'Evento')}</span>
+								<span class="orc-event-date">${esc(dataFmt)}</span>
+							</div>
+							<div class="orc-event-meta">
+								<span>👤 ${esc(ev.autor || 'Sistema')}</span>
+								${ev.ip ? `<span class="orc-event-ip">🌐 IP: ${esc(ev.ip)}</span>` : ''}
+								${ev.token ? `<span style="font-family:var(--font-mono); font-size:0.7rem;">🔑 ${esc(ev.token.slice(0, 10))}…</span>` : ''}
+							</div>
+							${ev.comentario ? `<div class="orc-event-comment">"${esc(ev.comentario)}"</div>` : ''}
+							${diffsHtml}
+							${valorHtml}
+						</div>
+					</div>
+				`;
+			}).join('');
+		}
+	}
+
+	if (btnEditar) {
+		btnEditar.style.display = p.status === 'orcamento' ? 'inline-flex' : 'none';
+		btnEditar.onclick = () => {
+			fecharModalHistoricoOrcamento();
+			window.abrirModalEditarOrcamento(p.id);
+		};
+	}
+
+	if (modal) modal.classList.add('open');
+};
+
+(function inicializarEventosModaisOrcamento() {
+	const btnFecharEd = document.getElementById('btnFecharModalEditarOrcamento');
+	const btnCancelarEd = document.getElementById('btnCancelarEditarOrcamento');
+	const formEditar = document.getElementById('formEditarOrcamento');
+	const selServicosEd = document.getElementById('editOrcamentoServicos');
+	const inputValorEd = document.getElementById('editOrcamentoValor');
+	const btnRecalc = document.getElementById('btnRecalcularValorEditOrcamento');
+	const btnAddProd = document.getElementById('btnAddProdutoEditOrcamento');
+	const selProdEd = document.getElementById('editOrcamentoSelectProduto');
+
+	const btnFecharHist = document.getElementById('btnFecharModalHistoricoOrcamento');
+	const btnFecharHistInf = document.getElementById('btnFecharInferiorHistorico');
+
+	if (btnFecharEd) btnFecharEd.addEventListener('click', fecharModalEditarOrcamento);
+	if (btnCancelarEd) btnCancelarEd.addEventListener('click', fecharModalEditarOrcamento);
+	if (btnFecharHist) btnFecharHist.addEventListener('click', fecharModalHistoricoOrcamento);
+	if (btnFecharHistInf) btnFecharHistInf.addEventListener('click', fecharModalHistoricoOrcamento);
+
+	if (inputValorEd) {
+		inputValorEd.addEventListener('input', () => {
+			inputValorEd.dataset.manualOverride = 'true';
+		});
+	}
+	if (selServicosEd) {
+		selServicosEd.addEventListener('change', () => {
+			atualizarValorEditOrcamentoSePermitido(false);
+		});
+	}
+	if (btnRecalc) {
+		btnRecalc.addEventListener('click', () => {
+			if (inputValorEd) inputValorEd.dataset.manualOverride = 'false';
+			atualizarValorEditOrcamentoSePermitido(true);
+		});
+	}
+	if (btnAddProd && selProdEd) {
+		btnAddProd.addEventListener('click', () => {
+			const opt = selProdEd.selectedOptions[0];
+			if (!opt || !opt.value) {
+				if (window.UI) window.UI.toast('Selecione um produto para incluir no orçamento.', 'warning');
+				return;
+			}
+			const id = opt.value;
+			const nome = opt.dataset.nome || opt.textContent;
+			const preco = parseFloat(opt.dataset.preco || 0) || 0;
+			const existente = editOrcamentoProdutosAtuais.find((item) => String(item.id) === String(id));
+			if (existente) {
+				existente.quantidade = (Number(existente.quantidade || 1) || 1) + 1;
+			} else {
+				editOrcamentoProdutosAtuais.push({ id, nome, quantidade: 1, precoUnitario: preco });
+			}
+			selProdEd.value = '';
+			renderizarProdutosEditOrcamento();
+			atualizarValorEditOrcamentoSePermitido(false);
+		});
+	}
+
+	if (formEditar) {
+		formEditar.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			if (!editOrcamentoIdAtual) return;
+			if (window.SaasGuard && typeof window.SaasGuard.bloquearSeSuspenso === 'function') {
+				if (!window.SaasGuard.bloquearSeSuspenso('editar orçamento')) return;
+			}
+
+			const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+			const idx = pedidos.findIndex((item) => String(item.id) === String(editOrcamentoIdAtual));
+			if (idx === -1) return;
+
+			const p = pedidos[idx];
+			garantirHistoricoInicialPedidoSeguro(p);
+
+			const opcoesServicos = selServicosEd
+				? Array.from(selServicosEd.selectedOptions).filter((o) => !o.disabled)
+				: [];
+			if (opcoesServicos.length === 0) {
+				if (window.UI) window.UI.toast('Selecione ao menos um serviço no orçamento.', 'warning');
+				return;
+			}
+
+			const inputData = document.getElementById('editOrcamentoData');
+			const rawData = inputData ? inputData.value.trim() : '';
+			const novaData = rawData
+				? (window.DateBR ? window.DateBR.converterBRParaISO(rawData) : rawData)
+				: (p.data || obterDataHojeISO());
+			if (rawData && !novaData) {
+				if (window.UI) window.UI.toast('Informe uma Data Prevista válida no formato dd/mm/aaaa.', 'warning');
+				return;
+			}
+
+			const isAuto = isSegmentoLavaJato();
+			const inputPlaca = document.getElementById('editOrcamentoPlaca');
+			const inputModelo = document.getElementById('editOrcamentoModelo');
+			const inputItemDesc = document.getElementById('editOrcamentoItemDesc');
+			const selOperador = document.getElementById('editOrcamentoOperador');
+			const inputVistoriaObs = document.getElementById('editOrcamentoVistoriaObs');
+			const inputMotivo = document.getElementById('editOrcamentoMotivo');
+			const chkRenovar = document.getElementById('editOrcamentoRenovarLink');
+
+			const novoServicosDetalhe = opcoesServicos.map((opt) => ({
+				nome: opt.value,
+				preco: parseFloat(opt.dataset.preco || 0) || 0
+			}));
+			const novoServicosStr = novoServicosDetalhe.map((s) => s.nome).join(', ');
+			const novosProdutos = editOrcamentoProdutosAtuais.map((pv) => ({ ...pv }));
+			const novoValor = Math.max(0, Math.round((parseFloat(inputValorEd ? inputValorEd.value : 0) || 0) * 100) / 100);
+			const novaPlaca = isAuto && inputPlaca ? (inputPlaca.value.trim().toUpperCase() || p.placa) : p.placa;
+			const novoModelo = isAuto && inputModelo ? inputModelo.value.trim() : p.modelo;
+			const novoItemDesc = !isAuto && inputItemDesc ? inputItemDesc.value.trim() : (isAuto ? novoModelo : p.itemDescricao);
+
+			const novoOperadorId = selOperador ? selOperador.value : '';
+			let novoOperadorNome = '';
+			if (novoOperadorId && typeof window.EquipeService !== 'undefined') {
+				const membro = window.EquipeService.getMembros().find((m) => String(m.id) === String(novoOperadorId));
+				if (membro) novoOperadorNome = membro.nome;
+			}
+
+			const vistAnteriorObj = (typeof window.VistoriaService !== 'undefined' && typeof window.VistoriaService.getVistoriaPorPedidoId === 'function')
+				? window.VistoriaService.getVistoriaPorPedidoId(p.id)
+				: null;
+			const obsVistAnt = vistAnteriorObj && vistAnteriorObj.observacoes ? String(vistAnteriorObj.observacoes).trim() : '';
+			const obsVistNova = inputVistoriaObs ? inputVistoriaObs.value.trim() : '';
+
+			const alteracoes = [];
+			const servicosAnt = p.servicos || '-';
+			if (servicosAnt !== novoServicosStr) {
+				alteracoes.push(`Serviços: "${servicosAnt}" → "${novoServicosStr}"`);
+			}
+
+			const fmtProdutos = (arr) => (Array.isArray(arr) && arr.length > 0
+				? arr.map((pv) => `${pv.quantidade || 1}x ${pv.nome}`).join(', ')
+				: 'Nenhum');
+			const prodAntStr = fmtProdutos(p.produtosVendidos);
+			const prodNovoStr = fmtProdutos(novosProdutos);
+			if (prodAntStr !== prodNovoStr) {
+				alteracoes.push(`Produtos: "${prodAntStr}" → "${prodNovoStr}"`);
+			}
+
+			const valorAnt = Number(p.valor || 0) || 0;
+			if (Math.abs(valorAnt - novoValor) > 0.009) {
+				alteracoes.push(`Valor previsto: R$ ${valorAnt.toFixed(2)} → R$ ${novoValor.toFixed(2)}`);
+			}
+
+			if (isAuto) {
+				if ((p.placa || '') !== (novaPlaca || '')) alteracoes.push(`Placa: ${p.placa || '-'} → ${novaPlaca || '-'}`);
+				if ((p.modelo || '') !== (novoModelo || '')) alteracoes.push(`Modelo: ${p.modelo || '-'} → ${novoModelo || '-'}`);
+			} else if ((p.itemDescricao || '') !== (novoItemDesc || '')) {
+				alteracoes.push(`Item/Descrição: "${p.itemDescricao || '-'}" → "${novoItemDesc || '-'}"`);
+			}
+
+			if ((p.operadorNome || '') !== (novoOperadorNome || '')) {
+				alteracoes.push(`Profissional: ${p.operadorNome || 'Não definido'} → ${novoOperadorNome || 'Não definido'}`);
+			}
+
+			if ((p.data || '') !== (novaData || '')) {
+				const dAntFmt = window.DateBR ? (window.DateBR.formatarParaBR(p.data) || p.data) : p.data;
+				const dNovFmt = window.DateBR ? (window.DateBR.formatarParaBR(novaData) || novaData) : novaData;
+				alteracoes.push(`Data prevista: ${dAntFmt || '-'} → ${dNovFmt || '-'}`);
+			}
+
+			if (obsVistAnt !== obsVistNova) {
+				alteracoes.push(`Observações/Vistoria: "${obsVistAnt || 'Vazio'}" → "${obsVistNova || 'Vazio'}"`);
+			}
+
+			if (typeof window.VistoriaService !== 'undefined' && (obsVistNova || vistAnteriorObj)) {
+				window.VistoriaService.salvarVistoria(p.id, {
+					...(vistAnteriorObj || { pertences: true, avarias: false, vidros: true, estepe: true }),
+					observacoes: obsVistNova
+				});
+			}
+
+			p.servicos = novoServicosStr;
+			p.servicosDetalhe = novoServicosDetalhe;
+			p.produtosVendidos = novosProdutos;
+			p.valor = novoValor;
+			p.placa = novaPlaca;
+			p.modelo = novoModelo;
+			p.itemDescricao = novoItemDesc;
+			p.operadorId = novoOperadorId;
+			p.operadorNome = novoOperadorNome;
+			p.data = novaData;
+
+			const motivoEdicao = inputMotivo ? inputMotivo.value.trim() : '';
+			registrarEventoHistoricoPedidoSeguro(p, {
+				tipo: 'editado',
+				dataHora: new Date().toISOString(),
+				autor: obterOperadorLogadoNome(),
+				titulo: 'Orçamento editado pelo atendimento',
+				comentario: motivoEdicao,
+				alteracoes: alteracoes.length > 0 ? alteracoes : ['Proposta revisada e salva sem alterações de itens ou valores.'],
+				valorAnterior: valorAnt,
+				valorNovo: novoValor
+			});
+
+			localStorage.setItem('pedidos', JSON.stringify(pedidos));
+
+			const idEditado = p.id;
+			const renovarLink = Boolean(chkRenovar && chkRenovar.checked);
+			fecharModalEditarOrcamento();
+			renderizarTabelas();
+
+			if (renovarLink) {
+				await window.gerarECopiarLinkOrcamento(idEditado);
+			} else if (window.UI) {
+				window.UI.toast('✏️ Orçamento atualizado e registrado no histórico!', 'success');
+			}
+		});
+	}
+})();
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {

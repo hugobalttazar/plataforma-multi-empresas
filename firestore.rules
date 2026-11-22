@@ -32,7 +32,7 @@ service cloud.firestore {
         'tipoNegocio', 'pedidoId', 'clientePrimeiroNome', 'identificador',
         'placaMask', 'modelo', 'dataEntrada', 'servicos', 'produtos',
         'valorTotal', 'vistoriaResumo', 'fotoUrl', 'status',
-        'comentarioCliente', 'criadoEm', 'respondidoEm', 'atualizadoEm'
+        'comentarioCliente', 'clienteIp', 'criadoEm', 'respondidoEm', 'atualizadoEm'
       ]) &&
       d.token is string && d.token.size() >= 16 && d.token.size() <= 96 &&
       d.empresaId is string && d.empresaId.size() >= 2 && d.empresaId.size() <= 80 &&
@@ -48,6 +48,8 @@ service cloud.firestore {
       d.fotoUrl is string && d.fotoUrl.size() <= 350000 &&
       d.status in ['pendente', 'aprovado', 'ajuste_solicitado'] &&
       d.comentarioCliente is string && d.comentarioCliente.size() <= 600 &&
+      (!('clienteIp' in d) || (d.clienteIp is string && d.clienteIp.size() <= 64)) &&
+      (!('respondidoEm' in d) || (d.respondidoEm is string && d.respondidoEm.size() <= 40)) &&
       d.criadoEm is string && d.criadoEm.size() >= 10 && d.criadoEm.size() <= 40 &&
       d.atualizadoEm is string && d.atualizadoEm.size() >= 10 && d.atualizadoEm.size() <= 40;
     }
@@ -102,13 +104,14 @@ service cloud.firestore {
       ]) &&
       d.keys().hasOnly([
         'empresaId', 'empresaNome', 'icone', 'tipoNegocio',
-        'segmentoAutomotivo', 'itens', 'atualizadoEm'
+        'segmentoAutomotivo', 'itens', 'tema', 'atualizadoEm'
       ]) &&
       d.empresaId is string && d.empresaId.size() >= 2 && d.empresaId.size() <= 80 &&
       d.empresaNome is string && d.empresaNome.size() >= 1 && d.empresaNome.size() <= 120 &&
       d.tipoNegocio is string && d.tipoNegocio.size() >= 1 && d.tipoNegocio.size() <= 40 &&
       d.segmentoAutomotivo is bool &&
       d.itens is list && d.itens.size() <= 80 &&
+      (!('tema' in d) || (d.tema is string && d.tema in ['light', 'dark'])) &&
       d.atualizadoEm is string && d.atualizadoEm.size() >= 10 && d.atualizadoEm.size() <= 40;
     }
 
@@ -167,7 +170,7 @@ service cloud.firestore {
                       incoming().pedidoId == existing().pedidoId &&
                       existing().status == 'pendente' &&
                       incoming().status in ['aprovado', 'ajuste_solicitado'] &&
-                      incoming().diff(existing()).affectedKeys().hasOnly(['status', 'comentarioCliente', 'respondidoEm', 'atualizadoEm']);
+                      incoming().diff(existing()).affectedKeys().hasOnly(['status', 'comentarioCliente', 'clienteIp', 'respondidoEm', 'atualizadoEm']);
       allow delete: if isValidId(token) && token.size() >= 16;
     }
 

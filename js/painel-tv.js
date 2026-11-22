@@ -17,6 +17,27 @@ let audioAtivo = false;
 let prontosAnteriores = new Set();
 let primeiroLoad = true;
 
+function aplicarTemaTV(tema) {
+    const temaValido = tema === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', temaValido);
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+        metaTheme.setAttribute('content', temaValido === 'dark' ? '#090d16' : '#f1f5f9');
+    }
+}
+
+try {
+    aplicarTemaTV(localStorage.getItem('app_theme'));
+} catch (e) {
+    aplicarTemaTV('light');
+}
+
+window.addEventListener('storage', (e) => {
+    if (e && e.key === 'app_theme') {
+        aplicarTemaTV(e.newValue);
+    }
+});
+
 function tocarChime() {
     if (!audioAtivo) return;
     try {
@@ -46,6 +67,9 @@ function atualizarRelogio() {
 
 function renderizarBoard(data) {
     if (!data) return;
+    if (data.tema === 'light' || data.tema === 'dark') {
+        aplicarTemaTV(data.tema);
+    }
     document.getElementById('tvLogo').textContent = data.icone || '📺';
     document.getElementById('tvEmpresaNome').textContent = (data.empresaNome || 'PAINEL DE ATENDIMENTO').toUpperCase();
     document.title = `Painel TV | ${data.empresaNome || 'Atendimento'}`;
@@ -87,7 +111,7 @@ function renderizarBoard(data) {
                     <div class="tv-ident">${esc(i.identificador)}</div>
                     <div class="tv-subitem">${esc(i.subtitulo || 'Pronto para retirada')}</div>
                 </div>
-                <div class="tv-hora" style="color:#4ade80;">PRONTO ✅</div>
+                <div class="tv-hora tv-hora-pronto">PRONTO ✅</div>
             </div>
         `).join('');
 }

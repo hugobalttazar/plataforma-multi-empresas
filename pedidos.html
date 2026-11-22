@@ -555,6 +555,128 @@
 			</div>
 		</div>
 
+		<!-- Modal: Editar Orçamento Digital -->
+		<div id="modalEditarOrcamento" class="modal-overlay" style="z-index: 9995;">
+			<div class="modal-card modal-orcamento-card">
+				<div class="modal-header">
+					<h3>✏️ Editar Orçamento</h3>
+					<button type="button" class="modal-close-btn" id="btnFecharModalEditarOrcamento">&times;</button>
+				</div>
+				<form id="formEditarOrcamento">
+					<div class="modal-body">
+						<div id="editOrcamentoResumoTopo" class="orc-edit-summary-banner"></div>
+
+						<div class="form" style="gap: 12px;">
+							<div id="editOrcamentoGrupoAuto" style="display: contents;">
+								<div class="form-group">
+									<label for="editOrcamentoPlaca">Placa</label>
+									<input type="text" id="editOrcamentoPlaca" maxlength="10" style="text-transform: uppercase; font-family: var(--font-mono); font-weight: 700;" placeholder="ABC1D23" />
+								</div>
+								<div class="form-group">
+									<label for="editOrcamentoModelo">Modelo / Veículo</label>
+									<input type="text" id="editOrcamentoModelo" placeholder="Ex: Honda Civic, Gol G5..." />
+								</div>
+							</div>
+
+							<div id="editOrcamentoGrupoOutro" class="form-group full-width" style="display: none;">
+								<label for="editOrcamentoItemDesc">Descrição do Item / Serviço</label>
+								<input type="text" id="editOrcamentoItemDesc" placeholder="Ex: Notebook Dell, Corte e Barba..." />
+							</div>
+
+							<div class="form-group">
+								<label for="editOrcamentoData">Data Prevista</label>
+								<input type="text" id="editOrcamentoData" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-date-br="true" />
+							</div>
+
+							<div class="form-group">
+								<label for="editOrcamentoOperador">Profissional Responsável</label>
+								<select id="editOrcamentoOperador">
+									<option value="">Sem responsável definido</option>
+								</select>
+							</div>
+
+							<div class="form-group full-width">
+								<label for="editOrcamentoServicos">
+									Serviços a Realizar *
+									<span style="font-weight: normal; color: var(--text-muted); font-size: 0.78rem;">
+										(Segure CTRL para selecionar múltiplos serviços)
+									</span>
+								</label>
+								<select id="editOrcamentoServicos" multiple required style="min-height: 118px;"></select>
+							</div>
+
+							<div class="form-group full-width orc-edit-produtos-box">
+								<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+									<span style="font-size: 0.88rem; font-weight: 700; color: var(--success);">🛍️ Produtos Incluídos no Orçamento</span>
+									<span id="editOrcamentoSubtotalProdutos" style="font-size: 0.78rem; font-weight: 700; color: var(--success);"></span>
+								</div>
+								<div class="modal-balcao-row" style="display: flex; gap: 8px; align-items: stretch; width: 100%; margin-bottom: 8px;">
+									<select id="editOrcamentoSelectProduto" style="flex: 1 1 0; min-width: 0; font-size: 0.82rem; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--success-border); background: var(--bg-input); color: var(--text-main); height: 38px;">
+										<option value="">Adicionar produto comercial ao orçamento...</option>
+									</select>
+									<button type="button" class="btn btn-sm" id="btnAddProdutoEditOrcamento" style="background: #166534; color: #ffffff; padding: 0 14px; font-weight: 700; white-space: nowrap; height: 38px;">
+										+ Incluir
+									</button>
+								</div>
+								<div id="editOrcamentoListaProdutos" class="orc-edit-produtos-list"></div>
+							</div>
+
+							<div class="form-group full-width">
+								<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
+									<label for="editOrcamentoValor" style="margin: 0;">Valor Total Previsto (R$) *</label>
+									<button type="button" class="btn btn-secondary btn-sm" id="btnRecalcularValorEditOrcamento" style="padding: 3px 10px; font-size: 0.75rem;">
+										🧮 Recalcular Soma
+									</button>
+								</div>
+								<input type="number" id="editOrcamentoValor" step="0.01" min="0" required placeholder="0.00" />
+							</div>
+
+							<div class="form-group full-width">
+								<label for="editOrcamentoVistoriaObs">Observações / Detalhes da Vistoria</label>
+								<input type="text" id="editOrcamentoVistoriaObs" placeholder="Detalhes adicionais exibidos ao cliente na proposta..." />
+							</div>
+
+							<div class="form-group full-width">
+								<label for="editOrcamentoMotivo">Nota da Edição (registrada no histórico)</label>
+								<input type="text" id="editOrcamentoMotivo" maxlength="300" placeholder="Ex: Ajuste conforme solicitação do cliente no link..." />
+							</div>
+
+							<div class="form-group full-width" style="margin-top: 2px;">
+								<label class="checkbox-label" style="margin: 0; font-size: 0.86rem;">
+									<input type="checkbox" id="editOrcamentoRenovarLink" checked />
+									<span>🔗 Gerar e copiar novo link atualizado para o cliente após salvar</span>
+								</label>
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" id="btnCancelarEditarOrcamento">Cancelar</button>
+						<button type="submit" class="btn">💾 Salvar Alterações</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<!-- Modal: Histórico & Auditoria do Orçamento -->
+		<div id="modalHistoricoOrcamento" class="modal-overlay" style="z-index: 9996;">
+			<div class="modal-card modal-orcamento-card">
+				<div class="modal-header">
+					<h3>📜 Histórico & Auditoria do Orçamento</h3>
+					<button type="button" class="modal-close-btn" id="btnFecharModalHistoricoOrcamento">&times;</button>
+				</div>
+				<div class="modal-body">
+					<div id="historicoOrcamentoCabecalho" class="orc-history-header-card"></div>
+					<div id="historicoOrcamentoTimeline" class="orc-timeline"></div>
+				</div>
+				<div class="modal-footer" style="justify-content: space-between; flex-wrap: wrap;">
+					<button type="button" class="btn btn-sm" id="btnIrParaEditarDoHistorico" style="background: #2563eb; color: #fff; display: none;">
+						✏️ Editar Orçamento
+					</button>
+					<button type="button" class="btn btn-secondary" id="btnFecharInferiorHistorico" style="margin-left: auto;">Fechar</button>
+				</div>
+			</div>
+		</div>
+
 		<script src="js/brand-service.js"></script>
 		<script src="js/caixa-service.js"></script>
 		<script src="js/equipe-service.js"></script>

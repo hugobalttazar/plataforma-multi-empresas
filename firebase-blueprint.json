@@ -71,6 +71,7 @@
         "fotoUrl": { "type": "string" },
         "status": { "type": "string" },
         "comentarioCliente": { "type": "string" },
+        "clienteIp": { "type": "string" },
         "criadoEm": { "type": "string" },
         "respondidoEm": { "type": "string" },
         "atualizadoEm": { "type": "string" }
@@ -135,6 +136,7 @@
         "tipoNegocio": { "type": "string" },
         "segmentoAutomotivo": { "type": "boolean" },
         "itens": { "type": "array" },
+        "tema": { "type": "string" },
         "atualizadoEm": { "type": "string" }
       },
       "required": ["empresaId", "empresaNome", "tipoNegocio", "segmentoAutomotivo", "itens", "atualizadoEm"]

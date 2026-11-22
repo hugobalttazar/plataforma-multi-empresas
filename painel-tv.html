@@ -7,18 +7,55 @@
 		<meta name="description" content="Acompanhamento em tempo real dos atendimentos em serviço e prontos para retirada." />
 		<link rel="icon" type="image/svg+xml" href="icon.svg" />
 		<meta name="theme-color" content="#090d16" />
+		<script>
+			(function() {
+				try {
+					var t = localStorage.getItem('app_theme');
+					document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+				} catch (e) {
+					document.documentElement.setAttribute('data-theme', 'light');
+				}
+			})();
+		</script>
 		<style>
-			:root {
+			:root,
+			html[data-theme="light"] {
+				--tv-bg: #f1f5f9;
+				--tv-surface: #ffffff;
+				--tv-card: #f8fafc;
+				--tv-border: #cbd5e1;
+				--tv-text: #0f172a;
+				--tv-muted: #475569;
+				--tv-logo-bg: rgba(2, 132, 199, 0.12);
+				--tv-clock-color: #0284c7;
+				--tv-clock-bg: rgba(2, 132, 199, 0.08);
+				--tv-clock-border: rgba(2, 132, 199, 0.25);
+				--tv-amber: #b45309;
+				--tv-amber-bg: #fef3c7;
+				--tv-green: #15803d;
+				--tv-green-bg: #dcfce7;
+				--tv-pronto-card-bg: #f0fdf4;
+				--tv-pronto-card-border: #86efac;
+				--tv-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+			}
+			html[data-theme="dark"] {
 				--tv-bg: #090d16;
 				--tv-surface: #111827;
 				--tv-card: #1e293b;
 				--tv-border: #334155;
 				--tv-text: #f8fafc;
 				--tv-muted: #94a3b8;
+				--tv-logo-bg: rgba(56, 189, 248, 0.16);
+				--tv-clock-color: #38bdf8;
+				--tv-clock-bg: rgba(56, 189, 248, 0.1);
+				--tv-clock-border: rgba(56, 189, 248, 0.25);
 				--tv-amber: #f59e0b;
 				--tv-amber-bg: rgba(245, 158, 11, 0.14);
 				--tv-green: #22c55e;
 				--tv-green-bg: rgba(34, 197, 94, 0.16);
+				--tv-pronto-card-bg: rgba(34, 197, 94, 0.12);
+				--tv-pronto-card-border: rgba(34, 197, 94, 0.35);
+				--tv-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 			}
 			* { box-sizing: border-box; }
 			body {
@@ -29,6 +66,7 @@
 				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 				display: flex;
 				flex-direction: column;
+				transition: background-color 0.25s ease, color 0.25s ease;
 			}
 			.tv-topbar {
 				display: flex;
@@ -39,6 +77,7 @@
 				padding: 16px 24px;
 				background: var(--tv-surface);
 				border-bottom: 1px solid var(--tv-border);
+				box-shadow: var(--tv-shadow);
 			}
 			.tv-brand {
 				display: flex;
@@ -49,7 +88,7 @@
 				width: 52px;
 				height: 52px;
 				border-radius: 12px;
-				background: rgba(56, 189, 248, 0.16);
+				background: var(--tv-logo-bg);
 				display: flex;
 				align-items: center;
 				justify-content: center;
@@ -60,6 +99,7 @@
 				font-weight: 900;
 				letter-spacing: 0.02em;
 				margin: 0;
+				color: var(--tv-text);
 			}
 			.tv-sub {
 				font-size: 0.9rem;
@@ -74,11 +114,11 @@
 				font-size: clamp(1.3rem, 2.5vw, 2rem);
 				font-weight: 800;
 				font-variant-numeric: tabular-nums;
-				color: #38bdf8;
+				color: var(--tv-clock-color);
 				padding: 6px 14px;
 				border-radius: 10px;
-				background: rgba(56, 189, 248, 0.1);
-				border: 1px solid rgba(56, 189, 248, 0.25);
+				background: var(--tv-clock-bg);
+				border: 1px solid var(--tv-clock-border);
 			}
 			.tv-btn {
 				min-height: 44px;
@@ -107,6 +147,7 @@
 				display: flex;
 				flex-direction: column;
 				gap: 14px;
+				box-shadow: var(--tv-shadow);
 			}
 			.tv-col-header {
 				display: flex;
@@ -140,6 +181,7 @@
 			}
 			.tv-item {
 				background: var(--tv-card);
+				border: 1px solid var(--tv-border);
 				border-radius: 14px;
 				padding: 16px 18px;
 				display: flex;
@@ -150,16 +192,16 @@
 			}
 			.col-pronto .tv-item {
 				border-left-color: var(--tv-green);
-				background: rgba(34, 197, 94, 0.12);
-				border-top: 1px solid rgba(34, 197, 94, 0.35);
-				border-right: 1px solid rgba(34, 197, 94, 0.35);
-				border-bottom: 1px solid rgba(34, 197, 94, 0.35);
+				background: var(--tv-pronto-card-bg);
+				border-top: 1px solid var(--tv-pronto-card-border);
+				border-right: 1px solid var(--tv-pronto-card-border);
+				border-bottom: 1px solid var(--tv-pronto-card-border);
 			}
 			.tv-ident {
 				font-size: clamp(1.35rem, 2.8vw, 2.15rem);
 				font-weight: 900;
 				letter-spacing: 0.03em;
-				color: #ffffff;
+				color: var(--tv-text);
 				font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 			}
 			.tv-subitem {
@@ -173,6 +215,9 @@
 				font-variant-numeric: tabular-nums;
 				color: var(--tv-muted);
 				white-space: nowrap;
+			}
+			.tv-hora-pronto {
+				color: var(--tv-green);
 			}
 			.tv-empty {
 				text-align: center;

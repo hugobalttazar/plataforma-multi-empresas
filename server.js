@@ -9,6 +9,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
+// Confia no primeiro salto de proxy reverso para identificar corretamente o IP do cliente
+app.set('trust proxy', 1);
+
 // 1. Defesas de Cabeçalhos HTTP e Ocultação de Tecnologias (Fingerprinting)
 app.disable('x-powered-by');
 
@@ -347,6 +350,28 @@ app.post('/api/auth/verify-session', (req, res) => {
 	return res.status(401).json({ valid: false, message: 'Sessão inválida ou expirada.' });
 });
 
+// 5. Endpoint público para obter o IP do cliente (auditoria de aceite de orçamento)
+app.get('/api/publico/client-ip', (req, res) => {
+	res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+	const forwarded = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || '';
+	let rawIp = '';
+	if (typeof forwarded === 'string' && forwarded.trim()) {
+		rawIp = forwarded.split(',')[0].trim();
+	} else if (Array.isArray(forwarded) && forwarded.length > 0) {
+		rawIp = String(forwarded[0]).split(',')[0].trim();
+	} else {
+		rawIp = String(req.ip || req.socket?.remoteAddress || '').trim();
+	}
+
+	if (rawIp.startsWith('::ffff:')) {
+		rawIp = rawIp.slice(7);
+	}
+	if (rawIp === '::1') {
+		rawIp = '127.0.0.1';
+	}
+	const safeIp = /^[a-fA-F0-9:.]{3,64}$/.test(rawIp) ? rawIp : 'Não identificado';
+	return res.json({ ip: safeIp });
+});
 
 app.get(['/firebase-config.json', '/firebase-applet-config.json'], (req, res) => {
     res.sendFile(path.join(__dirname, 'firebase-applet-config.json'));
