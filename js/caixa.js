@@ -109,6 +109,9 @@ function formatarMoeda(valor) {
 // Controle de Abas do Módulo Financeiro
 // ==========================================================================
 function ativarAbaCaixa(aba) {
+	if (aba === 'pacotes' && window.AuthService && typeof window.AuthService.hasPermission === 'function' && !window.AuthService.hasPermission('pacotes')) {
+		aba = 'caixa';
+	}
 	const mapa = {
 		caixa: { btn: 'tabCaixaDiaBtn', view: 'viewCaixaDia' },
 		contas: { btn: 'tabContasBtn', view: 'viewContas' },
@@ -325,13 +328,13 @@ function renderizarRecebimentosHoje(dataHoje) {
 			const isPacote = m.forma === 'Pacote / Crédito';
 
 			const badgeOp = isFaturado
-				? '<span class="badge" style="background: rgba(245,158,11,0.12); color: #b45309; border-color: rgba(245,158,11,0.3);">Faturado (A Receber)</span>'
+				? '<span class="badge badge-tone-amber">Faturado (A Receber)</span>'
 				: isPacote
-					? '<span class="badge" style="background: rgba(99,102,241,0.12); color: #4338ca; border-color: rgba(99,102,241,0.3);">Abatido Pacote</span>'
-					: '<span class="badge" style="background: rgba(22,163,74,0.1); color: var(--success); border-color: rgba(22,163,74,0.2);">Entrada (O.S.)</span>';
+					? '<span class="badge badge-tone-purple">Abatido Pacote</span>'
+					: '<span class="badge badge-tone-green">Entrada (O.S.)</span>';
 
 			const valorCol = isFaturado
-				? `<span class="badge-price" style="color: #b45309; background: rgba(245,158,11,0.08);" title="Não somado ao caixa até a baixa da fatura">⏳ R$ ${valorFormatado}</span>`
+				? `<span class="badge-price badge-tone-amber" title="Não somado ao caixa até a baixa da fatura">⏳ R$ ${valorFormatado}</span>`
 				: `<span class="badge-price" style="color: var(--success);">+ R$ ${valorFormatado}</span>`;
 
 			tr.innerHTML = `
@@ -416,8 +419,8 @@ function renderizarHistoricoFechamentos() {
 		).toFixed(2);
 
 		const badgeTipo = f.automatico
-			? '<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;">🤖 Auto (Virada)</span>'
-			: '<span class="badge" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1;">🔒 Fechado</span>';
+			? '<span class="badge badge-tone-blue">🤖 Auto (Virada)</span>'
+			: '<span class="badge badge-tone-slate">🔒 Fechado</span>';
 
 		const obs = esc(f.observacoes || (f.motivoFechamento ? f.motivoFechamento : '-'));
 
@@ -493,16 +496,16 @@ function carregarContasFinanceiras() {
 	lista.forEach((c) => {
 		const tr = document.createElement('tr');
 		const tipoBadge = c.tipo === 'receber'
-			? '<span class="badge" style="background: rgba(22,163,74,0.12); color:#15803d; border-color:rgba(22,163,74,0.3);">📥 Receber</span>'
-			: '<span class="badge" style="background: rgba(220,38,38,0.1); color:#b91c1c; border-color:rgba(220,38,38,0.25);">📤 Pagar</span>';
+			? '<span class="badge badge-tone-green">📥 Receber</span>'
+			: '<span class="badge badge-tone-red">📤 Pagar</span>';
 
-		let statusBadge = '<span class="badge" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">⏳ Pendente</span>';
+		let statusBadge = '<span class="badge badge-tone-blue">⏳ Pendente</span>';
 		if (c.statusEfetivo === 'pago') {
-			statusBadge = `<span class="badge" style="background:rgba(22,163,74,0.12); color:#15803d; border-color:rgba(22,163,74,0.3);">✅ Pago em ${esc(formatarDataBR(c.dataPagamento))}</span>`;
+			statusBadge = `<span class="badge badge-tone-green">✅ Pago em ${esc(formatarDataBR(c.dataPagamento))}</span>`;
 		} else if (c.statusEfetivo === 'vencido') {
-			statusBadge = '<span class="badge" style="background:#fef2f2; color:#dc2626; border-color:#fecaca;">🚨 Vencido</span>';
+			statusBadge = '<span class="badge badge-tone-red">🚨 Vencido</span>';
 		} else if (c.statusEfetivo === 'vence_hoje') {
-			statusBadge = '<span class="badge" style="background:#fffbeb; color:#b45309; border-color:#fde68a;">⚠️ Vence Hoje</span>';
+			statusBadge = '<span class="badge badge-tone-amber">⚠️ Vence Hoje</span>';
 		}
 
 		const valorColor = c.tipo === 'receber' ? 'var(--success)' : '#dc2626';
@@ -599,7 +602,7 @@ function carregarFaturamentoFrotas() {
 					<div class="stat-info" style="width:100%;">
 						<div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
 							<strong style="font-size:0.95rem; color:var(--text-main);">${esc(c.clienteNome)}</strong>
-							<span class="badge" style="font-size:0.7rem; background:#fffbeb; color:#b45309;">${c.placasLista.length} placa(s)</span>
+							<span class="badge badge-tone-amber" style="font-size:0.7rem;">${c.placasLista.length} placa(s)</span>
 						</div>
 						<div style="margin-top:6px; font-size:1.05rem; font-weight:800; color:${c.valorPendente > 0 ? '#b45309' : 'var(--success)'};">
 							${formatarMoeda(c.valorPendente)} <small style="font-weight:500; font-size:0.78rem; color:var(--text-muted);">(${c.qtdPendente} pendente(s))</small>
@@ -656,8 +659,8 @@ function carregarFaturamentoFrotas() {
 		const valorNum = parseFloat(p.valor || 0) || 0;
 
 		const badgeStatus = statusFat === 'pago'
-			? `<span class="badge" style="background:rgba(22,163,74,0.12); color:#15803d; border-color:rgba(22,163,74,0.3);">✅ Quitado${p.dataPagamentoFatura ? ' (' + esc(formatarDataBR(p.dataPagamentoFatura)) + ')' : ''}</span>`
-			: '<span class="badge" style="background:#fffbeb; color:#b45309; border-color:#fde68a;">⏳ A Receber</span>';
+			? `<span class="badge badge-tone-green">✅ Quitado${p.dataPagamentoFatura ? ' (' + esc(formatarDataBR(p.dataPagamentoFatura)) + ')' : ''}</span>`
+			: '<span class="badge badge-tone-amber">⏳ A Receber</span>';
 
 		tr.innerHTML = `
 			<td style="text-align:center;">
@@ -749,17 +752,7 @@ function renderizarSeletorServicosPlanoPacote(selecionados = []) {
 		const marcado = setSelLower.has(nome.toLowerCase());
 
 		const label = document.createElement('label');
-		label.style.cssText = `
-			display: flex;
-			align-items: center;
-			gap: 8px;
-			padding: 8px 10px;
-			border-radius: var(--radius-sm);
-			border: 1px solid ${marcado ? 'var(--primary)' : 'var(--border-color)'};
-			background: ${marcado ? '#eff6ff' : '#ffffff'};
-			cursor: pointer;
-			transition: all 0.15s ease;
-		`;
+		label.className = 'servico-pacote-option' + (marcado ? ' is-selected' : '');
 
 		label.innerHTML = `
 			<input type="checkbox" class="chk-servico-plano-pacote" value="${esc(nome)}" ${marcado ? 'checked' : ''}
@@ -768,7 +761,7 @@ function renderizarSeletorServicosPlanoPacote(selecionados = []) {
 				<div style="font-size: 0.84rem; font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
 					${esc(nome)}
 				</div>
-				<div style="font-size: 0.75rem; color: ${s.legado ? '#b45309' : 'var(--text-muted)'};">
+				<div class="${s.legado ? 'text-tone-red' : ''}" style="font-size: 0.75rem; ${s.legado ? '' : 'color: var(--text-muted);'}">
 					${s.legado ? 'Não encontrado no catálogo atual' : `Avulso: ${formatarMoeda(preco)}`}
 				</div>
 			</div>
@@ -776,8 +769,7 @@ function renderizarSeletorServicosPlanoPacote(selecionados = []) {
 
 		const chk = label.querySelector('.chk-servico-plano-pacote');
 		chk.addEventListener('change', () => {
-			label.style.borderColor = chk.checked ? 'var(--primary)' : 'var(--border-color)';
-			label.style.background = chk.checked ? '#eff6ff' : '#ffffff';
+			label.classList.toggle('is-selected', chk.checked);
 			atualizarBotaoLimparServicosPlano();
 		});
 
@@ -820,11 +812,11 @@ function carregarPacotesModule() {
 				const tr = document.createElement('tr');
 				const ativo = p.ativo !== false;
 				const badgeAtivo = ativo
-					? '<span class="badge" style="background:rgba(22,163,74,0.12); color:#15803d;">● Ativo</span>'
-					: '<span class="badge" style="background:#f1f5f9; color:#64748b;">⏸ Inativo</span>';
+					? '<span class="badge badge-tone-green">● Ativo</span>'
+					: '<span class="badge badge-tone-slate">⏸ Inativo</span>';
 				const servicosVinculados = Array.isArray(p.servicosInclusos) ? p.servicosInclusos : [];
 				const badgesServicos = servicosVinculados.length > 0
-					? `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">${servicosVinculados.map((sv) => `<span class="badge" style="font-size:0.72rem; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">🏷️ ${esc(sv)}</span>`).join('')}</div>`
+					? `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">${servicosVinculados.map((sv) => `<span class="badge badge-tone-blue" style="font-size:0.72rem;">🏷️ ${esc(sv)}</span>`).join('')}</div>`
 					: '';
 
 				tr.innerHTML = `
@@ -898,17 +890,17 @@ function carregarPacotesModule() {
 			assinaturas.forEach((a) => {
 				const tr = document.createElement('tr');
 				const st = PacotesService.getStatusAssinatura(a);
-				let badgeSt = '<span class="badge" style="background:rgba(22,163,74,0.12); color:#15803d;">✅ Ativo</span>';
+				let badgeSt = '<span class="badge badge-tone-green">✅ Ativo</span>';
 				if (st === 'esgotado') {
-					badgeSt = '<span class="badge" style="background:#f1f5f9; color:#475569;">🏁 Esgotado</span>';
+					badgeSt = '<span class="badge badge-tone-slate">🏁 Esgotado</span>';
 				} else if (st === 'vencido') {
-					badgeSt = '<span class="badge" style="background:#fef2f2; color:#dc2626;">⏰ Vencido</span>';
+					badgeSt = '<span class="badge badge-tone-red">⏰ Vencido</span>';
 				}
 
 				const qtdUsada = Array.isArray(a.historicoUso) ? a.historicoUso.length : 0;
 				const servsAssinatura = PacotesService.getServicosInclusosAssinatura(a);
 				const badgesServsCli = servsAssinatura.length > 0
-					? `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">${servsAssinatura.map((sv) => `<span class="badge" style="font-size:0.7rem; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">🏷️ ${esc(sv)}</span>`).join('')}</div>`
+					? `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">${servsAssinatura.map((sv) => `<span class="badge badge-tone-blue" style="font-size:0.7rem;">🏷️ ${esc(sv)}</span>`).join('')}</div>`
 					: '';
 
 				tr.innerHTML = `

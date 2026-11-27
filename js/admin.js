@@ -6,7 +6,7 @@
 import AuthService from './auth-service.js';
 import EmpresaService from './empresa-service.js';
 import SaasGuard, { PLANOS_SAAS } from './saas-guard.js';
-import { db, collection, getDocs, doc, deleteDoc, setDoc } from './firebase-init.js';
+import { db, collection, getDocs, getDoc, doc, deleteDoc, setDoc } from './firebase-init.js';
 
 let todasEmpresas = [];
 let todosUsuarios = [];
@@ -45,20 +45,18 @@ async function carregarDadosPlataforma() {
                     const empresaId = (data.empresaId || data.empresaCodigo || '').trim();
                     const uniqueKey = `${empresaId}:${username}`;
                     const permissoesArr = Array.isArray(data.permissoes) ? [...data.permissoes] : [];
-                    if (!permissoesArr.includes('metas') && (permissoesArr.includes('configuracoes') || data.isMaster)) {
-                        permissoesArr.push('metas');
-                        if (db) {
-                            setDoc(doc(db, 'users', docSnap.id), { ...data, permissoes: permissoesArr }).catch(() => {});
-                        }
-                    }
+                    const permissoesV2 = !!data.permissoesV2;
 
                     const candidate = {
                         id: docSnap.id,
+                        userId: data.id || docSnap.id,
                         username: username,
                         nome: data.nome || data.username || 'Sem nome',
+                        passwordHash: data.passwordHash || '',
                         empresaId: empresaId,
                         isMaster: !!data.isMaster,
-                        permissoes: permissoesArr
+                        permissoes: permissoesArr,
+                        permissoesV2
                     };
 
                     if (seenUserKeys.has(uniqueKey)) {
@@ -101,11 +99,14 @@ async function carregarDadosPlataforma() {
                     seenLocais.add(key);
                     todosUsuarios.push({
                         id: u.id || username,
+                        userId: u.id || username,
                         username: username,
                         nome: u.nome || username,
+                        passwordHash: u.passwordHash || '',
                         empresaId: empresaId,
                         isMaster: !!u.isMaster,
-                        permissoes: u.permissoes || []
+                        permissoes: u.permissoes || [],
+                        permissoesV2: !!u.permissoesV2
                     });
                 }
             });
@@ -373,11 +374,15 @@ function renderizarTabelaUsuarios(empresaIdFiltro = '') {
         const tr = document.createElement('tr');
         const esc = (s) => (typeof window.escapeHTML === 'function' ? window.escapeHTML(s) : String(s || ''));
 
+        const efetivas = AuthService.getEffectivePermissions(u);
+        const totalDisponivel = Array.isArray(AuthService.ALL_PERMISSION_KEYS) ? AuthService.ALL_PERMISSION_KEYS.length : 15;
         const permissoesBadge = u.isMaster 
             ? '<span class="badge" style="background:#fef3c7; color:#b45309;">👑 Acesso Total Master</span>'
-            : (u.permissoes && u.permissoes.length > 0 
-                ? u.permissoes.map(p => `<span class="badge" style="background:var(--bg-surface); margin-right:3px;">${esc(p)}</span>`).join('') 
-                : '<span style="color:var(--text-muted); font-size:0.8rem;">Sem permissões</span>');
+            : (efetivas.length >= totalDisponivel
+                ? `<span class="badge badge-perm-all">✅ Acesso Total (${efetivas.length}/${totalDisponivel})</span>`
+                : (efetivas.length > 0 
+                    ? efetivas.map(p => `<span class="perm-badge-item">${esc(AuthService.getPermissionLabel(p))}</span>`).join('') 
+                    : '<span style="color:var(--text-muted); font-size:0.8rem;">Sem permissões</span>'));
 
         tr.innerHTML = `
             <td>
@@ -392,18 +397,23 @@ function renderizarTabelaUsuarios(empresaIdFiltro = '') {
             <td>
                 ${u.isMaster 
                     ? '<span class="badge" style="background: var(--primary-light); color: var(--primary);">👑 Administrador Master</span>' 
-                    : '<span class="badge" style="background: var(--bg-surface); color: var(--text-muted);">Operador</span>'}
+                    : '<span class="badge" style="background: var(--bg-surface); color: var(--text-muted);">Operador / Admin Empresa</span>'}
             </td>
             <td>
-                <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                <div class="perm-badge-list">
                     ${permissoesBadge}
                 </div>
             </td>
             <td style="text-align: center;">
                 ${u.isMaster ? '<span style="color:var(--text-muted); font-size:0.8rem;">Protegido</span>' : `
-                    <button type="button" class="btn btn-sm btn-secondary btn-excluir-usuario" data-username="${u.username}" data-id="${u.id}" style="color: var(--danger);" title="Excluir Usuário">
-                        🗑️ Excluir
-                    </button>
+                    <div class="btn-action-group">
+                        <button type="button" class="btn btn-sm btn-secondary btn-editar-usuario" data-id="${esc(u.id)}" title="Editar Usuário e Permissões">
+                            ✏️ Editar
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary btn-excluir-usuario" data-username="${esc(u.username)}" data-empresa="${esc(u.empresaId)}" data-id="${esc(u.id)}" style="color: var(--danger);" title="Excluir Usuário">
+                            🗑️ Excluir
+                        </button>
+                    </div>
                 `}
             </td>
         `;
@@ -411,12 +421,21 @@ function renderizarTabelaUsuarios(empresaIdFiltro = '') {
         tbody.appendChild(tr);
     });
 
+    // Vincular botões de edição de usuário
+    document.querySelectorAll('.btn-editar-usuario').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            abrirModalEditarUsuario(id);
+        });
+    });
+
     // Vincular botões de exclusão de usuário
     document.querySelectorAll('.btn-excluir-usuario').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const username = e.currentTarget.getAttribute('data-username');
+            const empresaId = e.currentTarget.getAttribute('data-empresa');
             const id = e.currentTarget.getAttribute('data-id');
-            await confirmarExclusaoUsuario(username, id);
+            await confirmarExclusaoUsuario(username, id, empresaId);
         });
     });
 }
@@ -611,12 +630,34 @@ async function salvarEdicaoEmpresa(e) {
     }
 }
 
-// 9. Criação de Usuário para Empresa
+// 9. Criação / Edição de Usuário para Empresa
+async function sincronizarSubdocUsuariosEmpresa(empresaId, callbackMutate) {
+    if (!db || !empresaId) return;
+    try {
+        const ref = doc(db, 'empresas', empresaId, 'dados', 'usuarios');
+        const snap = await getDoc(ref);
+        let lista = [];
+        if (snap.exists() && snap.data()?.data) {
+            try { lista = JSON.parse(snap.data().data); } catch (e) {}
+        }
+        if (!Array.isArray(lista)) lista = [];
+        const atualizada = callbackMutate(lista);
+        await setDoc(ref, { data: JSON.stringify(atualizada) });
+    } catch (err) {
+        console.warn('Aviso ao sincronizar subdocumento usuarios da empresa:', err);
+    }
+}
+
 async function cadastrarNovoUsuario(e) {
     e.preventDefault();
     const btn = document.getElementById('btnSalvarUsuario');
     const erroBox = document.getElementById('msgErroUsuario');
     if (erroBox) erroBox.style.display = 'none';
+
+    const editDocId = (document.getElementById('usuarioEditDocId')?.value || '').trim();
+    const editUserId = (document.getElementById('usuarioEditId')?.value || '').trim();
+    const editUsernameOrig = (document.getElementById('usuarioEditUsernameOriginal')?.value || '').trim().toLowerCase();
+    const isEdit = !!editDocId;
 
     const empresaId = document.getElementById('usuarioEmpresaDestino').value;
     const nome = document.getElementById('usuarioNome').value.trim();
@@ -639,51 +680,88 @@ async function cadastrarNovoUsuario(e) {
 
     try {
         const empDestino = todasEmpresas.find(emp => emp.id === empresaId || emp.codigo === empresaId);
-        const checkLimite = SaasGuard.verificarLimiteUsuarios({
-            empresa: empDestino || { id: empresaId },
-            usuariosDaEmpresa: todosUsuarios,
-            editando: false
-        });
-        if (!checkLimite.permitido) {
-            throw new Error(checkLimite.motivo);
-        }
-
-        // Validação de senha
-        const check = AuthService.validarForcaSenha(password);
-        if (!check.valido) throw new Error(check.mensagem);
-
         const cleanUsername = username.toLowerCase().trim();
+        if (!cleanUsername) throw new Error('Informe um login válido.');
         if (cleanUsername === 'admin') throw new Error('O login "admin" é exclusivo do Master.');
 
-        // Salva na coleção global 'users'
-        const hash = await AuthService.hashPassword(password);
-        const novoUser = {
-            id: Date.now().toString(),
+        if (!isEdit) {
+            const checkLimite = SaasGuard.verificarLimiteUsuarios({
+                empresa: empDestino || { id: empresaId },
+                usuariosDaEmpresa: todosUsuarios,
+                editando: false
+            });
+            if (!checkLimite.permitido) {
+                throw new Error(checkLimite.motivo);
+            }
+        }
+
+        // Validação de senha (obrigatória na criação; opcional na edição)
+        let hash = '';
+        if (!isEdit || (password && password.trim() !== '')) {
+            const check = AuthService.validarForcaSenha(password);
+            if (!check.valido) throw new Error(check.mensagem);
+            hash = await AuthService.hashPassword(password);
+        } else {
+            const existente = todosUsuarios.find(u => u.id === editDocId || u.username === editUsernameOrig);
+            hash = existente?.passwordHash || '';
+        }
+
+        const canonicalDocId = `${empresaId}_${cleanUsername}`;
+        if (!isEdit && db) {
+            const dupCheck = await getDoc(doc(db, 'users', canonicalDocId));
+            if (dupCheck.exists()) {
+                throw new Error(`O usuário "${cleanUsername}" já existe nesta empresa.`);
+            }
+        } else if (isEdit && editUsernameOrig !== cleanUsername && db) {
+            const dupCheck = await getDoc(doc(db, 'users', canonicalDocId));
+            if (dupCheck.exists()) {
+                throw new Error(`O usuário "${cleanUsername}" já existe nesta empresa.`);
+            }
+        }
+
+        const userPayload = {
+            id: editUserId || Date.now().toString(),
             nome,
             username: cleanUsername,
             passwordHash: hash,
             empresaId,
+            empresaCodigo: empDestino?.codigo || empresaId,
             isMaster: false,
-            permissoes
+            permissoes,
+            permissoesV2: true
         };
 
         if (db) {
-            await setDoc(doc(db, 'users', `${empresaId}_${cleanUsername}`), novoUser);
+            if (isEdit && editDocId && editDocId !== canonicalDocId) {
+                await deleteDoc(doc(db, 'users', editDocId)).catch(() => {});
+            }
+            await setDoc(doc(db, 'users', canonicalDocId), userPayload);
+            await sincronizarSubdocUsuariosEmpresa(empresaId, (lista) => {
+                const filtered = lista.filter(u => u.id !== userPayload.id && (u.username || '').toLowerCase() !== (editUsernameOrig || cleanUsername));
+                filtered.push(userPayload);
+                return filtered;
+            });
         }
 
-        // Salva também localmente
-        const locais = AuthService.getUsers();
-        locais.push(novoUser);
+        // Atualiza também localmente
+        let locais = AuthService.getUsers();
+        locais = locais.filter(u => u.id !== userPayload.id && !((u.empresaId || '') === empresaId && (u.username || '').toLowerCase() === (editUsernameOrig || cleanUsername)));
+        locais.push(userPayload);
         AuthService.saveUsers(locais);
 
-        if (window.UI) window.UI.toast(`Usuário "${cleanUsername}" adicionado com sucesso!`, 'success');
+        if (window.UI) {
+            window.UI.toast(
+                isEdit ? `Usuário "${cleanUsername}" atualizado com sucesso!` : `Usuário "${cleanUsername}" adicionado com sucesso!`,
+                'success'
+            );
+        }
         window.fecharModalUsuario();
         document.getElementById('formNovoUsuario').reset();
         await carregarDadosPlataforma();
     } catch (err) {
         console.error(err);
         if (erroBox) {
-            erroBox.textContent = err.message || 'Erro ao cadastrar usuário.';
+            erroBox.textContent = err.message || 'Erro ao salvar usuário.';
             erroBox.style.display = 'block';
         } else if (window.UI) {
             window.UI.toast(err.message, 'error');
@@ -724,7 +802,7 @@ async function confirmarExclusaoEmpresa(empresaId) {
 }
 
 // 11. Exclusão de Usuário
-async function confirmarExclusaoUsuario(username, id) {
+async function confirmarExclusaoUsuario(username, id, empresaId = '') {
     let confirmado = false;
     if (window.UI && window.UI.confirm) {
         confirmado = await window.UI.confirm({
@@ -740,11 +818,19 @@ async function confirmarExclusaoUsuario(username, id) {
     if (!confirmado) return;
 
     try {
-        if (db && username) {
-            await deleteDoc(doc(db, 'users', username.toLowerCase().trim()));
+        const cleanUser = (username || '').toLowerCase().trim();
+        if (db && cleanUser) {
+            if (id) await deleteDoc(doc(db, 'users', id)).catch(() => {});
+            if (empresaId) await deleteDoc(doc(db, 'users', `${empresaId}_${cleanUser}`)).catch(() => {});
+            await deleteDoc(doc(db, 'users', cleanUser)).catch(() => {});
+            if (empresaId) {
+                await sincronizarSubdocUsuariosEmpresa(empresaId, (lista) =>
+                    lista.filter(u => (u.username || '').toLowerCase() !== cleanUser && u.id !== id)
+                );
+            }
         }
         let locais = AuthService.getUsers();
-        locais = locais.filter(u => u.username !== username && u.id !== id);
+        locais = locais.filter(u => !((u.username || '').toLowerCase() === cleanUser && (!empresaId || u.empresaId === empresaId)) && u.id !== id);
         AuthService.saveUsers(locais);
 
         if (window.UI && window.UI.toast) window.UI.toast(`Usuário "${username}" excluído com sucesso.`, 'success');
@@ -847,10 +933,71 @@ window.fecharModalEditarEmpresa = function() {
     if (modal) modal.classList.remove('open');
 };
 
+window.selecionarPermissoesMaster = function(marcar = true) {
+    document.querySelectorAll('input[name="permissoesUsuario"]').forEach(cb => {
+        cb.checked = !!marcar;
+    });
+};
+
 window.abrirModalUsuario = function() {
+    const form = document.getElementById('formNovoUsuario');
+    if (form) form.reset();
+    document.getElementById('usuarioEditDocId').value = '';
+    document.getElementById('usuarioEditId').value = '';
+    document.getElementById('usuarioEditUsernameOriginal').value = '';
+    document.getElementById('tituloModalUsuario').textContent = '👤 Incluir Novo Usuário para Empresa';
+    const selEmp = document.getElementById('usuarioEmpresaDestino');
+    if (selEmp) selEmp.disabled = false;
+    const inpPass = document.getElementById('usuarioSenha');
+    if (inpPass) inpPass.required = true;
+    const dica = document.getElementById('usuarioSenhaDica');
+    if (dica) dica.textContent = '*';
+    const erroBox = document.getElementById('msgErroUsuario');
+    if (erroBox) erroBox.style.display = 'none';
+
+    // Por padrão, todas as funcionalidades iniciam liberadas para usuários criados pelo Master
+    window.selecionarPermissoesMaster(true);
+
     const modal = document.getElementById('modalNovoUsuario');
     if (modal) modal.classList.add('open');
 };
+
+function abrirModalEditarUsuario(docId) {
+    const user = todosUsuarios.find(u => u.id === docId);
+    if (!user) return;
+
+    document.getElementById('usuarioEditDocId').value = user.id;
+    document.getElementById('usuarioEditId').value = user.userId || user.id;
+    document.getElementById('usuarioEditUsernameOriginal').value = user.username || '';
+    document.getElementById('tituloModalUsuario').textContent = '✏️ Editar Usuário e Permissões';
+
+    const selEmp = document.getElementById('usuarioEmpresaDestino');
+    if (selEmp) {
+        selEmp.value = user.empresaId || '';
+        selEmp.disabled = true;
+    }
+    document.getElementById('usuarioNome').value = user.nome || '';
+    document.getElementById('usuarioLogin').value = user.username || '';
+
+    const inpPass = document.getElementById('usuarioSenha');
+    if (inpPass) {
+        inpPass.value = '';
+        inpPass.required = false;
+    }
+    const dica = document.getElementById('usuarioSenhaDica');
+    if (dica) dica.textContent = '(Opcional — deixe em branco para manter)';
+
+    const efetivas = AuthService.getEffectivePermissions(user);
+    document.querySelectorAll('input[name="permissoesUsuario"]').forEach(cb => {
+        cb.checked = efetivas.includes(cb.value);
+    });
+
+    const erroBox = document.getElementById('msgErroUsuario');
+    if (erroBox) erroBox.style.display = 'none';
+
+    const modal = document.getElementById('modalNovoUsuario');
+    if (modal) modal.classList.add('open');
+}
 
 window.fecharModalUsuario = function() {
     const modal = document.getElementById('modalNovoUsuario');

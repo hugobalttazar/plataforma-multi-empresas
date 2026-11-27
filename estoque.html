@@ -88,7 +88,7 @@
 					</div>
 				</div>
 				<div class="stat-card">
-					<div class="stat-icon blue" style="background:#eff6ff; color:#2563eb;">🏷️</div>
+					<div class="stat-icon blue">🏷️</div>
 					<div class="stat-info">
 						<span class="stat-label">Itens p/ Venda Balcão</span>
 						<span class="stat-value" id="statTotalItensVenda">0</span>
@@ -359,24 +359,24 @@
 				produtos.forEach(p => {
 					const isCritico = (p.quantidade || 0) <= (p.qtdMinima || 0);
 					const statusBadge = isCritico 
-						? `<span class="badge" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;">⚠️ Estoque Baixo</span>`
-						: `<span class="badge" style="background:#dcfce7; color:#15803d; border-color:#bbf7d0;">✅ OK</span>`;
+						? `<span class="badge badge-tone-red">⚠️ Estoque Baixo</span>`
+						: `<span class="badge badge-tone-green">✅ OK</span>`;
 
 					const isVenda = p.tipo === 'venda';
 					const tipoBadge = isVenda
-						? `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">🏷️ Venda Balcão</span>`
-						: `<span class="badge" style="background:#f1f5f9; color:#475569; border-color:#cbd5e1;">🏢 Uso Interno</span>`;
+						? `<span class="badge badge-tone-blue">🏷️ Venda Balcão</span>`
+						: `<span class="badge badge-tone-slate">🏢 Uso Interno</span>`;
 
 					const precoVendaFmt = isVenda && parseFloat(p.precoVenda || 0) > 0
-						? `<strong style="color:#15803d;">R$ ${parseFloat(p.precoVenda).toFixed(2)}</strong> <small style="color:#64748b; font-size:0.75rem;">(${parseFloat(p.margemLucro || 0).toFixed(0)}%)</small>`
-						: `<span style="color:#94a3b8; font-size:0.85rem;">-</span>`;
+						? `<strong class="text-tone-green">R$ ${parseFloat(p.precoVenda).toFixed(2)}</strong> <small style="color:var(--text-muted); font-size:0.75rem;">(${parseFloat(p.margemLucro || 0).toFixed(0)}%)</small>`
+						: `<span style="color:var(--text-muted); font-size:0.85rem;">-</span>`;
 
 					const tr = document.createElement('tr');
 					tr.innerHTML = `
 						<td><strong>${p.nome}</strong></td>
 						<td>${tipoBadge}</td>
 						<td><span style="font-size:0.85rem; color:var(--text-muted);">${p.categoria || '-'}</span></td>
-						<td><strong style="font-size:1rem; color:${isCritico ? '#dc2626' : 'inherit'};">${p.quantidade} ${p.unidade}</strong></td>
+						<td><strong class="${isCritico ? 'text-tone-red' : ''}" style="font-size:1rem;">${p.quantidade} ${p.unidade}</strong></td>
 						<td>${p.qtdMinima} ${p.unidade}</td>
 						<td>R$ ${parseFloat(p.precoCusto || 0).toFixed(2)}</td>
 						<td>${precoVendaFmt}</td>

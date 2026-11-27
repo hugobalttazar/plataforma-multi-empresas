@@ -437,12 +437,19 @@
     // ======================================================================
     const MODULE_BY_HREF = {
         'agendamentos.html': 'agenda',
+        '/agendamentos': 'agenda',
         'pedidos.html': 'pedidos',
+        '/pedidos': 'pedidos',
         'caixa.html': 'caixa',
+        '/caixa': 'caixa',
         'estoque.html': 'estoque',
+        '/estoque': 'estoque',
         'fidelidade.html': 'posvenda',
+        '/fidelidade': 'posvenda',
         'clientes.html': 'clientes',
-        'servicos.html': 'servicos'
+        '/clientes': 'clientes',
+        'servicos.html': 'servicos',
+        '/servicos': 'servicos'
     };
 
     const PRIMARY_HREFS = ['index.html', 'agendamentos.html', 'pedidos.html', 'caixa.html'];

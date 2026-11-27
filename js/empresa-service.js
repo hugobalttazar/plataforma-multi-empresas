@@ -362,6 +362,9 @@ const EmpresaService = {
 
             // 3. Criar usuário Administrador vinculado a esta empresa
             const hash = await AuthService.hashPassword(adminPassword);
+            const allPermissions = Array.isArray(AuthService.ALL_PERMISSION_KEYS)
+                ? [...AuthService.ALL_PERMISSION_KEYS]
+                : ['agenda', 'pedidos', 'caixa', 'estoque', 'posvenda', 'clientes', 'servicos', 'historico', 'configuracoes', 'metas', 'orcamentos', 'painel_tv', 'pacotes', 'equipe', 'mensagens'];
             const userRecord = {
                 nome: adminNome.trim() || 'Administrador',
                 username: cleanUsername,
@@ -369,7 +372,8 @@ const EmpresaService = {
                 empresaId: empresaId,
                 empresaCodigo: codigo,
                 isMaster: false,
-                permissoes: ['agenda', 'pedidos', 'caixa', 'estoque', 'posvenda', 'clientes', 'servicos', 'configuracoes', 'metas']
+                permissoes: allPermissions,
+                permissoesV2: true
             };
             // Salva na chave com prefixo do tenant para evitar colisão entre empresas no Firestore global
             await setDoc(doc(db, 'users', `${empresaId}_${cleanUsername}`), userRecord);
@@ -389,7 +393,8 @@ const EmpresaService = {
                 passwordHash: hash,
                 empresaId: empresaId,
                 empresaCodigo: codigo,
-                permissoes: userRecord.permissoes
+                permissoes: userRecord.permissoes,
+                permissoesV2: true
             }];
             await setDoc(doc(db, 'empresas', empresaId, 'dados', 'usuarios'), {
                 data: JSON.stringify(usersData)
@@ -563,15 +568,19 @@ const EmpresaService = {
                     );
 
                     if (userBelongsToEmpresa) {
-                        const userPermissoes = Array.isArray(uData.permissoes) ? [...uData.permissoes] : ['agenda', 'pedidos', 'caixa', 'estoque', 'posvenda', 'clientes', 'servicos', 'configuracoes', 'metas'];
-                        if (!userPermissoes.includes('metas') && (uData.username === empresaAtualizada.adminUsername || userPermissoes.includes('configuracoes'))) {
-                            userPermissoes.push('metas');
+                        const allPermissions = Array.isArray(AuthService.ALL_PERMISSION_KEYS)
+                            ? [...AuthService.ALL_PERMISSION_KEYS]
+                            : ['agenda', 'pedidos', 'caixa', 'estoque', 'posvenda', 'clientes', 'servicos', 'historico', 'configuracoes', 'metas', 'orcamentos', 'painel_tv', 'pacotes', 'equipe', 'mensagens'];
+                        let userPermissoes = Array.isArray(uData.permissoes) ? [...uData.permissoes] : [...allPermissions];
+                        if (!uData.permissoesV2 && (uData.username === empresaAtualizada.adminUsername || userPermissoes.includes('configuracoes'))) {
+                            userPermissoes = [...new Set([...userPermissoes, ...allPermissions])];
                         }
                         const updatedUser = {
                             ...uData,
                             empresaId: novoId,
                             empresaCodigo: novoCodigo,
-                            permissoes: userPermissoes
+                            permissoes: userPermissoes,
+                            permissoesV2: true
                         };
                         if (newPasswordHash && uData.username === empresaAtualizada.adminUsername) {
                             updatedUser.passwordHash = newPasswordHash;

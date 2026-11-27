@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "express": "^5.2.1",
-    "globals": "^17.12.0"
+    "globals": "^17.12.0",
+    "pdfkit": "^0.21.0"
   },
   "devDependencies": {
     "eslint": "^10.10.0"

@@ -96,11 +96,11 @@
 					<!-- ==================================================== -->
 					<div id="abaConteudoNegocio">
 						<!-- Feedback ao Salvar Negócio -->
-						<div id="msgSucessoNegocio" class="db-status-banner" style="display: none; background: #f0fdf4; border-color: #bbf7d0; color: #166534; margin-bottom: 20px;">
+						<div id="msgSucessoNegocio" class="db-status-banner alert-banner-success" style="display: none; margin-bottom: 20px;">
 							<span class="db-status-icon">✅</span>
 							<div class="db-status-text">
 								<strong>Dados do Estabelecimento Salvos com Sucesso!</strong>
-								<p style="color: #15803d;">A identidade visual foi atualizada em todas as páginas e já sincronizada com a base de dados.</p>
+								<p class="alert-banner-sub">A identidade visual foi atualizada em todas as páginas e já sincronizada com a base de dados.</p>
 							</div>
 						</div>
 
@@ -309,19 +309,19 @@
 								</div>
 
 								<!-- Bloco 4: Metas Financeiras & Dias de Expediente (Permissão Específica) -->
-								<div id="blocoConfigMetasExpediente" class="negocio-form-block" style="margin-bottom: 22px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: var(--radius-sm); padding: 18px;">
+								<div id="blocoConfigMetasExpediente" class="negocio-form-block negocio-metas-block">
 									<div class="negocio-block-heading" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
 										<div style="display: flex; align-items: center; gap: 8px;">
 											<span style="font-size: 1.2rem;">🎯</span>
 											<div>
 												<strong style="font-size: 1rem; color: var(--text-main);">4. Meta Mensal & Dias de Expediente</strong>
-												<p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">Configure sua meta mensal para o sistema calcular a meta diária proporcional aos dias reais de funcionamento.</p>
+												<p style="margin: 0; font-size: 0.78rem; color: var(--text-muted); text-transform: none; letter-spacing: normal; font-weight: 400;">Configure sua meta mensal para o sistema calcular a meta diária proporcional aos dias reais de funcionamento.</p>
 											</div>
 										</div>
-										<span class="badge" style="background: #e0f2fe; color: #0369a1; border-color: #bae6fd; font-size: 0.78rem;">Cálculo Dinâmico Automático</span>
+										<span class="badge badge-tone-blue" style="font-size: 0.78rem; text-transform: none; letter-spacing: normal;">Cálculo Dinâmico Automático</span>
 									</div>
 
-									<div class="negocio-fields-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+									<div class="negocio-fields-grid" style="gap: 16px;">
 										<div class="form-group">
 											<label for="cfgMetaMensal">Meta de Faturamento Mensal (R$) *</label>
 											<input
@@ -334,28 +334,28 @@
 											<span class="field-helper">Se deixar zero, o sistema utilizará o valor diário padrão (R$ 2.000,00).</span>
 										</div>
 
-										<div class="form-group" style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px;">
+										<div class="form-group negocio-dias-box">
 											<label style="margin-bottom: 8px; display: block;">Dias de Atendimento / Trabalho na Semana:</label>
 											<div id="diasSemanaContainer" style="display: flex; flex-wrap: wrap; gap: 8px;">
-												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); user-select: none;">
+												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; user-select: none;">
 													<input type="checkbox" name="cfgDiasTrabalho" value="1" checked style="cursor: pointer;"> Seg
 												</label>
-												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); user-select: none;">
+												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; user-select: none;">
 													<input type="checkbox" name="cfgDiasTrabalho" value="2" checked style="cursor: pointer;"> Ter
 												</label>
-												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); user-select: none;">
+												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; user-select: none;">
 													<input type="checkbox" name="cfgDiasTrabalho" value="3" checked style="cursor: pointer;"> Qua
 												</label>
-												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); user-select: none;">
+												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; user-select: none;">
 													<input type="checkbox" name="cfgDiasTrabalho" value="4" checked style="cursor: pointer;"> Qui
 												</label>
-												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); user-select: none;">
+												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; user-select: none;">
 													<input type="checkbox" name="cfgDiasTrabalho" value="5" checked style="cursor: pointer;"> Sex
 												</label>
-												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); user-select: none;">
+												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; user-select: none;">
 													<input type="checkbox" name="cfgDiasTrabalho" value="6" checked style="cursor: pointer;"> Sáb
 												</label>
-												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); user-select: none;">
+												<label class="tag-chip dia-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; user-select: none;">
 													<input type="checkbox" name="cfgDiasTrabalho" value="0" style="cursor: pointer;"> Dom
 												</label>
 											</div>
@@ -363,10 +363,10 @@
 									</div>
 
 									<!-- Resumo da Projeção de Meta Diária em Tempo Real -->
-									<div id="boxResumoCalculoMeta" style="margin-top: 14px; background: #ffffff; border: 1px solid #93c5fd; border-radius: var(--radius-sm); padding: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+									<div id="boxResumoCalculoMeta" class="negocio-meta-resumo">
 										<div>
 											<span style="font-size: 0.82rem; color: var(--text-muted); display: block;">Meta Diária Calculada para o Mês Atual:</span>
-											<strong id="txtMetaDiariaCalculada" style="font-size: 1.25rem; color: #0284c7;">R$ 2.000,00 / dia</strong>
+											<strong id="txtMetaDiariaCalculada" class="negocio-meta-valor">R$ 2.000,00 / dia</strong>
 										</div>
 										<div style="font-size: 0.82rem; color: var(--text-muted); text-align: right;">
 											<span id="txtDiasTrabalhoMesInfo">Calculado com base em 26 dias de expediente</span>
@@ -400,22 +400,22 @@
 								</button>
 							</div>
 
-							<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 14px;">
-								<div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 14px;">
-									<div style="font-weight: 700; font-size: 0.88rem; color: var(--text-main); margin-bottom: 4px;">🤖 Android & Chrome</div>
-									<div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+							<div class="negocio-pwa-grid">
+								<div class="negocio-pwa-step-card">
+									<div class="negocio-pwa-step-title">🤖 Android & Chrome</div>
+									<div class="negocio-pwa-step-desc">
 										Basta clicar no botão acima ou abrir o menu de três pontos do Chrome e escolher <strong>"Instalar aplicativo"</strong>.
 									</div>
 								</div>
-								<div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 14px;">
-									<div style="font-weight: 700; font-size: 0.88rem; color: var(--text-main); margin-bottom: 4px;">🍎 iPhone & iPad</div>
-									<div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+								<div class="negocio-pwa-step-card">
+									<div class="negocio-pwa-step-title">🍎 iPhone & iPad</div>
+									<div class="negocio-pwa-step-desc">
 										Abra no Safari, toque no ícone <strong>Compartilhar ⎋</strong> e depois em <strong>"Adicionar à Tela de Início"</strong>.
 									</div>
 								</div>
-								<div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 14px;">
-									<div style="font-weight: 700; font-size: 0.88rem; color: var(--text-main); margin-bottom: 4px;">💻 PC & Notebook</div>
-									<div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+								<div class="negocio-pwa-step-card">
+									<div class="negocio-pwa-step-title">💻 PC & Notebook</div>
+									<div class="negocio-pwa-step-desc">
 										No Chrome ou Edge, clique no ícone de tela/computador na barra de endereço para fixar na barra de tarefas.
 									</div>
 								</div>
@@ -450,12 +450,12 @@
 							</div>
 
 							<!-- Banner Principal de Status -->
-							<div id="bannerStatusFirebase" style="margin-top: 16px; padding: 16px 18px; border-radius: 8px; display: flex; align-items: flex-start; gap: 14px; border: 1px solid #bfdbfe; background: #eff6ff; color: #1e40af; transition: all 0.3s ease;">
+							<div id="bannerStatusFirebase" class="alert-banner-info" style="margin-top: 16px; padding: 16px 18px; border-radius: 8px; display: flex; align-items: flex-start; gap: 14px; transition: all 0.3s ease;">
 								<span id="iconeStatusFirebase" style="font-size: 1.8rem; line-height: 1;">☁️</span>
-								<div style="flex: 1;">
+								<div style="flex: 1; min-width: 0;">
 									<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
 										<strong id="txtStatusFirebaseTitulo" style="font-size: 1.05rem;">Status do Banco de Dados: Conectado e Operante</strong>
-										<span id="txtModoOperacao" style="font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: rgba(0,0,0,0.06);">Modo Nuvem Ativo</span>
+										<span id="txtModoOperacao" class="db-mode-chip badge-tone-blue">Modo Nuvem Ativo</span>
 									</div>
 									<p id="txtStatusFirebaseDesc" style="margin: 6px 0 0 0; font-size: 0.86rem; line-height: 1.5; color: inherit; opacity: 0.95;">
 										Seus dados estão sendo sincronizados e salvos com segurança em tempo real no servidor Firebase Firestore. Qualquer cliente cadastrado ou ordem de serviço aberta fica online imediatamente.
@@ -650,90 +650,98 @@
 							</div>
 							
 							<!-- Form Cadastro/Edição de Usuário -->
-							<div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px;">
-								<h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+							<div class="user-form-card">
+								<h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 14px; display: flex; align-items: center; gap: 6px;">
 									<span id="tituloFormUser">➕ Adicionar Novo Usuário</span>
 								</h3>
-								<form id="formUsuario" class="form">
+								<form id="formUsuario" class="user-form-layout">
 									<input type="hidden" id="userId" />
-									<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: end;">
+									<div class="user-form-fields">
 										<div class="form-group" style="margin-bottom: 0;">
 											<label for="userNome" style="font-size: 0.85rem;">Nome Completo *</label>
-											<input type="text" id="userNome" required placeholder="Ex: João Silva" style="padding: 6px 10px; font-size: 0.9rem;" />
+											<input type="text" id="userNome" required placeholder="Ex: João Silva" />
 										</div>
 										<div class="form-group" style="margin-bottom: 0;">
 											<label for="userUsername" style="font-size: 0.85rem;">Nome de Usuário (Login) *</label>
-											<input type="text" id="userUsername" required placeholder="Ex: joao" style="padding: 6px 10px; font-size: 0.9rem;" />
+											<input type="text" id="userUsername" required placeholder="Ex: joao" autocomplete="off" />
 										</div>
 										<div class="form-group" style="margin-bottom: 0;">
-											<label for="userPassword" style="font-size: 0.85rem;">Senha <span id="labelSenhaDica"></span></label>
+											<label for="userPassword" style="font-size: 0.85rem;">Senha <span id="labelSenhaDica">*</span></label>
 											<div style="position: relative; display: flex; align-items: center;">
-												<input type="password" id="userPassword" placeholder="Digite uma senha segura" style="width: 100%; padding: 6px 36px 6px 10px; font-size: 0.9rem;" autocomplete="new-password" />
-												<button type="button" id="btnToggleUserPass" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; font-size: 1rem; color: #64748b; padding: 2px;" title="Ver ou ocultar senha">👁️</button>
+												<input type="password" id="userPassword" placeholder="Digite uma senha segura" style="padding-right: 38px;" autocomplete="new-password" />
+												<button type="button" id="btnToggleUserPass" style="position: absolute; right: 10px; background: none; border: none; cursor: pointer; font-size: 1rem; color: var(--text-muted); padding: 2px;" title="Ver ou ocultar senha">👁️</button>
 											</div>
 										</div>
 									</div>
 
-									<!-- Indicador e Requisitos de Segurança da Senha (Padrão da Internet) -->
-									<div id="boxRequisitosUser" style="margin-top: 12px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 0.8rem;">
-										<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+									<!-- Indicador e Requisitos de Segurança da Senha -->
+									<div id="boxRequisitosUser" class="password-reqs-card">
+										<div class="password-reqs-header">
 											<span style="font-weight: 600; color: var(--text-main);">🛡️ Requisitos de Segurança da Senha:</span>
-											<span id="badgeForcaUser" style="font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: #e2e8f0; color: #64748b;">Aguardando digitação</span>
+											<span id="badgeForcaUser" class="password-reqs-badge">Aguardando digitação</span>
 										</div>
-										<div style="height: 4px; width: 100%; background: #e2e8f0; border-radius: 2px; overflow: hidden; margin-bottom: 8px;">
-											<div id="barraForcaUser" style="height: 100%; width: 0%; transition: all 0.3s ease; background: #94a3b8;"></div>
+										<div class="password-reqs-track">
+											<div id="barraForcaUser" class="password-reqs-bar"></div>
 										</div>
-										<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 6px; font-size: 0.78rem;">
-											<div id="reqMinimoUser" style="display: flex; align-items: center; gap: 6px; color: #64748b;">
+										<div class="password-reqs-grid">
+											<div id="reqMinimoUser" class="password-req-item">
 												<span class="icon-req">⚪</span> Mínimo 8 caracteres
 											</div>
-											<div id="reqMaiusculaUser" style="display: flex; align-items: center; gap: 6px; color: #64748b;">
+											<div id="reqMaiusculaUser" class="password-req-item">
 												<span class="icon-req">⚪</span> 1 letra maiúscula (A-Z)
 											</div>
-											<div id="reqNumeroUser" style="display: flex; align-items: center; gap: 6px; color: #64748b;">
+											<div id="reqNumeroUser" class="password-req-item">
 												<span class="icon-req">⚪</span> 1 número (0-9)
 											</div>
-											<div id="reqEspecialUser" style="display: flex; align-items: center; gap: 6px; color: #64748b;">
+											<div id="reqEspecialUser" class="password-req-item">
 												<span class="icon-req">⚪</span> 1 caractere especial (!@#$...)
 											</div>
 										</div>
 									</div>
 
-									<div style="margin-top: 16px; border-top: 1px dashed var(--border-color); padding-top: 12px;">
-										<label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 8px;">Permissões de Acesso (Marque o que ele pode acessar):</label>
-										<div style="display: flex; flex-wrap: wrap; gap: 12px;">
-											<label style="font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-												<input type="checkbox" name="permissoes" value="agenda" checked> Agenda
+									<!-- Matriz de Permissões do Colaborador -->
+									<div class="permissoes-section">
+										<div class="permissoes-header-row">
+											<label style="font-size: 0.88rem; font-weight: 700; color: var(--text-main); margin: 0;">
+												Permissões de Acesso (Escolha o que este colaborador pode acessar):
 											</label>
-											<label style="font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-												<input type="checkbox" name="permissoes" value="pedidos" checked> Pedidos (O.S.)
-											</label>
-											<label style="font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-												<input type="checkbox" name="permissoes" value="caixa"> Caixa
-											</label>
-											<label style="font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-												<input type="checkbox" name="permissoes" value="estoque"> Estoque
-											</label>
-											<label style="font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-												<input type="checkbox" name="permissoes" value="posvenda"> Pós-Venda
-											</label>
-											<label style="font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-												<input type="checkbox" name="permissoes" value="clientes" checked> Clientes
-											</label>
-											<label style="font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-												<input type="checkbox" name="permissoes" value="servicos"> Serviços
-											</label>
-											<label style="font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-												<input type="checkbox" name="permissoes" value="configuracoes"> Configurações
-											</label>
-											<label style="font-size: 0.85rem; display: flex; align-items: center; gap: 4px; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 2px 8px; border-radius: 4px; color: #166534; font-weight: 600;">
-												<input type="checkbox" name="permissoes" value="metas"> 🎯 Metas & Rendimento Diário
-											</label>
+											<div class="permissoes-quick-actions">
+												<button type="button" class="btn btn-sm btn-secondary" onclick="aplicarPresetPermissoesColab('todos')">✅ Marcar Todos</button>
+												<button type="button" class="btn btn-sm btn-secondary" onclick="aplicarPresetPermissoesColab('operador')">🧑‍🔧 Perfil Operacional</button>
+												<button type="button" class="btn btn-sm btn-secondary" onclick="aplicarPresetPermissoesColab('limpar')">🚫 Limpar Seleção</button>
+											</div>
+										</div>
+
+										<div class="permissoes-group">
+											<span class="permissoes-group-title">Módulos Principais (Telas)</span>
+											<div class="permissoes-matrix">
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="agenda" checked /> <span>📅 Agenda</span></label>
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="pedidos" checked /> <span>📋 Pedidos (O.S.)</span></label>
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="caixa" /> <span>💰 Caixa & Financeiro</span></label>
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="estoque" /> <span>📦 Estoque</span></label>
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="posvenda" /> <span>🎁 Pós-Venda</span></label>
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="clientes" checked /> <span>👤 Clientes</span></label>
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="servicos" /> <span>🛠️ Serviços</span></label>
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="historico" /> <span>📜 Histórico de O.S.</span></label>
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="configuracoes" /> <span>⚙️ Ajustes & Usuários</span></label>
+											</div>
+										</div>
+
+										<div class="permissoes-group">
+											<span class="permissoes-group-title">Recursos & Submódulos</span>
+											<div class="permissoes-matrix">
+												<label class="perm-chip perm-chip--highlight"><input type="checkbox" name="permissoes" value="metas" /> <span>🎯 Metas & Rendimento</span></label>
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="orcamentos" /> <span>📝 Orçamentos (O.S.)</span></label>
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="painel_tv" /> <span>📺 Painel TV (O.S.)</span></label>
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="pacotes" /> <span>🎟️ Pacotes & Planos (Caixa)</span></label>
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="equipe" /> <span>💼 Equipe & Comissões</span></label>
+												<label class="perm-chip"><input type="checkbox" name="permissoes" value="mensagens" /> <span>💬 Mensagens WhatsApp</span></label>
+											</div>
 										</div>
 									</div>
 
-									<div style="display: flex; gap: 8px; margin-top: 16px;">
-										<button type="submit" class="btn btn-primary" style="flex: 1;">💾 Salvar Usuário</button>
+									<div class="user-form-actions">
+										<button type="submit" class="btn btn-primary btn-save-user">💾 Salvar Usuário</button>
 										<button type="button" class="btn btn-secondary" id="btnCancelarEdicaoUser" style="display: none;" onclick="limparFormUsuario()">Cancelar</button>
 									</div>
 								</form>
@@ -772,23 +780,23 @@
 							</p>
 
 							<!-- Métricas Rápidas -->
-							<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px;">
-								<div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; display: flex; align-items: center; gap: 12px;">
-									<div style="width: 36px; height: 36px; border-radius: 8px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">👥</div>
+							<div class="equipe-metrics-grid">
+								<div class="equipe-metric-card">
+									<div class="equipe-metric-icon equipe-metric-icon--blue">👥</div>
 									<div>
 										<span style="display: block; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Profissionais</span>
 										<span id="statTotalEquipe" style="display: block; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">0</span>
 									</div>
 								</div>
-								<div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; display: flex; align-items: center; gap: 12px;">
-									<div style="width: 36px; height: 36px; border-radius: 8px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">🚗</div>
+								<div class="equipe-metric-card">
+									<div class="equipe-metric-icon equipe-metric-icon--blue">🚗</div>
 									<div>
 										<span style="display: block; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Serviços Concluídos</span>
 										<span id="statTotalServicosExecutados" style="display: block; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">0</span>
 									</div>
 								</div>
-								<div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; display: flex; align-items: center; gap: 12px;">
-									<div style="width: 36px; height: 36px; border-radius: 8px; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">💰</div>
+								<div class="equipe-metric-card">
+									<div class="equipe-metric-icon equipe-metric-icon--green">💰</div>
 									<div>
 										<span style="display: block; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Comissões a Pagar</span>
 										<span id="statTotalComissoes" style="display: block; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">R$ 0,00</span>
@@ -798,33 +806,33 @@
 
 							<!-- Form Cadastro / Edição de Membro da Equipe -->
 							<div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px;">
-								<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+								<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
 									<h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 6px;">
 										<span id="formMembroTitulo">➕ Cadastrar Profissional</span>
 									</h3>
 									<button type="button" id="btnCancelarEdicaoMembro" class="btn btn-secondary btn-sm" style="display: none;">Cancelar Edição</button>
 								</div>
 								<form id="formNovoMembro" class="form">
-									<div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+									<div style="display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; grid-column: 1 / -1;">
 										<div class="form-group" style="margin-bottom: 0;">
 											<label for="membroNome" style="font-size: 0.85rem;">Nome do Profissional *</label>
-											<input type="text" id="membroNome" required placeholder="Ex: Carlos Eduardo" style="padding: 6px 10px; font-size: 0.9rem;" />
+											<input type="text" id="membroNome" required placeholder="Ex: Carlos Eduardo" style="padding: 8px 12px; font-size: 0.9rem;" />
 										</div>
 										<div class="form-group" style="margin-bottom: 0;">
 											<label for="membroCargo" style="font-size: 0.85rem;">Função / Especialidade</label>
-											<input type="text" id="membroCargo" placeholder="Ex: Detailer / Lavador / Polidor" style="padding: 6px 10px; font-size: 0.9rem;" />
+											<input type="text" id="membroCargo" placeholder="Ex: Detailer / Lavador / Polidor" style="padding: 8px 12px; font-size: 0.9rem;" />
 										</div>
-										<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+										<div class="equipe-form-two-col">
 											<div class="form-group" style="margin-bottom: 0;">
 												<label for="membroTipoComissao" style="font-size: 0.85rem;">Tipo de Comissão *</label>
-												<select id="membroTipoComissao" style="padding: 6px 10px; font-size: 0.9rem;">
+												<select id="membroTipoComissao" style="padding: 8px 12px; font-size: 0.9rem;">
 													<option value="percentual">Porcentagem (%)</option>
 													<option value="fixo">Valor Fixo (R$)</option>
 												</select>
 											</div>
 											<div class="form-group" style="margin-bottom: 0;">
 												<label for="membroValorComissao" id="labelValorComissao" style="font-size: 0.85rem;">Comissão por Serviço (%) *</label>
-												<input type="number" id="membroValorComissao" step="0.01" min="0" required placeholder="Ex: 30" style="padding: 6px 10px; font-size: 0.9rem;" />
+												<input type="number" id="membroValorComissao" step="0.01" min="0" required placeholder="Ex: 30" style="padding: 8px 12px; font-size: 0.9rem;" />
 											</div>
 										</div>
 										<button type="submit" id="btnSalvarMembro" class="btn btn-primary" style="margin-top: 8px; width: 100%;">💾 Salvar Profissional</button>
@@ -981,11 +989,11 @@
 					<!-- ==================================================== -->
 					<div id="abaConteudoMensagens" style="display: none;">
 						<!-- Feedback ao Salvar Mensagens -->
-						<div id="msgSucessoMensagens" class="db-status-banner" style="display: none; background: #f0fdf4; border-color: #bbf7d0; color: #166534; margin-bottom: 20px;">
+						<div id="msgSucessoMensagens" class="db-status-banner alert-banner-success" style="display: none; margin-bottom: 20px;">
 							<span class="db-status-icon">✅</span>
 							<div class="db-status-text">
 								<strong>Modelos de Mensagens Salvos com Sucesso!</strong>
-								<p style="color: #15803d;">Os novos textos foram salvos e já estão ativos em todos os módulos (Agendamentos, O.S., Caixa e Fidelidade).</p>
+								<p class="alert-banner-sub">Os novos textos foram salvos e já estão ativos em todos os módulos (Agendamentos, O.S., Caixa e Fidelidade).</p>
 							</div>
 						</div>
 
@@ -1000,7 +1008,7 @@
 									</p>
 								</div>
 								<div style="display: flex; gap: 8px; flex-wrap: wrap;">
-									<button type="button" class="btn" onclick="restaurarTodosModelosMensagens()" style="background: #f8fafc; border: 1px solid #cbd5e1; color: #475569; font-weight: 600;" title="Restaura os textos originais de fábrica para todos os modelos">
+									<button type="button" class="btn btn-restore-msg" onclick="restaurarTodosModelosMensagens()" title="Restaura os textos originais de fábrica para todos os modelos">
 										<span>🔄 Restaurar Padrões</span>
 									</button>
 									<button type="button" class="btn btn-primary" onclick="salvarModelosMensagensConfig()" style="background: #16a34a; border-color: #15803d; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
@@ -1010,7 +1018,7 @@
 							</div>
 
 							<!-- Banner Explicativo sobre Omissão de Preço / Customização -->
-							<div class="alert alert-info" style="margin-top: 16px; margin-bottom: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 12px 16px; border-radius: 8px; display: flex; align-items: flex-start; gap: 10px;">
+							<div class="alert alert-info alert-banner-success" style="margin-top: 4px; margin-bottom: 4px; padding: 12px 16px; border-radius: 8px; display: flex; align-items: flex-start; gap: 10px;">
 								<span style="font-size: 1.25rem;">💡</span>
 								<div style="font-size: 0.85rem; line-height: 1.45;">
 									<strong>Como controlar o envio de preços ou informações:</strong><br>
@@ -1019,7 +1027,7 @@
 							</div>
 
 							<!-- LISTA DE MODELOS / ITENS -->
-							<div style="display: flex; flex-direction: column; gap: 24px; margin-top: 10px;">
+							<div style="display: flex; flex-direction: column; gap: 24px; margin-top: 6px;">
 
 								<!-- ITEM 1: AGENDAMENTO -->
 								<div class="msg-template-card" id="cardMsgAgendamento">
@@ -1027,13 +1035,13 @@
 										<div class="msg-template-title-group">
 											<h3>
 												<span>📅 1. Agendamento & Lembrete de Horário</span>
-												<span class="badge" style="background: #e0f2fe; color: #0369a1; border-color: #bae6fd; font-size: 0.72rem;">Módulo Agenda</span>
+												<span class="badge badge-tone-blue" style="font-size: 0.72rem;">Módulo Agenda</span>
 											</h3>
 											<p class="msg-template-desc">
 												Mensagem disparada no botão de WhatsApp da lista de agendamentos para confirmar a reserva ou lembrar o cliente do dia e hora.
 											</p>
 										</div>
-										<button type="button" class="btn btn-sm" onclick="restaurarModeloIndividual('agendamento')" style="background: transparent; border: 1px solid #cbd5e1; color: #64748b; font-size: 0.76rem;" title="Restaurar padrão deste item">
+										<button type="button" class="btn btn-sm btn-restore-msg-sm" onclick="restaurarModeloIndividual('agendamento')" title="Restaurar padrão deste item">
 											🔄 Restaurar este padrão
 										</button>
 									</div>
@@ -1042,7 +1050,7 @@
 									<div class="tag-chips-wrapper">
 										<div class="tag-chips-label">
 											<span>🏷️ Etiquetas Disponíveis (Clique para inserir no texto):</span>
-											<span style="font-weight: normal; color: #64748b;">Insere na posição do cursor</span>
+											<span style="font-weight: normal;">Insere na posição do cursor</span>
 										</div>
 										<div class="tag-chips-grid">
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('agendamento', '{nome_cliente}')">🏷️ {nome_cliente}</button>
@@ -1051,7 +1059,7 @@
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('agendamento', '{placa}')">🔢 {placa}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('agendamento', '{data_hora}')">📅 {data_hora}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('agendamento', '{servicos}')">🛠️ {servicos}</button>
-											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('agendamento', '{valor_total}')" style="background: #fef3c7; border-color: #fde68a; color: #92400e;">💰 {valor_total}</button>
+											<button type="button" class="tag-chip whatsapp-tag-chip-money" onclick="inserirTagNoModelo('agendamento', '{valor_total}')">💰 {valor_total}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('agendamento', '{link_agenda}')">📆 {link_agenda}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('agendamento', '{nome_empresa}')">🏢 {nome_empresa}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('agendamento', '{chave_pix}')">🔑 {chave_pix}</button>
@@ -1061,14 +1069,14 @@
 
 									<div class="whatsapp-editor-grid">
 										<div class="whatsapp-textarea-box">
-											<div style="display: flex; justify-content: space-between; align-items: center;">
-												<label for="template_agendamento" style="font-size: 0.8rem; font-weight: 700; color: #334155;">Texto do Modelo:</label>
-												<span id="charCount_agendamento" style="font-size: 0.75rem; color: #64748b;">0 caracteres</span>
+											<div class="whatsapp-field-header">
+												<label for="template_agendamento" class="whatsapp-field-label">Texto do Modelo:</label>
+												<span id="charCount_agendamento" class="whatsapp-field-count">0 caracteres</span>
 											</div>
 											<textarea id="template_agendamento" class="whatsapp-textarea" rows="7"></textarea>
 										</div>
-										<div>
-											<label style="font-size: 0.8rem; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">👁️ Prévia ao Vivo no WhatsApp:</label>
+										<div style="min-width: 0;">
+											<label class="whatsapp-field-label whatsapp-field-label-block">👁️ Prévia ao Vivo no WhatsApp:</label>
 											<div class="whatsapp-chat-preview">
 												<div class="whatsapp-balloon">
 													<div id="previewText_agendamento" style="white-space: pre-wrap;"></div>
@@ -1088,13 +1096,13 @@
 										<div class="msg-template-title-group">
 											<h3>
 												<span>🚗 2. Conclusão de Serviço & Veículo Pronto</span>
-												<span class="badge" style="background: #dcfce7; color: #15803d; border-color: #bbf7d0; font-size: 0.72rem;">Módulo Pedidos / O.S.</span>
+												<span class="badge badge-tone-green" style="font-size: 0.72rem;">Módulo Pedidos / O.S.</span>
 											</h3>
 											<p class="msg-template-desc">
 												Mensagem disparada no botão "💬 Carro Pronto" da lista de O.S. no pátio para avisar que o trabalho foi concluído e o veículo está liberado.
 											</p>
 										</div>
-										<button type="button" class="btn btn-sm" onclick="restaurarModeloIndividual('pronto')" style="background: transparent; border: 1px solid #cbd5e1; color: #64748b; font-size: 0.76rem;" title="Restaurar padrão deste item">
+										<button type="button" class="btn btn-sm btn-restore-msg-sm" onclick="restaurarModeloIndividual('pronto')" title="Restaurar padrão deste item">
 											🔄 Restaurar este padrão
 										</button>
 									</div>
@@ -1102,7 +1110,7 @@
 									<div class="tag-chips-wrapper">
 										<div class="tag-chips-label">
 											<span>🏷️ Etiquetas Disponíveis (Clique para inserir no texto):</span>
-											<span style="font-weight: normal; color: #64748b;">Insere na posição do cursor</span>
+											<span style="font-weight: normal;">Insere na posição do cursor</span>
 										</div>
 										<div class="tag-chips-grid">
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('pronto', '{nome_cliente}')">🏷️ {nome_cliente}</button>
@@ -1110,7 +1118,7 @@
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('pronto', '{veiculo}')">🚗 {veiculo}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('pronto', '{placa}')">🔢 {placa}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('pronto', '{servicos}')">🛠️ {servicos}</button>
-											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('pronto', '{valor_total}')" style="background: #fef3c7; border-color: #fde68a; color: #92400e;">💰 {valor_total}</button>
+											<button type="button" class="tag-chip whatsapp-tag-chip-money" onclick="inserirTagNoModelo('pronto', '{valor_total}')">💰 {valor_total}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('pronto', '{nome_empresa}')">🏢 {nome_empresa}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('pronto', '{chave_pix}')">🔑 {chave_pix}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('pronto', '{pix_copia_cola}')">📱 {pix_copia_cola}</button>
@@ -1119,14 +1127,14 @@
 
 									<div class="whatsapp-editor-grid">
 										<div class="whatsapp-textarea-box">
-											<div style="display: flex; justify-content: space-between; align-items: center;">
-												<label for="template_pronto" style="font-size: 0.8rem; font-weight: 700; color: #334155;">Texto do Modelo:</label>
-												<span id="charCount_pronto" style="font-size: 0.75rem; color: #64748b;">0 caracteres</span>
+											<div class="whatsapp-field-header">
+												<label for="template_pronto" class="whatsapp-field-label">Texto do Modelo:</label>
+												<span id="charCount_pronto" class="whatsapp-field-count">0 caracteres</span>
 											</div>
 											<textarea id="template_pronto" class="whatsapp-textarea" rows="7"></textarea>
 										</div>
-										<div>
-											<label style="font-size: 0.8rem; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">👁️ Prévia ao Vivo no WhatsApp:</label>
+										<div style="min-width: 0;">
+											<label class="whatsapp-field-label whatsapp-field-label-block">👁️ Prévia ao Vivo no WhatsApp:</label>
 											<div class="whatsapp-chat-preview">
 												<div class="whatsapp-balloon">
 													<div id="previewText_pronto" style="white-space: pre-wrap;"></div>
@@ -1146,13 +1154,13 @@
 										<div class="msg-template-title-group">
 											<h3>
 												<span>🧾 3. Comprovante de Pagamento & Recibo</span>
-												<span class="badge" style="background: #fef3c7; color: #b45309; border-color: #fde68a; font-size: 0.72rem;">Módulos Caixa & Histórico</span>
+												<span class="badge badge-tone-amber" style="font-size: 0.72rem;">Módulos Caixa & Histórico</span>
 											</h3>
 											<p class="msg-template-desc">
 												Comprovante digital emitido após o encerramento e pagamento da Ordem de Serviço, detalhando quitação e forma de pagamento.
 											</p>
 										</div>
-										<button type="button" class="btn btn-sm" onclick="restaurarModeloIndividual('recibo')" style="background: transparent; border: 1px solid #cbd5e1; color: #64748b; font-size: 0.76rem;" title="Restaurar padrão deste item">
+										<button type="button" class="btn btn-sm btn-restore-msg-sm" onclick="restaurarModeloIndividual('recibo')" title="Restaurar padrão deste item">
 											🔄 Restaurar este padrão
 										</button>
 									</div>
@@ -1160,7 +1168,7 @@
 									<div class="tag-chips-wrapper">
 										<div class="tag-chips-label">
 											<span>🏷️ Etiquetas Disponíveis (Clique para inserir no texto):</span>
-											<span style="font-weight: normal; color: #64748b;">Insere na posição do cursor</span>
+											<span style="font-weight: normal;">Insere na posição do cursor</span>
 										</div>
 										<div class="tag-chips-grid">
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('recibo', '{nome_cliente}')">🏷️ {nome_cliente}</button>
@@ -1170,7 +1178,7 @@
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('recibo', '{placa}')">🔢 {placa}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('recibo', '{data_hora}')">📅 {data_hora}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('recibo', '{servicos}')">🛠️ {servicos}</button>
-											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('recibo', '{valor_total}')" style="background: #fef3c7; border-color: #fde68a; color: #92400e;">💰 {valor_total}</button>
+											<button type="button" class="tag-chip whatsapp-tag-chip-money" onclick="inserirTagNoModelo('recibo', '{valor_total}')">💰 {valor_total}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('recibo', '{forma_pagamento}')">💳 {forma_pagamento}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('recibo', '{nome_empresa}')">🏢 {nome_empresa}</button>
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('recibo', '{telefone_empresa}')">📞 {telefone_empresa}</button>
@@ -1181,14 +1189,14 @@
 
 									<div class="whatsapp-editor-grid">
 										<div class="whatsapp-textarea-box">
-											<div style="display: flex; justify-content: space-between; align-items: center;">
-												<label for="template_recibo" style="font-size: 0.8rem; font-weight: 700; color: #334155;">Texto do Modelo:</label>
-												<span id="charCount_recibo" style="font-size: 0.75rem; color: #64748b;">0 caracteres</span>
+											<div class="whatsapp-field-header">
+												<label for="template_recibo" class="whatsapp-field-label">Texto do Modelo:</label>
+												<span id="charCount_recibo" class="whatsapp-field-count">0 caracteres</span>
 											</div>
 											<textarea id="template_recibo" class="whatsapp-textarea" rows="8"></textarea>
 										</div>
-										<div>
-											<label style="font-size: 0.8rem; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">👁️ Prévia ao Vivo no WhatsApp:</label>
+										<div style="min-width: 0;">
+											<label class="whatsapp-field-label whatsapp-field-label-block">👁️ Prévia ao Vivo no WhatsApp:</label>
 											<div class="whatsapp-chat-preview">
 												<div class="whatsapp-balloon">
 													<div id="previewText_recibo" style="white-space: pre-wrap;"></div>
@@ -1208,13 +1216,13 @@
 										<div class="msg-template-title-group">
 											<h3>
 												<span>⭐ 4. Reativação & Programa Fidelidade</span>
-												<span class="badge" style="background: #fae8ff; color: #86198f; border-color: #f5d0fe; font-size: 0.72rem;">Módulo Fidelidade</span>
+												<span class="badge badge-tone-purple" style="font-size: 0.72rem;">Módulo Fidelidade</span>
 											</h3>
 											<p class="msg-template-desc">
 												Mensagem enviada para clientes que não visitam a empresa há dias ou para parabenizá-los e informar o saldo de selos e premiações.
 											</p>
 										</div>
-										<button type="button" class="btn btn-sm" onclick="restaurarModeloIndividual('fidelidade')" style="background: transparent; border: 1px solid #cbd5e1; color: #64748b; font-size: 0.76rem;" title="Restaurar padrão deste item">
+										<button type="button" class="btn btn-sm btn-restore-msg-sm" onclick="restaurarModeloIndividual('fidelidade')" title="Restaurar padrão deste item">
 											🔄 Restaurar este padrão
 										</button>
 									</div>
@@ -1222,7 +1230,7 @@
 									<div class="tag-chips-wrapper">
 										<div class="tag-chips-label">
 											<span>🏷️ Etiquetas Disponíveis (Clique para inserir no texto):</span>
-											<span style="font-weight: normal; color: #64748b;">Insere na posição do cursor</span>
+											<span style="font-weight: normal;">Insere na posição do cursor</span>
 										</div>
 										<div class="tag-chips-grid">
 											<button type="button" class="tag-chip" onclick="inserirTagNoModelo('fidelidade', '{nome_cliente}')">🏷️ {nome_cliente}</button>
@@ -1237,14 +1245,14 @@
 
 									<div class="whatsapp-editor-grid">
 										<div class="whatsapp-textarea-box">
-											<div style="display: flex; justify-content: space-between; align-items: center;">
-												<label for="template_fidelidade" style="font-size: 0.8rem; font-weight: 700; color: #334155;">Texto do Modelo:</label>
-												<span id="charCount_fidelidade" style="font-size: 0.75rem; color: #64748b;">0 caracteres</span>
+											<div class="whatsapp-field-header">
+												<label for="template_fidelidade" class="whatsapp-field-label">Texto do Modelo:</label>
+												<span id="charCount_fidelidade" class="whatsapp-field-count">0 caracteres</span>
 											</div>
 											<textarea id="template_fidelidade" class="whatsapp-textarea" rows="7"></textarea>
 										</div>
-										<div>
-											<label style="font-size: 0.8rem; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">👁️ Prévia ao Vivo no WhatsApp:</label>
+										<div style="min-width: 0;">
+											<label class="whatsapp-field-label whatsapp-field-label-block">👁️ Prévia ao Vivo no WhatsApp:</label>
 											<div class="whatsapp-chat-preview">
 												<div class="whatsapp-balloon">
 													<div id="previewText_fidelidade" style="white-space: pre-wrap;"></div>
@@ -1284,7 +1292,7 @@
 				</div>
 				<form id="formNovaEmpresa" onsubmit="salvarNovaEmpresaMaster(event)">
 					<div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
-						<div class="alert alert-info" style="font-size: 0.82rem; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 10px 14px; border-radius: 6px;">
+						<div class="alert alert-info alert-banner-success" style="font-size: 0.82rem; padding: 10px 14px; border-radius: 6px;">
 							🔒 <strong>Isolamento Garantido:</strong> O sistema criará uma base de dados exclusiva para este novo negócio no Firestore.
 						</div>
 
@@ -1445,6 +1453,30 @@
 		<script>
 			// Setup only once when DOM loads
 
+			function escHtml(s) {
+				if (typeof window.escapeHTML === 'function') return window.escapeHTML(s);
+				return String(s || '')
+					.replace(/&/g, '&amp;')
+					.replace(/</g, '&lt;')
+					.replace(/>/g, '&gt;')
+					.replace(/"/g, '&quot;')
+					.replace(/'/g, '&#039;');
+			}
+
+			window.aplicarPresetPermissoesColab = function(preset) {
+				const checkboxes = document.querySelectorAll('input[name="permissoes"]');
+				const operadorBasico = ['agenda', 'pedidos', 'clientes'];
+				checkboxes.forEach(cb => {
+					if (preset === 'todos') {
+						cb.checked = true;
+					} else if (preset === 'limpar') {
+						cb.checked = false;
+					} else if (preset === 'operador') {
+						cb.checked = operadorBasico.includes(cb.value);
+					}
+				});
+			};
+
 			// ==========================================
 			// Lógica de Usuários
 			// ==========================================
@@ -1464,8 +1496,10 @@
 					const emp = window.EmpresaService.getEmpresaAtiva();
 					const chk = window.SaasGuard.verificarLimiteUsuarios({ empresa: emp, usuariosDaEmpresa: users, editando: false });
 					badgeLim.textContent = `Plano ${chk.planoNome}: ${chk.qtdAtual}/${chk.limite} usuário(s)`;
-					badgeLim.style.background = chk.permitido ? 'var(--primary-light)' : '#fef3c7';
-					badgeLim.style.color = chk.permitido ? 'var(--primary)' : '#92400e';
+					badgeLim.style.background = '';
+					badgeLim.style.color = '';
+					badgeLim.classList.remove('badge-tone-blue', 'badge-tone-amber');
+					badgeLim.classList.add(chk.permitido ? 'badge-tone-blue' : 'badge-tone-amber');
 				}
 
 				corpo.innerHTML = '';
@@ -1475,22 +1509,53 @@
 					<tr>
 						<td><strong>Administrador Master</strong></td>
 						<td>admin</td>
-						<td><span class="badge" style="background:#1e40af; color:#fff;">Acesso Total</span></td>
+						<td><span class="badge" style="background:#1e40af; color:#fff;">👑 Acesso Total</span></td>
 						<td style="text-align:center;">-</td>
 					</tr>
 				`;
 
+				const totalDisponivel = Array.isArray(AuthService.ALL_PERMISSION_KEYS) ? AuthService.ALL_PERMISSION_KEYS.length : 15;
+				const currentUser = AuthService.getCurrentUser();
+
 				users.forEach(u => {
-					const count = u.permissoes ? u.permissoes.length : 0;
-					const btnEdit = `<button type="button" class="btn btn-sm" style="background:transparent; border:1px solid #3b82f6; color:#3b82f6; padding:3px 8px; margin-right:4px;" onclick="editarUsuario('${u.id}')">✏️</button>`;
-					const btnDel = `<button type="button" class="btn btn-sm" style="background:transparent; border:1px solid #ef4444; color:#ef4444; padding:3px 8px;" onclick="removerUsuario('${u.id}')">🗑️</button>`;
+					const efetivas = typeof AuthService.getEffectivePermissions === 'function'
+						? AuthService.getEffectivePermissions(u)
+						: (u.permissoes || []);
+					const safeId = escHtml(u.id);
+
+					let permsHtml = '';
+					if (efetivas.length >= totalDisponivel) {
+						permsHtml = `<span class="badge badge-perm-all">✅ Acesso Total (${efetivas.length}/${totalDisponivel})</span>`;
+					} else if (efetivas.length > 0) {
+						const chips = efetivas.slice(0, 6).map(p => {
+							const label = typeof AuthService.getPermissionLabel === 'function'
+								? AuthService.getPermissionLabel(p)
+								: p;
+							return `<span class="perm-badge-item">${escHtml(label)}</span>`;
+						}).join('');
+						const extra = efetivas.length > 6 ? `<span class="perm-badge-item">+${efetivas.length - 6} mais</span>` : '';
+						permsHtml = `<div class="perm-badge-list">${chips}${extra}</div>`;
+					} else {
+						permsHtml = `<span style="color:var(--text-muted); font-size:0.8rem;">Nenhum módulo liberado</span>`;
+					}
+
+					const isSelf = currentUser && !currentUser.isMaster && (currentUser.id === u.id || currentUser.username === u.username);
+					const btnEdit = `<button type="button" class="btn btn-sm btn-secondary" style="border-color: var(--primary); color: var(--primary); padding: 4px 10px;" onclick="editarUsuario('${safeId}')" title="Editar usuário e módulos">✏️</button>`;
+					const btnDel = isSelf
+						? `<button type="button" class="btn btn-sm btn-secondary" style="opacity: 0.45; cursor: not-allowed; padding: 4px 10px;" disabled title="Não é possível remover o próprio usuário logado">🗑️</button>`
+						: `<button type="button" class="btn btn-sm btn-secondary" style="border-color: var(--danger); color: var(--danger); padding: 4px 10px;" onclick="removerUsuario('${safeId}')" title="Excluir usuário">🗑️</button>`;
 					
 					corpo.innerHTML += `
 						<tr>
-							<td><strong>${u.nome}</strong></td>
-							<td>${u.username}</td>
-							<td>${count} módulos permitidos</td>
-							<td style="text-align:center; white-space:nowrap;">${btnEdit} ${btnDel}</td>
+							<td>
+								<strong>${escHtml(u.nome)}</strong>
+								${isSelf ? ' <span class="badge" style="background: var(--primary-light); color: var(--primary); font-size: 0.68rem;">Você</span>' : ''}
+							</td>
+							<td><span style="font-family: var(--font-mono); font-size: 0.82rem;">${escHtml(u.username)}</span></td>
+							<td>${permsHtml}</td>
+							<td style="text-align:center; white-space:nowrap;">
+								<div class="btn-action-group">${btnEdit} ${btnDel}</div>
+							</td>
 						</tr>
 					`;
 				});
@@ -1510,11 +1575,11 @@
 					if (!el) return;
 					const icon = el.querySelector('.icon-req') || el;
 					if (ok) {
-						el.style.color = '#15803d';
+						el.style.color = '#10b981';
 						el.style.fontWeight = '600';
 						if (icon !== el) icon.textContent = '🟢';
 					} else {
-						el.style.color = '#64748b';
+						el.style.color = 'var(--text-muted)';
 						el.style.fontWeight = 'normal';
 						if (icon !== el) icon.textContent = '⚪';
 					}
@@ -1527,12 +1592,12 @@
 					setItem(reqEsp, false);
 					if (badge) {
 						badge.textContent = 'Aguardando digitação';
-						badge.style.background = '#e2e8f0';
-						badge.style.color = '#64748b';
+						badge.style.background = 'var(--bg-surface)';
+						badge.style.color = 'var(--text-muted)';
 					}
 					if (barra) {
 						barra.style.width = '0%';
-						barra.style.background = '#94a3b8';
+						barra.style.background = 'var(--text-muted)';
 					}
 					return;
 				}
@@ -1551,16 +1616,16 @@
 				if (badge) {
 					if (pontos === 4) {
 						badge.textContent = 'Forte e Segura ✅';
-						badge.style.background = '#dcfce7';
-						badge.style.color = '#15803d';
+						badge.style.background = 'rgba(16, 185, 129, 0.16)';
+						badge.style.color = '#10b981';
 					} else if (pontos >= 2) {
 						badge.textContent = 'Média ⚠️';
-						badge.style.background = '#fef9c3';
-						badge.style.color = '#854d0e';
+						badge.style.background = 'rgba(234, 179, 8, 0.18)';
+						badge.style.color = '#d97706';
 					} else {
 						badge.textContent = 'Fraca ❌';
-						badge.style.background = '#fee2e2';
-						badge.style.color = '#b91c1c';
+						badge.style.background = 'rgba(239, 68, 68, 0.16)';
+						badge.style.color = '#ef4444';
 					}
 				}
 
@@ -1580,6 +1645,7 @@
 				document.getElementById('userPassword').required = true;
 				document.getElementById('labelSenhaDica').textContent = '*';
 				document.getElementById('btnCancelarEdicaoUser').style.display = 'none';
+				window.aplicarPresetPermissoesColab('operador');
 				atualizarIndicadorSenha('', 'User');
 			}
 
@@ -1600,17 +1666,32 @@
 				document.getElementById('tituloFormUser').textContent = '✏️ Editar Usuário';
 				document.getElementById('btnCancelarEdicaoUser').style.display = 'inline-block';
 
+				const efetivas = typeof AuthService.getEffectivePermissions === 'function'
+					? AuthService.getEffectivePermissions(user)
+					: (user.permissoes || []);
 				const checkboxes = document.querySelectorAll('input[name="permissoes"]');
 				checkboxes.forEach(cb => {
-					cb.checked = user.permissoes && user.permissoes.includes(cb.value);
+					cb.checked = efetivas.includes(cb.value);
 				});
 				
 				atualizarIndicadorSenha('', 'User');
 				alternarAbaConfig('usuarios');
+				document.getElementById('formUsuario')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 			};
 
 			window.removerUsuario = async function(id) {
-				if (confirm('Tem certeza que deseja remover este usuário?')) {
+				let confirmado = false;
+				if (window.UI && typeof window.UI.confirm === 'function') {
+					confirmado = await window.UI.confirm({
+						title: 'Remover Usuário',
+						message: 'Tem certeza que deseja remover este colaborador?',
+						confirmText: 'Remover',
+						danger: true
+					});
+				} else {
+					confirmado = confirm('Tem certeza que deseja remover este usuário?');
+				}
+				if (confirmado) {
 					try {
 						await AuthService.removerUser(id);
 						if (window.UI) window.UI.toast('Usuário removido com sucesso.', 'success');
@@ -1685,6 +1766,23 @@
 
 						const checkboxes = document.querySelectorAll('input[name="permissoes"]:checked');
 						const permissoes = Array.from(checkboxes).map(cb => cb.value);
+
+						// Proteção contra auto-bloqueio de Configurações/Usuários
+						const currentUser = AuthService.getCurrentUser();
+						if (id && currentUser && !currentUser.isMaster &&
+							(currentUser.id === id || currentUser.username === username.toLowerCase()) &&
+							!permissoes.includes('configuracoes')) {
+							let confirmarAutoBloqueio = false;
+							if (window.UI && typeof window.UI.confirm === 'function') {
+								confirmarAutoBloqueio = await window.UI.confirm({
+									title: 'Atenção: Auto-bloqueio de Ajustes',
+									message: 'Você desmarcou "Ajustes & Usuários" para o seu próprio login. Se salvar, perderá acesso à aba de usuários ao recarregar. Deseja continuar?',
+									confirmText: 'Sim, salvar mesmo assim',
+									danger: true
+								});
+							}
+							if (!confirmarAutoBloqueio) return;
+						}
 
 						try {
 							if (id) {

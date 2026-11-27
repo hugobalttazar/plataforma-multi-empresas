@@ -535,6 +535,11 @@ document.addEventListener('DOMContentLoaded', () => {
 				}
 			}
 
+			const podeVerHistorico = !window.AuthService || typeof window.AuthService.hasPermission !== 'function' || window.AuthService.hasPermission('historico');
+			const historicoCellHtml = podeVerHistorico
+				? `<a class="btn btn-secondary btn-sm" href="historico.html?cliente=${encodeURIComponent(c.nome || '')}">📜 Histórico</a>`
+				: `<span style="color: var(--text-muted); font-size: 0.78rem;">Restrito</span>`;
+
 			tr.innerHTML = `
 				<td id="nomeSalvo">
 					<div class="cliente-nome-avatar-cell">
@@ -549,9 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				<td id="enderecoSalvo">${c.endereco ? esc(c.endereco) : '<span style="color:var(--text-muted);">-</span>'}</td>
 				${veiculosCellHtml}
 				<td style="text-align: center;">
-					<a class="btn btn-secondary btn-sm" href="historico.html?cliente=${encodeURIComponent(c.nome || '')}">
-						📜 Histórico
-					</a>
+					${historicoCellHtml}
 				</td>
 				<td style="text-align: center;">
 					<div class="btn-action-group">

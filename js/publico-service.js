@@ -295,11 +295,49 @@ export function garantirHistoricoInicialOrcamento(pedido) {
     return mudou;
 }
 
+export function resolverChavePublicaEmpresa(empresa = {}, config = {}) {
+    const bruto = empresa?.codigo || empresa?.id || config?.codigoEmpresa || 'danilodetailer';
+    const limpo = String(bruto).trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    if (limpo === 'empresa_danilo') return 'danilodetailer';
+    return limpo.length >= 2 ? limpo : 'danilodetailer';
+}
+
+function obterTimestampAberturaPedido(pedido, fallbackIndex = 0) {
+    if (!pedido || typeof pedido !== 'object') return fallbackIndex;
+    if (pedido.criadoEm) {
+        const tsCriado = Date.parse(pedido.criadoEm);
+        if (!Number.isNaN(tsCriado)) return tsCriado;
+    }
+    if (pedido.data) {
+        const dataStr = String(pedido.data).trim().slice(0, 10);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) {
+            const horaStr = /^\d{2}:\d{2}/.test(String(pedido.horaEntrada || '').trim())
+                ? String(pedido.horaEntrada).trim().slice(0, 5)
+                : '00:00';
+            const tsData = Date.parse(`${dataStr}T${horaStr}:00`);
+            if (!Number.isNaN(tsData)) return tsData;
+        }
+    }
+    const idMatch = /(\d{10,13})/.exec(String(pedido.id || ''));
+    if (idMatch) {
+        const num = Number(idMatch[1]);
+        if (Number.isFinite(num)) return num < 1e12 ? num * 1000 : num;
+    }
+    return fallbackIndex;
+}
+
 export function sanitizarPainelTv({ pedidos = [], empresa = {}, config = {}, tema = null } = {}) {
     const isAuto = isSegmentoAutoConfig(config, empresa);
-    const empresaId = limparTexto(empresa?.id || empresa?.codigo || config?.codigoEmpresa || 'danilodetailer', 80);
-    const empresaNome = limparTexto(config?.nomeEstabelecimento || empresa?.nome || 'Estabelecimento', 120);
-    const tipoNegocio = limparTexto(config?.tipoNegocio || empresa?.tipoNegocio || 'geral', 40);
+    const empresaId = resolverChavePublicaEmpresa(empresa, config);
+    const empresaNome = limparTexto(config?.nomeEstabelecimento, 120)
+        || limparTexto(empresa?.nome, 120)
+        || 'Estabelecimento';
+    const tipoNegocio = limparTexto(config?.tipoNegocio, 40)
+        || limparTexto(empresa?.tipoNegocio, 40)
+        || 'geral';
+    const icone = limparTexto(config?.iconeCustom, 12)
+        || limparTexto(empresa?.icone, 12)
+        || '🛠️';
 
     let temaResolvido = 'light';
     if (tema === 'dark' || tema === 'light') {
@@ -311,8 +349,15 @@ export function sanitizarPainelTv({ pedidos = [], empresa = {}, config = {}, tem
         temaResolvido = themeAtual === 'dark' ? 'dark' : 'light';
     }
 
-    const abertos = Array.isArray(pedidos) ? pedidos.filter((p) => p && p.status === 'aberto') : [];
-    const itens = abertos.slice(-80).reverse().map((p) => {
+    const abertos = Array.isArray(pedidos)
+        ? pedidos
+            .filter((p) => p && (p.status === 'aberto' || (!p.status && !p.formaPagamento)))
+            .map((p, idx) => ({ p, idx, ts: obterTimestampAberturaPedido(p, idx) }))
+            .sort((a, b) => (a.ts !== b.ts ? a.ts - b.ts : a.idx - b.idx))
+            .map((entry) => entry.p)
+        : [];
+
+    const itens = abertos.slice(0, 80).map((p) => {
         const placa = limparTexto(p.placa || '', 20).toUpperCase();
         const modelo = limparTexto(p.modelo || '', 50);
         const itemDesc = limparTexto(p.itemDescricao || p.modelo || 'Atendimento', 60);
@@ -338,7 +383,7 @@ export function sanitizarPainelTv({ pedidos = [], empresa = {}, config = {}, tem
     return {
         empresaId,
         empresaNome,
-        icone: limparTexto(config?.iconeCustom || empresa?.icone || '🛠️', 12),
+        icone,
         tipoNegocio,
         segmentoAutomotivo: Boolean(isAuto),
         itens,
@@ -451,20 +496,23 @@ export function gerarSlotsDisponiveis({ configPublica = {}, dataISO = '', refere
 
 function getContextoRuntimeTenant() {
     if (typeof window === 'undefined') {
-        return { empresa: { id: 'danilodetailer' }, config: {} };
+        return { empresa: { id: 'danilodetailer', codigo: 'danilodetailer' }, config: {} };
     }
     const config = window.BrandService?.getConfig?.() || {};
     let empresa = window.EmpresaService?.getEmpresaAtiva?.();
-    if (!empresa || !empresa.id) {
-        const user = window.AuthService?.getCurrentUser?.();
-        const empId = user?.empresaId || localStorage.getItem('master_active_empresaId') || 'danilodetailer';
+    const user = window.AuthService?.getCurrentUser?.();
+    const fallbackId = user?.empresaCodigo || user?.empresaId || localStorage.getItem('master_active_empresaId') || config?.codigoEmpresa || 'danilodetailer';
+
+    if (!empresa || (!empresa.id && !empresa.codigo)) {
         empresa = {
-            id: empId,
-            codigo: empId,
-            nome: config.nomeEstabelecimento || empId,
+            id: fallbackId,
+            codigo: fallbackId,
+            nome: config.nomeEstabelecimento || fallbackId,
             tipoNegocio: config.tipoNegocio || 'geral',
             icone: config.iconeCustom || '🛠️'
         };
+    } else if (!empresa.codigo) {
+        empresa = { ...empresa, codigo: empresa.id };
     }
     return { empresa, config };
 }
@@ -612,7 +660,8 @@ export function iniciarSincronizacaoOrcamentos(onSyncPedido) {
 export async function publicarPainelTv(pedidosOverride = null) {
     if (!db || typeof localStorage === 'undefined') return null;
     const { empresa, config } = getContextoRuntimeTenant();
-    if (!empresa || !empresa.id) return null;
+    const user = typeof window !== 'undefined' ? window.AuthService?.getCurrentUser?.() : null;
+    if ((!empresa || (!empresa.id && !empresa.codigo)) && !user?.empresaId) return null;
 
     const pedidos = Array.isArray(pedidosOverride)
         ? pedidosOverride
@@ -620,13 +669,28 @@ export async function publicarPainelTv(pedidosOverride = null) {
 
     const payload = sanitizarPainelTv({ pedidos, empresa, config });
     await setDoc(doc(db, 'painel_tv_publico', payload.empresaId), payload);
+
+    // Mantém espelho em chaves alternativas legadas (ex.: empresa_danilo <-> danilodetailer)
+    const candidatosAlt = [
+        empresa?.id,
+        empresa?.codigo,
+        user?.empresaId,
+        user?.empresaCodigo
+    ]
+        .map((v) => String(v || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, ''))
+        .filter((v) => v.length >= 2 && v !== payload.empresaId);
+
+    for (const altId of new Set(candidatosAlt)) {
+        setDoc(doc(db, 'painel_tv_publico', altId), { ...payload, empresaId: altId }).catch(() => {});
+    }
+
     return payload;
 }
 
 export function obterLinkPainelTv() {
     if (typeof window === 'undefined') return '';
-    const { empresa } = getContextoRuntimeTenant();
-    const codigo = encodeURIComponent(empresa?.codigo || empresa?.id || 'danilodetailer');
+    const { empresa, config } = getContextoRuntimeTenant();
+    const codigo = encodeURIComponent(resolverChavePublicaEmpresa(empresa, config));
     return resolverUrlPublica(`painel-tv.html?empresa=${codigo}`);
 }
 
@@ -735,6 +799,7 @@ const PublicoService = {
     gerarTokenSeguro,
     extrairPrimeiroNome,
     resolverUrlPublica,
+    resolverChavePublicaEmpresa,
     registrarEventoOrcamentoHistorico,
     garantirHistoricoInicialOrcamento,
     sanitizarOrcamentoParaPublico,

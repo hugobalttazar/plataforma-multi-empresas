@@ -16,9 +16,31 @@ try {
     localStorage.removeItem('last_active_timestamp');
 } catch (e) {}
 
+const PERMISSIONS_CATALOG = [
+    { key: 'agenda', label: 'Agenda', icon: '📅', group: 'modulos' },
+    { key: 'pedidos', label: 'Ordens de Serviço (O.S.)', icon: '📋', group: 'modulos' },
+    { key: 'caixa', label: 'Caixa & Financeiro', icon: '💰', group: 'modulos' },
+    { key: 'estoque', label: 'Estoque', icon: '📦', group: 'modulos' },
+    { key: 'posvenda', label: 'Pós-Venda / Fidelidade', icon: '🎁', group: 'modulos' },
+    { key: 'clientes', label: 'Clientes', icon: '👤', group: 'modulos' },
+    { key: 'servicos', label: 'Serviços', icon: '🛠️', group: 'modulos' },
+    { key: 'historico', label: 'Histórico de O.S.', icon: '📜', group: 'modulos' },
+    { key: 'configuracoes', label: 'Ajustes & Usuários', icon: '⚙️', group: 'modulos' },
+    { key: 'metas', label: 'Metas & Rendimento Diário', icon: '🎯', group: 'recursos', highlight: true },
+    { key: 'orcamentos', label: 'Orçamentos (O.S.)', icon: '📝', group: 'recursos' },
+    { key: 'painel_tv', label: 'Painel TV (O.S.)', icon: '📺', group: 'recursos' },
+    { key: 'pacotes', label: 'Pacotes & Planos (Caixa)', icon: '🎟️', group: 'recursos' },
+    { key: 'equipe', label: 'Equipe & Comissões', icon: '💼', group: 'recursos' },
+    { key: 'mensagens', label: 'Mensagens WhatsApp', icon: '💬', group: 'recursos' }
+];
+
+const ALL_PERMISSION_KEYS = PERMISSIONS_CATALOG.map(p => p.key);
+
 const AuthService = {
     MASTER_USER: 'admin',
     MASTER_HASH: 'cf3ba79fe53bf2417903fbde744a088e4e0ca0ca877ee76dcd174011ce5a43dd',
+    PERMISSIONS_CATALOG,
+    ALL_PERMISSION_KEYS,
 
     /**
      * Validador de Força de Senha no Padrão da Internet:
@@ -155,16 +177,20 @@ const AuthService = {
             for (const u of users) {
                 if (u && u.username && u.passwordHash) {
                     const uName = u.username.toLowerCase().trim();
-                    const snap = await getDoc(doc(db, 'users', uName));
+                    const targetEmpId = (u.empresaId || empresaId || '').trim();
+                    const docKey = targetEmpId ? `${targetEmpId}_${uName}` : uName;
+                    const snap = await getDoc(doc(db, 'users', docKey));
                     if (!snap.exists()) {
-                        await setDoc(doc(db, 'users', uName), {
+                        await setDoc(doc(db, 'users', docKey), {
                             id: u.id || uName,
                             nome: u.nome || u.username,
                             username: uName,
                             passwordHash: u.passwordHash,
-                            empresaId: u.empresaId || empresaId,
+                            empresaId: targetEmpId,
+                            empresaCodigo: u.empresaCodigo || targetEmpId,
                             isMaster: false,
-                            permissoes: u.permissoes || []
+                            permissoes: u.permissoes || [],
+                            permissoesV2: !!u.permissoesV2
                         });
                     }
                 }
@@ -247,7 +273,8 @@ const AuthService = {
             empresaId: empresaId,
             empresaCodigo: empresaId,
             isMaster: false,
-            permissoes: Array.isArray(permissoes) ? permissoes : []
+            permissoes: Array.isArray(permissoes) ? permissoes : [],
+            permissoesV2: true
         };
 
         // 4. Salva no Firestore isolado pelo tenant (chave composta e fallback direto)
@@ -303,15 +330,17 @@ const AuthService = {
             throw new Error(`O usuário "${cleanUsername}" já existe nesta empresa.`);
         }
 
-        // Se o username mudou, verifica unicidade global
+        // Se o username mudou, verifica unicidade na mesma empresa no Firestore
         if (oldUsername !== cleanUsername && db) {
             try {
-                const userDoc = await getDoc(doc(db, 'users', cleanUsername));
+                const checkEmpresaId = oldUser.empresaId || this.getCurrentUser()?.empresaId || localStorage.getItem('master_active_empresaId') || '';
+                const checkDocId = checkEmpresaId ? `${checkEmpresaId}_${cleanUsername}` : cleanUsername;
+                const userDoc = await getDoc(doc(db, 'users', checkDocId));
                 if (userDoc.exists()) {
-                    throw new Error(`O usuário "${cleanUsername}" já está em uso no sistema.`);
+                    throw new Error(`O usuário "${cleanUsername}" já existe nesta empresa.`);
                 }
             } catch (err) {
-                if (err.message && err.message.includes('já está em uso')) {
+                if (err.message && (err.message.includes('já está em uso') || err.message.includes('já existe'))) {
                     throw err;
                 }
                 console.warn('Aviso ao checar unicidade de usuário no Firestore:', err);
@@ -334,26 +363,65 @@ const AuthService = {
         users[index].username = cleanUsername;
         users[index].passwordHash = newPasswordHash;
         users[index].permissoes = Array.isArray(permissoes) ? permissoes : [];
+        users[index].permissoesV2 = true;
         users[index].empresaId = empresaId;
 
-        // Atualiza no Firestore global 'users'
+        // Atualiza no Firestore global 'users' usando a chave canônica multi-tenant
         if (db) {
             try {
-                if (oldUsername && oldUsername !== cleanUsername) {
-                    await deleteDoc(doc(db, 'users', oldUsername)).catch(() => {});
+                const canonicalNewId = empresaId ? `${empresaId}_${cleanUsername}` : cleanUsername;
+                const canonicalOldId = empresaId && oldUsername ? `${empresaId}_${oldUsername}` : oldUsername;
+
+                if (oldUsername && oldUsername !== cleanUsername && canonicalOldId) {
+                    await deleteDoc(doc(db, 'users', canonicalOldId)).catch(() => {});
                 }
-                await setDoc(doc(db, 'users', cleanUsername), {
+                // Remove eventual chave legada sem prefixo se pertencer à mesma empresa
+                if (oldUsername && oldUsername !== cleanUsername) {
+                    try {
+                        const legacySnap = await getDoc(doc(db, 'users', oldUsername));
+                        if (legacySnap.exists() && legacySnap.data()?.empresaId === empresaId) {
+                            await deleteDoc(doc(db, 'users', oldUsername)).catch(() => {});
+                        }
+                    } catch (e) {}
+                }
+
+                const userPayload = {
                     id: users[index].id,
                     nome: users[index].nome,
                     username: cleanUsername,
                     passwordHash: newPasswordHash,
                     empresaId: empresaId,
+                    empresaCodigo: empresaId,
                     isMaster: !!oldUser.isMaster,
-                    permissoes: users[index].permissoes
-                });
+                    permissoes: users[index].permissoes,
+                    permissoesV2: true
+                };
+
+                await setDoc(doc(db, 'users', canonicalNewId), userPayload);
+
+                // Mantém sincronizado também caso exista chave direta legada dessa mesma empresa
+                if (empresaId) {
+                    try {
+                        const directSnap = await getDoc(doc(db, 'users', cleanUsername));
+                        if (directSnap.exists() && directSnap.data()?.empresaId === empresaId) {
+                            await setDoc(doc(db, 'users', cleanUsername), userPayload);
+                        }
+                    } catch (e) {}
+                }
             } catch (err) {
                 console.error('Erro ao atualizar usuário no Firestore (users):', err);
             }
+        }
+
+        // Atualiza sessão atual caso o usuário editado seja o próprio logado
+        if (currentUser && !currentUser.isMaster && (currentUser.id === id || currentUser.username === oldUsername)) {
+            this.setCurrentUser({
+                ...currentUser,
+                nome: users[index].nome,
+                username: cleanUsername,
+                permissoes: users[index].permissoes,
+                permissoesV2: true
+            });
         }
 
         this.saveUsers(users);
@@ -377,10 +445,16 @@ const AuthService = {
         const usernameNormalized = (userToRemove.username || '').toLowerCase().trim();
         const empresaId = userToRemove.empresaId || this.getCurrentUser()?.empresaId || '';
 
-        // Remove do Firestore global 'users'
+        // Remove do Firestore global 'users' (chave canônica multi-tenant e chave legada se da mesma empresa)
         if (db && usernameNormalized) {
             try {
-                await deleteDoc(doc(db, 'users', usernameNormalized));
+                if (empresaId) {
+                    await deleteDoc(doc(db, 'users', `${empresaId}_${usernameNormalized}`)).catch(() => {});
+                }
+                const directSnap = await getDoc(doc(db, 'users', usernameNormalized));
+                if (directSnap.exists() && (!empresaId || directSnap.data()?.empresaId === empresaId)) {
+                    await deleteDoc(doc(db, 'users', usernameNormalized)).catch(() => {});
+                }
             } catch (err) {
                 console.warn('Erro ao remover usuário de users no Firestore:', err);
             }
@@ -582,7 +656,8 @@ const AuthService = {
                         isMaster: !!u.isMaster,
                         empresaId: targetEmpresa,
                         empresaCodigo: empresaCodigoNormalized,
-                        permissoes: u.permissoes || []
+                        permissoes: u.permissoes || [],
+                        permissoesV2: !!u.permissoesV2
                     };
                     this.setCurrentUser(sessionData);
                     if (window.FirebaseSync) window.FirebaseSync.start();
@@ -850,54 +925,169 @@ const AuthService = {
         }
     },
 
+    getEffectivePermissions(userObj = null) {
+        const user = userObj || this.getCurrentUser();
+        if (!user) return [];
+        if (user.isMaster || user.username === this.MASTER_USER) {
+            return [...ALL_PERMISSION_KEYS];
+        }
+
+        const base = Array.isArray(user.permissoes) ? [...user.permissoes] : [];
+        const resultSet = new Set(base);
+
+        // Retrocompatibilidade para usuários criados antes da matriz V2
+        if (!user.permissoesV2) {
+            if (resultSet.has('configuracoes')) {
+                ['historico', 'metas', 'orcamentos', 'painel_tv', 'pacotes', 'equipe', 'mensagens'].forEach(k => resultSet.add(k));
+            }
+            if (resultSet.has('pedidos')) {
+                ['orcamentos', 'painel_tv', 'historico'].forEach(k => resultSet.add(k));
+            }
+            if (resultSet.has('caixa')) {
+                resultSet.add('pacotes');
+            }
+        }
+
+        return Array.from(resultSet);
+    },
+
+    getPermissionLabel(key) {
+        const found = PERMISSIONS_CATALOG.find(p => p.key === key);
+        return found ? `${found.icon} ${found.label}` : key;
+    },
+
     hasPermission(moduleName) {
         const user = this.getCurrentUser();
         if (!user) return false;
-        if (user.isMaster) return true;
-        return user.permissoes && user.permissoes.includes(moduleName);
+        if (user.isMaster || user.username === this.MASTER_USER) return true;
+        return this.getEffectivePermissions(user).includes(moduleName);
+    },
+
+    hasAnyPermission(moduleNames = []) {
+        return Array.isArray(moduleNames) && moduleNames.some(m => this.hasPermission(m));
     },
 
     applyPermissions(user) {
-        const path = window.location.pathname;
-        let currentModule = '';
-        if (path.includes('agendamentos.html')) currentModule = 'agenda';
-        if (path.includes('pedidos.html')) currentModule = 'pedidos';
-        if (path.includes('caixa.html')) currentModule = 'caixa';
-        if (path.includes('estoque.html')) currentModule = 'estoque';
-        if (path.includes('fidelidade.html')) currentModule = 'posvenda';
-        if (path.includes('clientes.html')) currentModule = 'clientes';
-        if (path.includes('servicos.html')) currentModule = 'servicos';
-        if (path.includes('configuracoes.html')) currentModule = 'configuracoes';
+        const path = (window.location.pathname || '').toLowerCase();
+        const cleanPage = path.replace(/\/+$/, '').split('/').pop().replace(/\.html$/i, '') || 'index';
 
-        if (currentModule && !this.hasPermission(currentModule)) {
+        const pageAccessRules = {
+            'agendamentos': ['agenda'],
+            'pedidos': ['pedidos'],
+            'caixa': ['caixa'],
+            'estoque': ['estoque'],
+            'fidelidade': ['posvenda'],
+            'clientes': ['clientes'],
+            'servicos': ['servicos'],
+            'historico': ['historico'],
+            'configuracoes': ['configuracoes', 'equipe', 'mensagens']
+        };
+
+        const requiredPerms = pageAccessRules[cleanPage];
+        if (requiredPerms && !this.hasAnyPermission(requiredPerms)) {
             if (window.UI) window.UI.toast('Seu usuário não tem permissão para acessar esta área.', 'error');
             else alert('Seu usuário não tem permissão para acessar esta área.');
             window.location.replace('index.html');
+            return;
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        const applyDomPermissions = () => {
             const navMap = {
-                'agenda': 'a[href="agendamentos.html"]',
-                'pedidos': 'a[href="pedidos.html"]',
-                'caixa': 'a[href="caixa.html"]',
-                'estoque': 'a[href="estoque.html"]',
-                'posvenda': 'a[href="fidelidade.html"]',
-                'clientes': 'a[href="clientes.html"]',
-                'servicos': 'a[href="servicos.html"]',
-                'configuracoes': '.btn-settings-gear'
+                'agenda': ['a[href="agendamentos.html"]', 'a[href="/agendamentos"]'],
+                'pedidos': ['a[href="pedidos.html"]', 'a[href="/pedidos"]'],
+                'caixa': ['a[href="caixa.html"]', 'a[href="/caixa"]'],
+                'estoque': ['a[href="estoque.html"]', 'a[href="/estoque"]'],
+                'posvenda': ['a[href="fidelidade.html"]', 'a[href="/fidelidade"]'],
+                'clientes': ['a[href="clientes.html"]', 'a[href="/clientes"]'],
+                'servicos': ['a[href="servicos.html"]', 'a[href="/servicos"]']
             };
 
-            for (const [module, selector] of Object.entries(navMap)) {
+            for (const [module, selectors] of Object.entries(navMap)) {
                 if (!this.hasPermission(module)) {
-                    const el = document.querySelector(selector);
-                    if (el) el.style.display = 'none';
+                    selectors.forEach(sel => {
+                        document.querySelectorAll(sel).forEach(el => {
+                            el.style.display = 'none';
+                        });
+                    });
                 }
+            }
+
+            // Botão de engrenagem (Configurações) aparece se tiver ajustes, equipe ou mensagens
+            if (!this.hasAnyPermission(['configuracoes', 'equipe', 'mensagens'])) {
+                document.querySelectorAll('#btnConfiguracoes, #btnHeaderConfig, a[href="configuracoes.html"], a[href="/configuracoes"]').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
+
+            // Atalhos rápidos e cards da Tela Inicial (index.html)
+            const homeModuleElements = {
+                'agenda': ['#acaoAgendamentos'],
+                'pedidos': ['#acaoNovaOS', '#btnDashboardNovaEntrada'],
+                'caixa': ['#acaoLivroCaixa', '#btnDashboardVerCaixa', '#alertaContasDashboard'],
+                'estoque': ['#acaoEstoque'],
+                'posvenda': ['#acaoFidelidade'],
+                'equipe': ['#acaoEquipe'],
+                'metas': ['#cardSpeedometerMetas']
+            };
+
+            for (const [mod, sels] of Object.entries(homeModuleElements)) {
+                if (!this.hasPermission(mod)) {
+                    sels.forEach(sel => {
+                        document.querySelectorAll(sel).forEach(el => {
+                            el.style.display = 'none';
+                        });
+                    });
+                }
+            }
+
+            // Recursos dentro de O.S. (pedidos.html)
+            if (!this.hasPermission('painel_tv')) {
+                document.querySelectorAll('#linkAbrirPainelTV, #btnCopiarLinkPainelTV').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
+            if (!this.hasPermission('orcamentos')) {
+                document.querySelectorAll('#tabOrcamentosBtn, #viewOrcamentos').forEach(el => {
+                    el.style.display = 'none';
+                });
+                const optOrc = document.querySelector('#pedidoEstagioInicial option[value="orcamento"]');
+                if (optOrc) optOrc.remove();
+            }
+
+            // Recursos dentro de Caixa (caixa.html)
+            if (!this.hasPermission('pacotes')) {
+                document.querySelectorAll('#tabPacotesBtn, #viewPacotes').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
+
+            // Abas dentro de Configurações (configuracoes.html)
+            if (!this.hasPermission('configuracoes')) {
+                ['#tabNavNegocio', '#abaConteudoNegocio', '#tabNavDatabase', '#abaConteudoDatabase', '#tabNavUsuarios', '#abaConteudoUsuarios'].forEach(sel => {
+                    document.querySelectorAll(sel).forEach(el => { el.style.display = 'none'; });
+                });
+            }
+            if (!this.hasPermission('equipe')) {
+                ['#tabNavEquipe', '#abaConteudoEquipe'].forEach(sel => {
+                    document.querySelectorAll(sel).forEach(el => { el.style.display = 'none'; });
+                });
+            }
+            if (!this.hasPermission('mensagens')) {
+                ['#tabNavMensagens', '#abaConteudoMensagens'].forEach(sel => {
+                    document.querySelectorAll(sel).forEach(el => { el.style.display = 'none'; });
+                });
             }
 
             if (typeof window.refreshCockpitDock === 'function') {
                 window.refreshCockpitDock();
             }
-        });
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', applyDomPermissions);
+        } else {
+            applyDomPermissions();
+        }
     }
 };
 

@@ -54,6 +54,9 @@
 					<p class="page-subtitle">Configure novas empresas clientes, gerencie operadores e mantenha o isolamento seguro de dados</p>
 				</div>
 				<div style="display: flex; gap: 8px; flex-wrap: wrap;">
+					<a href="relatorio-comercial-sistema.pdf" download="Relatorio_Comercial_e_Guia_de_Vendas.pdf" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" title="Baixar Relatório Completo de Funcionalidades e Guia de Vendas em PDF">
+						📄 Guia Comercial (PDF)
+					</a>
 					<button type="button" class="btn" id="btnAbrirModalEmpresa" style="background-color: var(--primary); color: #fff;">
 						➕ Nova Empresa
 					</button>
@@ -409,15 +412,19 @@
 			</div>
 		</div>
 
-		<!-- MODAL: CADASTRAR NOVO USUÁRIO -->
+		<!-- MODAL: CADASTRAR / EDITAR USUÁRIO -->
 		<div class="modal-overlay" id="modalNovoUsuario">
-			<div class="modal-card" style="max-width: 540px;">
+			<div class="modal-card" style="max-width: 620px;">
 				<div class="modal-header">
-					<h3>👤 Incluir Novo Usuário para Empresa</h3>
+					<h3 id="tituloModalUsuario">👤 Incluir Novo Usuário para Empresa</h3>
 					<button type="button" class="modal-close-btn" onclick="fecharModalUsuario()">&times;</button>
 				</div>
 				<div class="modal-body">
 					<form id="formNovoUsuario" class="form">
+						<input type="hidden" id="usuarioEditDocId" />
+						<input type="hidden" id="usuarioEditId" />
+						<input type="hidden" id="usuarioEditUsernameOriginal" />
+
 						<div class="form-group full-width">
 							<label for="usuarioEmpresaDestino">Vincular à Empresa *</label>
 							<select id="usuarioEmpresaDestino" required>
@@ -436,7 +443,7 @@
 						</div>
 
 						<div class="form-group full-width">
-							<label for="usuarioSenha">Senha de Acesso *</label>
+							<label for="usuarioSenha">Senha de Acesso <span id="usuarioSenhaDica">*</span></label>
 							<input type="password" id="usuarioSenha" required placeholder="Senha segura para o operador" autocomplete="new-password" />
 							<small style="color: var(--text-muted); margin-top: 4px; display: block;">
 								Padrão seguro: mínimo 8 caracteres, maiúscula, número e caractere especial.
@@ -444,17 +451,39 @@
 						</div>
 
 						<div class="form-group full-width" style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 6px;">
-							<label style="margin-bottom: 8px;">Permissões de Acesso aos Módulos:</label>
-							<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;">
-								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="agenda" checked /> 📅 Agenda</label>
-								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="pedidos" checked /> 📋 O.S. / Pátio</label>
-								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="caixa" checked /> 💰 Caixa</label>
-								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="estoque" checked /> 📦 Estoque</label>
-								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="clientes" checked /> 👤 Clientes</label>
-								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="servicos" checked /> 🛠️ Serviços</label>
-								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="posvenda" checked /> 🎁 Pós-Venda</label>
-								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="configuracoes" /> ⚙️ Ajustes</label>
-								<label class="checkbox-label"><input type="checkbox" name="permissoesUsuario" value="metas" checked /> 🎯 Metas & Rendimento</label>
+							<div class="permissoes-header-row">
+								<label style="margin-bottom: 0;">Permissões de Acesso aos Módulos:</label>
+								<div class="permissoes-quick-actions">
+									<button type="button" class="btn btn-sm btn-secondary" onclick="selecionarPermissoesMaster(true)">✅ Marcar Todas</button>
+									<button type="button" class="btn btn-sm btn-secondary" onclick="selecionarPermissoesMaster(false)">🚫 Desmarcar Todas</button>
+								</div>
+							</div>
+
+							<div class="permissoes-group">
+								<span class="permissoes-group-title">Módulos Principais</span>
+								<div class="permissoes-matrix">
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="agenda" checked /> <span>📅 Agenda</span></label>
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="pedidos" checked /> <span>📋 O.S. / Pátio</span></label>
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="caixa" checked /> <span>💰 Caixa</span></label>
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="estoque" checked /> <span>📦 Estoque</span></label>
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="posvenda" checked /> <span>🎁 Pós-Venda</span></label>
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="clientes" checked /> <span>👤 Clientes</span></label>
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="servicos" checked /> <span>🛠️ Serviços</span></label>
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="historico" checked /> <span>📜 Histórico</span></label>
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="configuracoes" checked /> <span>⚙️ Ajustes</span></label>
+								</div>
+							</div>
+
+							<div class="permissoes-group">
+								<span class="permissoes-group-title">Recursos & Submódulos</span>
+								<div class="permissoes-matrix">
+									<label class="perm-chip perm-chip--highlight"><input type="checkbox" name="permissoesUsuario" value="metas" checked /> <span>🎯 Metas & Rendimento</span></label>
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="orcamentos" checked /> <span>📝 Orçamentos (O.S.)</span></label>
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="painel_tv" checked /> <span>📺 Painel TV</span></label>
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="pacotes" checked /> <span>🎟️ Pacotes & Planos</span></label>
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="equipe" checked /> <span>💼 Equipe & Comissões</span></label>
+									<label class="perm-chip"><input type="checkbox" name="permissoesUsuario" value="mensagens" checked /> <span>💬 Mensagens WhatsApp</span></label>
+								</div>
 							</div>
 						</div>
 

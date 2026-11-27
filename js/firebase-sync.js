@@ -229,11 +229,24 @@ const FirebaseSync = {
 window.FirebaseSync = FirebaseSync;
 
 // Auto-refresh UI when cloud data changes
+let _timerSyncPainelTvCloud = null;
+function agendarSyncPainelTvCloud() {
+    if (_timerSyncPainelTvCloud) clearTimeout(_timerSyncPainelTvCloud);
+    _timerSyncPainelTvCloud = setTimeout(() => {
+        if (window.PublicoService && typeof window.PublicoService.publicarPainelTv === 'function') {
+            window.PublicoService.publicarPainelTv().catch((err) => {
+                console.warn('Falha ao atualizar Painel TV após sync:', err?.message || err);
+            });
+        }
+    }, 350);
+}
+
 window.addEventListener('cloudDataChanged', (e) => {
     const key = e.detail;
     if (key === 'clientes' && typeof window.renderizarTabelaClientes === 'function') window.renderizarTabelaClientes();
     if (key === 'servicos' && typeof window.renderizarTabelaServicos === 'function') window.renderizarTabelaServicos();
     if (key === 'pedidos' && typeof window.renderizarTabelaPedidos === 'function') window.renderizarTabelaPedidos();
+    if (key === 'pedidos' || key === 'config_negocio') agendarSyncPainelTvCloud();
     if (key === 'caixas_fechados' && typeof window.renderizarTabelaCaixa === 'function') window.renderizarTabelaCaixa();
     if (key === 'agendamentos' && typeof window.renderizarAgenda === 'function') window.renderizarAgenda();
     if (key === 'equipe_membros' && typeof window.renderizarEquipe === 'function') window.renderizarEquipe();

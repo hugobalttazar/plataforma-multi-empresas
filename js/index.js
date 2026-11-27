@@ -39,7 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	// Verifica se o usuário autenticado possui a permissão 'metas' liberada
 	const userAtual = window.AuthService ? window.AuthService.getCurrentUser() : null;
-	const podeVisualizarMetas = !userAtual || userAtual.isMaster || userAtual.username === 'admin' || (userAtual.permissoes && (userAtual.permissoes.includes('metas') || userAtual.permissoes.includes('configuracoes')));
+	const podeVisualizarMetas = window.AuthService && typeof window.AuthService.hasPermission === 'function'
+		? window.AuthService.hasPermission('metas')
+		: true;
 
 	if (!podeVisualizarMetas) {
 		if (cardSpeedometer) {
@@ -93,8 +95,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	// Alerta de Contas a Pagar / Receber vencidas ou vencendo em breve
 	const alertaContasEl = document.getElementById('alertaContasDashboard');
-	const podeVerFinanceiro = !userAtual || userAtual.isMaster || userAtual.username === 'admin' ||
-		(userAtual.permissoes && (userAtual.permissoes.includes('caixa') || userAtual.permissoes.includes('metas') || userAtual.permissoes.includes('configuracoes')));
+	const podeVerFinanceiro = window.AuthService && typeof window.AuthService.hasPermission === 'function'
+		? window.AuthService.hasPermission('caixa')
+		: true;
 	if (alertaContasEl && podeVerFinanceiro && typeof CaixaService !== 'undefined' && typeof CaixaService.getAlertasVencimento === 'function') {
 		const infoAlertas = CaixaService.getAlertasVencimento(3);
 		if (infoAlertas.qtdAlerta > 0) {

@@ -4,6 +4,18 @@
 
 let arquivoJSONSelecionado = null;
 
+function podeAcessarAbaConfig(aba) {
+	if (!window.AuthService || typeof window.AuthService.hasPermission !== 'function') return true;
+	if (aba === 'equipe') return window.AuthService.hasPermission('equipe');
+	if (aba === 'mensagens') return window.AuthService.hasPermission('mensagens');
+	return window.AuthService.hasPermission('configuracoes');
+}
+
+function obterPrimeiraAbaPermitidaConfig() {
+	const ordem = ['negocio', 'database', 'usuarios', 'equipe', 'mensagens'];
+	return ordem.find(podeAcessarAbaConfig) || 'negocio';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 	carregarFormularioNegocio();
 	atualizarResumoEstatisticas();
@@ -17,12 +29,18 @@ document.addEventListener('DOMContentLoaded', () => {
 	const hashUrl = window.location.hash ? window.location.hash.replace('#', '') : null;
 	const abaDestino = abaUrl || hashUrl;
 	if (abaDestino && ['negocio', 'database', 'usuarios', 'equipe', 'mensagens'].includes(abaDestino)) {
-		alternarAbaConfig(abaDestino);
+		alternarAbaConfig(podeAcessarAbaConfig(abaDestino) ? abaDestino : obterPrimeiraAbaPermitidaConfig());
+	} else if (!podeAcessarAbaConfig('negocio')) {
+		alternarAbaConfig(obterPrimeiraAbaPermitidaConfig());
 	}
 });
 
 // Alternância de Abas (Negócio, Database, Usuários, Equipe, Mensagens)
 function alternarAbaConfig(aba) {
+	if (!podeAcessarAbaConfig(aba)) {
+		aba = obterPrimeiraAbaPermitidaConfig();
+	}
+
 	const tabNegocio = document.getElementById('tabNavNegocio');
 	const tabDatabase = document.getElementById('tabNavDatabase');
 	const tabUsuarios = document.getElementById('tabNavUsuarios');
@@ -173,8 +191,9 @@ function carregarFormularioNegocio() {
 	// Controle de Visibilidade: O Bloco de configuração de metas só aparece para quem tem permissão
 	const blocoMetas = document.getElementById('blocoConfigMetasExpediente');
 	if (blocoMetas) {
-		const user = window.AuthService ? window.AuthService.getCurrentUser() : null;
-		const podeConfigurarMetas = !user || user.isMaster || user.username === 'admin' || (user.permissoes && (user.permissoes.includes('metas') || user.permissoes.includes('configuracoes')));
+		const podeConfigurarMetas = window.AuthService && typeof window.AuthService.hasPermission === 'function'
+			? window.AuthService.hasPermission('metas')
+			: true;
 		blocoMetas.style.display = podeConfigurarMetas ? 'block' : 'none';
 	}
 
@@ -464,16 +483,15 @@ function atualizarStatusFirebaseUI(statusCustom) {
 	// 1. Atualizar Badge Superior
 	const badge = document.getElementById('badgeStatusFirebase');
 	if (badge) {
+		badge.style.background = '';
+		badge.style.color = '';
+		badge.style.border = '';
 		if (estaConectado) {
 			badge.textContent = '🟢 Conectado';
-			badge.style.background = '#dcfce7';
-			badge.style.color = '#15803d';
-			badge.style.border = '1px solid #86efac';
+			badge.className = 'badge badge-tone-green';
 		} else {
 			badge.textContent = '🔴 Inativa ou desconectado';
-			badge.style.background = '#fee2e2';
-			badge.style.color = '#b91c1c';
-			badge.style.border = '1px solid #fca5a5';
+			badge.className = 'badge badge-tone-red';
 		}
 	}
 
@@ -491,28 +509,29 @@ function atualizarStatusFirebaseUI(statusCustom) {
 	}
 
 	if (banner) {
+		banner.style.background = '';
+		banner.style.borderColor = '';
+		banner.style.color = '';
 		if (estaConectado) {
-			banner.style.background = '#f0fdf4';
-			banner.style.borderColor = '#bbf7d0';
-			banner.style.color = '#166534';
+			banner.className = 'alert-banner-success';
 			if (icone) icone.textContent = '☁️';
 			if (modo) {
 				modo.textContent = 'Servidor Online';
-				modo.style.color = '#15803d';
-				modo.style.background = '#dcfce7';
+				modo.className = 'db-mode-chip badge-tone-green';
+				modo.style.color = '';
+				modo.style.background = '';
 			}
 			if (desc) {
 				desc.textContent = 'Seus dados estão sendo sincronizados e salvos com segurança em tempo real no servidor Firebase Firestore. Qualquer cliente cadastrado, serviço alterado ou ordem de serviço aberta fica imediatamente online.';
 			}
 		} else {
-			banner.style.background = '#fef2f2';
-			banner.style.borderColor = '#fecaca';
-			banner.style.color = '#991b1b';
+			banner.className = 'alert-banner-error';
 			if (icone) icone.textContent = '⚠️';
 			if (modo) {
 				modo.textContent = 'Servidor Desconectado';
-				modo.style.color = '#b91c1c';
-				modo.style.background = '#fee2e2';
+				modo.className = 'db-mode-chip badge-tone-red';
+				modo.style.color = '';
+				modo.style.background = '';
 			}
 			if (desc) {
 				desc.textContent = status.lastError || 'O banco de dados na nuvem está temporariamente inativo ou desconectado. O sistema continua operando e gravando localmente; assim que a conexão retornar, tudo será sincronizado com a nuvem automaticamente.';
@@ -760,15 +779,15 @@ async function executarImportacaoJSON() {
 
 		if (resultadoDiv) {
 			resultadoDiv.style.display = 'block';
-			resultadoDiv.className = 'db-status-banner';
-			resultadoDiv.style.background = '#eff6ff';
-			resultadoDiv.style.borderColor = '#bfdbfe';
-			resultadoDiv.style.color = '#1e40af';
+			resultadoDiv.className = 'db-status-banner alert-banner-info';
+			resultadoDiv.style.background = '';
+			resultadoDiv.style.borderColor = '';
+			resultadoDiv.style.color = '';
 			resultadoDiv.innerHTML = `
 				<span class="db-status-icon">✅</span>
 				<div class="db-status-text">
 					<strong>Backup Restaurado com Sucesso!</strong>
-					<p style="color: #1d4ed8; margin-top: 4px;">
+					<p style="margin-top: 4px; color: inherit;">
 						Foram restaurados: <strong>${res.clientes}</strong> clientes, 
 						<strong>${res.servicos}</strong> serviços, 
 						<strong>${res.pedidos}</strong> ordens de serviço e 
@@ -798,15 +817,15 @@ async function executarImportacaoJSON() {
 		console.error('Erro na restauração do JSON:', err);
 		if (resultadoDiv) {
 			resultadoDiv.style.display = 'block';
-			resultadoDiv.className = 'db-status-banner';
-			resultadoDiv.style.background = '#fef2f2';
-			resultadoDiv.style.borderColor = '#fecaca';
-			resultadoDiv.style.color = '#991b1b';
+			resultadoDiv.className = 'db-status-banner alert-banner-error';
+			resultadoDiv.style.background = '';
+			resultadoDiv.style.borderColor = '';
+			resultadoDiv.style.color = '';
 			resultadoDiv.innerHTML = `
 				<span class="db-status-icon">⚠️</span>
 				<div class="db-status-text">
 					<strong>Erro ao restaurar backup</strong>
-					<p style="color: #b91c1c; margin-top: 4px;">${err.message || 'Verifique se o arquivo é um JSON de backup válido gerado pelo sistema.'}</p>
+					<p style="margin-top: 4px; color: inherit;">${err.message || 'Verifique se o arquivo é um JSON de backup válido gerado pelo sistema.'}</p>
 				</div>
 			`;
 		}
@@ -857,13 +876,13 @@ function renderizarAbaEmpresasMaster() {
 		const card = document.createElement('div');
 		card.className = `tenant-card ${isAtiva ? 'active-tenant' : ''}`;
 
-		const badgeNicho = `<span class="badge" style="background: #f1f5f9; color: #334155; font-size: 0.75rem; text-transform: uppercase;">${emp.tipoNegocio}</span>`;
+		const badgeNicho = `<span class="badge badge-tone-slate" style="font-size: 0.75rem; text-transform: uppercase;">${emp.tipoNegocio}</span>`;
 		
 		const statusBtn = isAtiva
-			? `<span class="badge" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-weight: 700; padding: 5px 10px;">⭐ Empresa Ativa</span>`
+			? `<span class="badge badge-tone-amber" style="font-weight: 700; padding: 5px 10px;">⭐ Empresa Ativa</span>`
 			: `<button type="button" class="btn btn-sm btn-primary" onclick="alternarEmpresaDireto('${emp.id}')">⚡ Alternar Painel</button>`;
 
-		const deleteBtn = `<button type="button" class="btn btn-sm" style="background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; padding: 4px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Excluir Empresa e Apagar Todo o Banco de Dados Dela" onclick="excluirEmpresaMaster('${emp.id}')">🗑️ Excluir</button>`;
+		const deleteBtn = `<button type="button" class="btn btn-sm badge-tone-red" style="padding: 4px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Excluir Empresa e Apagar Todo o Banco de Dados Dela" onclick="excluirEmpresaMaster('${emp.id}')">🗑️ Excluir</button>`;
 
 		card.innerHTML = `
 			<div class="tenant-card-header">
@@ -1369,22 +1388,22 @@ function renderizarTabelaMembrosConfig() {
 				<strong>${m.nome}</strong>
 			</td>
 			<td>
-				<span class="badge" style="background: #f1f5f9; color: #334155; font-size: 0.8rem;">
+				<span class="badge badge-tone-slate" style="font-size: 0.8rem;">
 					${m.cargo || 'Lavador / Operador'}
 				</span>
 			</td>
 			<td>
-				<span style="font-weight: 600; color: #1e40af; font-size: 0.85rem;">${regraFmt}</span>
+				<span class="text-tone-blue" style="font-weight: 600; font-size: 0.85rem;">${regraFmt}</span>
 			</td>
 			<td>
-				<span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.8rem;">Ativo</span>
+				<span class="badge badge-tone-green" style="font-size: 0.8rem;">Ativo</span>
 			</td>
 			<td style="text-align: center; white-space: nowrap;">
 				<div style="display: inline-flex; gap: 6px;">
 					<button type="button" class="btn btn-secondary btn-sm" title="Editar" onclick="editarMembroEquipeConfig('${m.id}')" style="padding: 4px 8px; font-size: 0.8rem;">
 						✏️ Editar
 					</button>
-					<button type="button" class="btn btn-sm" title="Excluir" onclick="removerMembroEquipeConfig('${m.id}')" style="background: #fee2e2; border: 1px solid #fecaca; color: #b91c1c; padding: 4px 8px; font-size: 0.8rem;">
+					<button type="button" class="btn btn-sm badge-tone-red" title="Excluir" onclick="removerMembroEquipeConfig('${m.id}')" style="padding: 4px 8px; font-size: 0.8rem;">
 						🗑️
 					</button>
 				</div>
@@ -1459,12 +1478,12 @@ function filtrarComissoes() {
 				<div style="font-size: 0.75rem; color: var(--text-muted);">Regra: ${regraFmt}</div>
 			</td>
 			<td>
-				<span class="badge" style="background: #f1f5f9; color: #334155; font-size: 0.8rem;">
+				<span class="badge badge-tone-slate" style="font-size: 0.8rem;">
 					${m.cargo || 'Equipe'}
 				</span>
 			</td>
 			<td>
-				<span class="badge" style="background: #eff6ff; color: #1e40af; font-weight: 700; font-size: 0.85rem;">
+				<span class="badge badge-tone-blue" style="font-weight: 700; font-size: 0.85rem;">
 					${r.qtdServicos} serviços
 				</span>
 			</td>
@@ -1473,7 +1492,7 @@ function filtrarComissoes() {
 			</td>
 			<td>
 				<div style="display:flex; flex-direction:column; gap:3px;">
-					<span class="badge-price" style="background: ${pendente > 0 ? '#dcfce7' : '#f1f5f9'}; color: ${pendente > 0 ? '#15803d' : '#64748b'}; font-weight: 700; font-size: 0.86rem;">
+					<span class="badge-price ${pendente > 0 ? 'badge-tone-green' : 'badge-tone-slate'}" style="padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 0.86rem;">
 						Pendente: R$ ${pendente.toFixed(2)}
 					</span>
 					${jaPago > 0 ? `<small style="color: var(--text-muted); font-size: 0.74rem;">Já pago: R$ ${jaPago.toFixed(2)} (${r.qtdPago || 0} O.S.)</small>` : ''}
@@ -1482,7 +1501,7 @@ function filtrarComissoes() {
 			<td style="text-align: center;">
 				${qtdPend > 0 && pendente > 0
 					? `<button type="button" class="btn btn-sm btn-primary" onclick="pagarComissaoMembro('${m.id}')" style="background:#16a34a; border-color:#15803d; font-weight:700; white-space:nowrap;">💸 Pagar (${qtdPend})</button>`
-					: `<span class="badge" style="background:#f1f5f9; color:#64748b; font-size:0.76rem;">✅ Quitado</span>`
+					: `<span class="badge badge-tone-slate" style="font-size:0.76rem;">✅ Quitado</span>`
 				}
 			</td>
 		`;
@@ -1510,8 +1529,8 @@ function renderizarHistoricoPagamentosComissao() {
 		tr.innerHTML = `
 			<td><strong>${dataFmt || '-'}</strong></td>
 			<td>${pg.membroNome || '-'}</td>
-			<td><span class="badge" style="background:#eff6ff; color:#1e40af;">${pg.qtdServicos || 0} O.S.</span></td>
-			<td><span class="badge-price" style="color:#b91c1c; background:#fef2f2;">- R$ ${parseFloat(pg.valorPago || 0).toFixed(2)}</span></td>
+			<td><span class="badge badge-tone-blue">${pg.qtdServicos || 0} O.S.</span></td>
+			<td><span class="badge-price badge-tone-red" style="padding: 3px 8px; border-radius: 6px;">- R$ ${parseFloat(pg.valorPago || 0).toFixed(2)}</span></td>
 			<td><small style="color:var(--text-muted);">${pg.registradoPor || 'Sistema'}</small></td>
 		`;
 		corpo.appendChild(tr);

@@ -116,22 +116,80 @@ function renderizarBoard(data) {
         `).join('');
 }
 
-document.getElementById('btnTvAudio')?.addEventListener('click', (e) => {
-    audioAtivo = !audioAtivo;
-    e.currentTarget.textContent = audioAtivo ? '🔊 Som Ligado' : '🔇 Som Desligado';
-    if (audioAtivo) tocarChime();
-});
+const btnTvAudio = document.getElementById('btnTvAudio');
+if (btnTvAudio) {
+    btnTvAudio.addEventListener('click', (e) => {
+        audioAtivo = !audioAtivo;
+        e.currentTarget.textContent = audioAtivo ? '🔊 Som Ligado' : '🔇 Som Desligado';
+        if (audioAtivo) tocarChime();
+    });
+}
 
-document.getElementById('btnTvFullscreen')?.addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen?.().catch(() => {});
-    } else {
-        document.exitFullscreen?.().catch(() => {});
-    }
-});
+const btnTvFullscreen = document.getElementById('btnTvFullscreen');
+if (btnTvFullscreen) {
+    btnTvFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            if (document.documentElement && document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        } else if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        }
+    });
+}
 
 atualizarRelogio();
 setInterval(atualizarRelogio, 15000);
+
+let ultimaAssinaturaRender = '';
+let pollingTimer = null;
+
+function aplicarPayloadBoard(data) {
+    if (!data) return;
+    const assinatura = `${data.atualizadoEm || ''}|${(data.itens || []).length}|${data.tema || ''}`;
+    if (assinatura && assinatura === ultimaAssinaturaRender) return;
+    ultimaAssinaturaRender = assinatura;
+    renderizarBoard(data);
+}
+
+function mostrarEstadoVazioBoard() {
+    ultimaAssinaturaRender = '';
+    document.getElementById('tvCountServico').textContent = '0';
+    document.getElementById('tvCountPronto').textContent = '0';
+    document.getElementById('tvListaServico').innerHTML =
+        '<div class="tv-empty">Aguardando abertura de atendimentos no pátio.</div>';
+    document.getElementById('tvListaPronto').innerHTML =
+        '<div class="tv-empty">Nenhum atendimento pronto no momento.</div>';
+}
+
+function mostrarErroConexaoBoard(err) {
+    const detalhe = err && err.message ? String(err.message) : 'Falha de conexão com o banco.';
+    document.getElementById('tvListaServico').innerHTML =
+        `<div class="tv-empty">Não foi possível carregar os atendimentos (${esc(detalhe)}). Tentando reconectar...</div>`;
+}
+
+async function resolverRefAtiva(codigoUrl) {
+    const chaveNormalizada = codigoUrl.replace(/[^a-z0-9_-]/g, '');
+    const candidatas = [chaveNormalizada];
+    if (chaveNormalizada === 'danilodetailer') {
+        candidatas.push('empresa_danilo');
+    } else if (chaveNormalizada === 'empresa_danilo') {
+        candidatas.push('danilodetailer');
+    }
+
+    for (const key of candidatas) {
+        if (!key || key.length < 2) continue;
+        const candidateRef = doc(db, 'painel_tv_publico', key);
+        const snap = await getDoc(candidateRef);
+        if (snap.exists()) {
+            return { ref: candidateRef, snap };
+        }
+    }
+
+    const primaryKey = candidatas[0] || chaveNormalizada;
+    const primaryRef = doc(db, 'painel_tv_publico', primaryKey);
+    return { ref: primaryRef, snap: null };
+}
 
 async function inicializar() {
     if (!empresaId) {
@@ -146,25 +204,51 @@ async function inicializar() {
         return;
     }
 
-    const ref = doc(db, 'painel_tv_publico', empresaId);
     try {
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-            renderizarBoard(snap.data());
+        const { ref, snap } = await resolverRefAtiva(empresaId);
+        if (snap && snap.exists()) {
+            aplicarPayloadBoard(snap.data());
         } else {
-            document.getElementById('tvListaServico').innerHTML =
-                '<div class="tv-empty">Aguardando abertura de atendimentos no pátio.</div>';
-            document.getElementById('tvListaPronto').innerHTML =
-                '<div class="tv-empty">Nenhum atendimento pronto no momento.</div>';
+            mostrarEstadoVazioBoard();
         }
-        onSnapshot(ref, (liveSnap) => {
-            if (liveSnap.exists()) {
-                renderizarBoard(liveSnap.data());
+
+        onSnapshot(
+            ref,
+            (liveSnap) => {
+                if (liveSnap.exists()) {
+                    aplicarPayloadBoard(liveSnap.data());
+                } else {
+                    mostrarEstadoVazioBoard();
+                }
+            },
+            (err) => {
+                console.error('Erro no listener em tempo real do Painel TV:', err);
+                mostrarErroConexaoBoard(err);
             }
-        });
+        );
+
+        // Fallback periódico para navegadores de Smart TV caso WebChannel/WebSocket oscile
+        if (pollingTimer) clearInterval(pollingTimer);
+        pollingTimer = setInterval(async () => {
+            try {
+                const check = await getDoc(ref);
+                if (check.exists()) {
+                    aplicarPayloadBoard(check.data());
+                } else if (empresaId === 'danilodetailer' || empresaId === 'empresa_danilo') {
+                    const altRes = await resolverRefAtiva(empresaId);
+                    if (altRes.snap && altRes.snap.exists()) {
+                        aplicarPayloadBoard(altRes.snap.data());
+                    }
+                }
+            } catch (pollErr) {
+                console.warn('Falha na atualização periódica do Painel TV:', pollErr);
+            }
+        }, 20000);
     } catch (err) {
         console.error('Erro ao conectar Painel TV:', err);
+        mostrarErroConexaoBoard(err);
     }
 }
 
 inicializar();
+

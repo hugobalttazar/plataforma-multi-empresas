@@ -1074,6 +1074,9 @@ if (pedidoCliente && sugestoesDiv) {
 
 // Alternar abas Pátio x Orçamentos x Encerrados
 function ativarAbaPedidos(aba = 'patio') {
+	if (aba === 'orcamentos' && window.AuthService && typeof window.AuthService.hasPermission === 'function' && !window.AuthService.hasPermission('orcamentos')) {
+		aba = 'patio';
+	}
 	const botoes = [
 		{ id: 'patio', btn: tabPatioBtn, view: viewPatio },
 		{ id: 'orcamentos', btn: tabOrcamentosBtn, view: viewOrcamentos },
@@ -2480,7 +2483,9 @@ function atualizarLinksPainelTV() {
 
 function sincronizarPainelTvSeguro(pedidosOverride = null) {
 	if (window.PublicoService && typeof window.PublicoService.publicarPainelTv === 'function') {
-		window.PublicoService.publicarPainelTv(pedidosOverride).catch(() => {});
+		window.PublicoService.publicarPainelTv(pedidosOverride).catch((err) => {
+			console.warn('Falha ao publicar Painel TV no Firestore:', err?.message || err);
+		});
 	}
 }
 
@@ -3225,7 +3230,16 @@ document.addEventListener('DOMContentLoaded', () => {
 			const urlTV = window.PublicoService.obterLinkPainelTv();
 			if (navigator.clipboard && navigator.clipboard.writeText) {
 				navigator.clipboard.writeText(urlTV).then(() => {
-					if (window.UI) window.UI.toast('🔗 Link do Painel TV copiado! Abra na Smart TV ou monitor da sala de espera.', 'success');
+					if (window.UI) {
+						const emDev = typeof window !== 'undefined' && window.location && String(window.location.hostname || '').startsWith('ais-dev-');
+						window.UI.toast(
+							emDev
+								? '🔗 Link copiado! Atenção: você está no link privado de desenvolvimento (ais-dev); para abrir em outra TV/aparelho, use a URL pública do sistema.'
+								: '🔗 Link do Painel TV copiado! Abra na Smart TV ou monitor da sala de espera.',
+							emDev ? 'info' : 'success',
+							emDev ? 6500 : 4000
+						);
+					}
 				}).catch(() => {});
 			}
 		});
@@ -3235,12 +3249,16 @@ document.addEventListener('DOMContentLoaded', () => {
 	sincronizarPainelTvSeguro();
 	iniciarSincronizacaoOrcamentosSeguro();
 
-	// Re-sincroniza caso o módulo ES (publico-service) finalize logo após o DOMContentLoaded
+	// Re-sincroniza após carregamento assíncrono dos módulos ES e da nuvem
 	setTimeout(() => {
 		atualizarLinksPainelTV();
 		sincronizarPainelTvSeguro();
 		iniciarSincronizacaoOrcamentosSeguro();
 	}, 900);
+	setTimeout(() => {
+		atualizarLinksPainelTV();
+		sincronizarPainelTvSeguro();
+	}, 2500);
 
 	// Setup do seletor de fotos na O.S.
 	if (btnEscolherFotoOS && osFotoInput) {

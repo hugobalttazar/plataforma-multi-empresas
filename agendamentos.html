@@ -62,7 +62,7 @@
 						<button type="button" id="btnCopiarLinkAgendaPublica" class="btn btn-secondary btn-sm" style="white-space:nowrap; font-weight:700;">
 							🔗 Copiar Link de Autoagendamento
 						</button>
-						<div id="googleCalendarStatusBadge" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:var(--radius-sm); font-size:0.85rem; color:#1e40af;">
+						<div id="googleCalendarStatusBadge" class="badge-tone-blue" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius:var(--radius-sm); font-size:0.85rem;">
 							<span>📅 Google Calendar:</span>
 							<strong>Ativo & Conectável</strong>
 						</div>
@@ -71,11 +71,11 @@
 			</div>
 
 			<!-- Toast de Sucesso -->
-			<div id="toastSucessoAgendamento" class="db-status-banner" style="display:none; background:#f0fdf4; border-color:#bbf7d0; color:#166534; margin-bottom:20px;">
+			<div id="toastSucessoAgendamento" class="db-status-banner alert-banner-success" style="display:none; margin-bottom:20px;">
 				<span class="db-status-icon">✅</span>
 				<div class="db-status-text">
 					<strong>Agendamento Cadastrado com Sucesso!</strong>
-					<p style="color:#15803d;">O horário foi reservado e você já pode enviar o link no WhatsApp do cliente ou iniciar a O.S. quando o carro chegar.</p>
+					<p class="alert-banner-sub">O horário foi reservado e você já pode enviar o link no WhatsApp do cliente ou iniciar a O.S. quando o carro chegar.</p>
 				</div>
 			</div>
 
@@ -225,7 +225,7 @@
 
 					<!-- Sincronização Google Calendar Checkbox -->
 					<div class="form-group full-width" style="margin-top: -6px;">
-						<label class="checkbox-label" style="font-weight: 600; color: #1e40af;">
+						<label class="checkbox-label text-tone-blue" style="font-weight: 600;">
 							<input type="checkbox" id="checkSincronizarGoogle" checked /> 
 							📅 Sincronizar automaticamente com o Google Calendar ao salvar
 						</label>

@@ -2,7 +2,7 @@
 // Service Worker - Sistema de Gestão Multi-Empresas (PWA)
 // ==========================================================================
 
-const CACHE_NAME = 'gestao-saas-cache-v12';
+const CACHE_NAME = 'gestao-saas-cache-v15';
 const PRECACHE_ASSETS = [
     './',
     'index.html',

@@ -284,7 +284,12 @@ app.post('/api/auth/login', async (req, res) => {
 				username: MASTER_USER,
 				isMaster: true,
 				empresaId: normalizedEmpresa || req.body.activeEmpresaId || '',
-				permissoes: ['agenda', 'pedidos', 'caixa', 'estoque', 'posvenda', 'clientes', 'servicos', 'configuracoes', 'metas']
+				permissoes: [
+					'agenda', 'pedidos', 'caixa', 'estoque', 'posvenda', 'clientes',
+					'servicos', 'historico', 'configuracoes', 'metas', 'orcamentos',
+					'painel_tv', 'pacotes', 'equipe', 'mensagens'
+				],
+				permissoesV2: true
 			};
 			const token = createSessionToken(masterUser);
 			return res.json({ success: true, user: masterUser, token });
@@ -327,7 +332,8 @@ app.post('/api/auth/login', async (req, res) => {
 						isMaster: false,
 						empresaId: u.empresaId || normalizedEmpresa,
 						empresaCodigo: normalizedEmpresa,
-						permissoes: u.permissoes || []
+						permissoes: u.permissoes || [],
+						permissoesV2: !!u.permissoesV2
 					};
 					const token = createSessionToken(sessionUser);
 					return res.json({ success: true, user: sessionUser, token });
